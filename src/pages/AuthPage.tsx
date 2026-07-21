@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { Eye, EyeOff, Calculator } from "lucide-react";
 import { GlobalStyles } from "../components/shared";
-import { isAuthenticated, loginWithPassword } from "../lib/session";
+import { authFailureMessage, isAuthenticated, loginWithPassword } from "../lib/session";
 import { syncNow } from "../lib/sync";
 
 export default function AuthPage() {
@@ -27,10 +27,10 @@ export default function AuthPage() {
     setError("");
     try {
       await loginWithPassword(login, password, remember);
-      await syncNow();
+      void syncNow();
       navigate("/home");
-    } catch {
-      setError("Неверный логин или пароль");
+    } catch (err) {
+      setError(authFailureMessage(err, "Неверный логин или пароль"));
     } finally {
       setLoading(false);
     }

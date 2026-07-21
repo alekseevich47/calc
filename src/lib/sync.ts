@@ -22,7 +22,12 @@ import {
   type ShiftRowData,
 } from "./db";
 import { isPocketBaseConfigured, pb } from "./pocketbase";
-import { formatUserName, getCurrentUserFullName, looksLikePbId } from "./session";
+import {
+  ensureServerSession,
+  formatUserName,
+  getCurrentUserFullName,
+  looksLikePbId,
+} from "./session";
 
 function currentAuthorId(): string {
   return String(pb.authStore.record?.id ?? "").trim();
@@ -32,16 +37,27 @@ function isPbId(id?: string): boolean {
   return !!id && looksLikePbId(id);
 }
 
-/** Строка готова к подтверждению/пушу (есть место, №, материал). */
+/** Строка полная: все editable-поля (место, №, тип, объём>0, материал, тариф>0). Оплата — производная. */
 export function isShiftRowComplete(r: {
   location?: string;
   markingNum?: string;
+  markingType?: string;
+  volume?: string | number;
   material?: string;
+  tariff?: string | number;
 }): boolean {
+  const volRaw = String(r.volume ?? "").trim();
+  const tarRaw = String(r.tariff ?? "").trim();
+  if (!volRaw || !tarRaw) return false;
+  const vol = Number(volRaw.replace(",", "."));
+  const tar = Number(tarRaw.replace(",", "."));
   return Boolean(
     String(r.location ?? "").trim() &&
     String(r.markingNum ?? "").trim() &&
-    String(r.material ?? "").trim(),
+    String(r.markingType ?? "").trim() &&
+    String(r.material ?? "").trim() &&
+    Number.isFinite(vol) && vol > 0 &&
+    Number.isFinite(tar) && tar > 0,
   );
 }
 
@@ -203,7 +219,7 @@ export async function confirmShift(input: {
 }): Promise<CachedShift> {
   const completeRows = input.rows.filter(isShiftRowComplete);
   if (completeRows.length === 0) {
-    throw new Error("Заполните место, № разметки и материал хотя бы в одной строке");
+    throw new Error("Заполните все поля строки (место, №, тип, объём, материал, тариф)");
   }
 
   const dicts = await getDictionaries();
@@ -780,6 +796,15 @@ export async function syncNow(): Promise<void> {
   if (!navigator.onLine) {
     await refreshStatus();
     return;
+  }
+
+  // Просроченный JWT → refresh; 401 → logout. Локальная работа без валидного JWT — ок.
+  if (isPocketBaseConfigured()) {
+    const ok = await ensureServerSession();
+    if (!ok) {
+      await refreshStatus();
+      return;
+    }
   }
 
   syncing = true;

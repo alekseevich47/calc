@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
-import { Calendar, SlidersHorizontal, X, Check, ChevronDown, ChevronUp, Trash2, Plus } from "lucide-react";
+import { Calendar, SlidersHorizontal, X, Check, ChevronDown, ChevronUp, Trash2, Plus, Search } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
 import type { CachedShift } from "../lib/db";
@@ -8,6 +8,7 @@ import {
   buildParticipantOptions,
   formatRuDate,
   fromIsoDate,
+  isShiftRowComplete,
   removeShift,
   updateShift,
   useDictionaries,
@@ -92,7 +93,10 @@ function perPerson(shift: Shift) {
 }
 
 const SWIPE_SNAP = 80;
-const DIRECTION_THRESHOLD = 6;
+/** Порог свайп vs скролл (после него long-press отменяется). */
+const DIRECTION_THRESHOLD = 12;
+/** Допуск дрожания пальца, пока ждём long-press (должен быть ≥ DIRECTION_THRESHOLD). */
+const LONG_PRESS_MOVE_PX = 16;
 const LONG_PRESS_MS = 480;
 
 // ─── Mini calendar (date-range picker) ───────────────────────────────────────
@@ -387,6 +391,155 @@ function RestorePlaceholder({ onRestore }: { onRestore: () => void }) {
   );
 }
 
+// ─── Custom select (как на главной; без нативного <select> — иначе iOS/Safari сбрасывает value вне options) ─
+
+function withCurrentOption(options: string[], current: string): string[] {
+  const v = current.trim();
+  if (!v) return options;
+  return options.includes(v) ? options : [v, ...options];
+}
+
+function EditFieldSelect({
+  label, value, options, disabled, withSearch, onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  disabled?: boolean;
+  withSearch?: boolean;
+  onChange: (v: string) => void;
+}) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 240 });
+  const [query, setQuery] = useState("");
+
+  const opts = withCurrentOption(options, value);
+  const filtered = opts.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
+
+  function openMenu() {
+    if (disabled || !btnRef.current) return;
+    const portal = document.getElementById("app-portal");
+    if (!portal) return;
+    const pb = portal.getBoundingClientRect();
+    const tb = btnRef.current.getBoundingClientRect();
+    const width = Math.max(tb.width, 220);
+    let left = tb.left - pb.left;
+    if (left + width > pb.width - 8) left = pb.width - width - 8;
+    if (left < 8) left = 8;
+    let top = tb.bottom - pb.top + 4;
+    if (top + 220 > pb.height - 8) top = Math.max(8, tb.top - pb.top - 220);
+    setPos({ top, left, width });
+    setQuery("");
+    setOpen(true);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    let remove: (() => void) | undefined;
+    const raf = requestAnimationFrame(() => {
+      const h = (e: PointerEvent) => {
+        const el = document.getElementById("edit-dd-card");
+        if (el && !el.contains(e.target as Node) && !btnRef.current?.contains(e.target as Node)) {
+          setOpen(false);
+        }
+      };
+      document.addEventListener("pointerdown", h);
+      remove = () => document.removeEventListener("pointerdown", h);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      remove?.();
+    };
+  }, [open]);
+
+  const fieldStyle: CSSProperties = {
+    width: "100%", height: 40, borderRadius: 10, border: `1px solid ${open ? "rgba(99,102,241,0.45)" : "rgba(0,0,0,0.10)"}`,
+    background: disabled ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.9)",
+    padding: "0 10px", fontSize: 13, color: value ? "#111827" : "#9ca3af",
+    fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box",
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
+    cursor: disabled ? "not-allowed" : "pointer",
+    boxShadow: open ? "0 0 0 3px rgba(99,102,241,0.10)" : "none",
+    WebkitTapHighlightColor: "transparent",
+  };
+
+  const portal = document.getElementById("app-portal");
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        disabled={disabled}
+        onClick={() => (open ? setOpen(false) : openMenu())}
+        style={fieldStyle}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: value ? 500 : 400 }}>
+          {value || label}
+        </span>
+        <ChevronDown size={14} strokeWidth={2} color="#9ca3af" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+      </button>
+      {open && portal && createPortal(
+        <div id="edit-dd-card" style={{
+          position: "absolute", top: pos.top, left: pos.left, width: pos.width, zIndex: 300, pointerEvents: "auto",
+          background: "rgba(255,255,255,0.98)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(0,0,0,0.09)", borderRadius: 14,
+          boxShadow: "0 16px 48px rgba(0,0,0,0.16)", overflow: "hidden",
+          animation: "fadeUp 0.16s ease forwards", fontFamily: "Inter, sans-serif",
+        }}>
+          {withSearch && (
+            <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+              <div style={{ position: "relative" }}>
+                <Search size={13} strokeWidth={2} color="#9ca3af" style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Поиск..."
+                  inputMode="search"
+                  style={{
+                    width: "100%", height: 32, borderRadius: 8, border: "1px solid rgba(0,0,0,0.09)",
+                    background: "rgba(0,0,0,0.03)", padding: "0 10px 0 28px", fontSize: 13,
+                    color: "#111827", fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          <div style={{ maxHeight: 200, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+            {filtered.map((opt) => {
+              const sel = opt === value;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={() => { onChange(opt); setOpen(false); }}
+                  style={{
+                    width: "100%", minHeight: 40, padding: "0 14px",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    background: sel ? "rgba(99,102,241,0.08)" : "transparent",
+                    border: "none", borderBottom: "1px solid rgba(0,0,0,0.04)",
+                    cursor: "pointer", outline: "none", fontFamily: "Inter, sans-serif",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: sel ? "#4f46e5" : "#111827", fontWeight: sel ? 600 : 400 }}>{opt}</span>
+                  {sel && <Check size={14} strokeWidth={2.5} color="#6366f1" />}
+                </button>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div style={{ padding: 14, textAlign: "center", fontSize: 13, color: "#9ca3af" }}>Нет совпадений</div>
+            )}
+          </div>
+        </div>,
+        portal,
+      )}
+    </>
+  );
+}
+
 // ─── Edit shift sheet ─────────────────────────────────────────────────────────
 
 function EditShiftSheet({ shift, participantOptions, onClose }: {
@@ -400,9 +553,10 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
   const markingNums = dicts?.markingNumbers.map((x) => x.number) ?? [];
   const materials = dicts?.materials.map((x) => x.name) ?? [];
 
+  // Черновик = снимок смены при открытии; в PB/кэш пишем только по «Сохранить»
   const [date, setDate] = useState(shift.isoDate);
-  const [participants, setParticipants] = useState<string[]>([...shift.participants]);
-  const [rows, setRows] = useState<EditDraftRow[]>(
+  const [participants, setParticipants] = useState<string[]>(() => [...shift.participants]);
+  const [rows, setRows] = useState<EditDraftRow[]>(() =>
     shift.rows.map((r) => ({
       location: r.location,
       markingNum: r.markingNum,
@@ -422,7 +576,11 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
     setRows((prev) => prev.map((r, idx) => {
       if (idx !== i) return r;
       const n = { ...r, ...patch };
-      if (patch.markingNum !== undefined && patch.markingNum !== r.markingNum) n.markingType = "";
+      // Тип сбрасываем только если при смене № он больше не подходит к новому номеру
+      if (patch.markingNum !== undefined && patch.markingNum !== r.markingNum) {
+        const types = typeMap[patch.markingNum] || [];
+        if (n.markingType && !types.includes(n.markingType)) n.markingType = "";
+      }
       return n;
     }));
   }
@@ -439,8 +597,14 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
     }]);
   }
 
+  const canSave =
+    !saving &&
+    participants.length > 0 &&
+    rows.length > 0 &&
+    rows.every(isShiftRowComplete);
+
   async function handleSave() {
-    if (participants.length === 0 || rows.length === 0) return;
+    if (!canSave) return;
     setSaving(true);
     try {
       await updateShift(shift.id, {
@@ -542,22 +706,33 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
                     )}
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <select value={r.location} onChange={(e) => updateRow(i, { location: e.target.value })} style={fieldStyle}>
-                      <option value="">Место</option>
-                      {locations.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                    <select value={r.markingNum} onChange={(e) => updateRow(i, { markingNum: e.target.value })} style={fieldStyle}>
-                      <option value="">№ разметки</option>
-                      {markingNums.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                    <select value={r.markingType} disabled={!r.markingNum} onChange={(e) => updateRow(i, { markingType: e.target.value })} style={fieldStyle}>
-                      <option value="">Тип</option>
-                      {types.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                    <select value={r.material} onChange={(e) => updateRow(i, { material: e.target.value })} style={fieldStyle}>
-                      <option value="">Материал</option>
-                      {materials.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
+                    <EditFieldSelect
+                      label="Место"
+                      value={r.location}
+                      options={locations}
+                      withSearch
+                      onChange={(v) => updateRow(i, { location: v })}
+                    />
+                    <EditFieldSelect
+                      label="№ разметки"
+                      value={r.markingNum}
+                      options={markingNums}
+                      withSearch
+                      onChange={(v) => updateRow(i, { markingNum: v })}
+                    />
+                    <EditFieldSelect
+                      label="Тип"
+                      value={r.markingType}
+                      options={types}
+                      disabled={!r.markingNum}
+                      onChange={(v) => updateRow(i, { markingType: v })}
+                    />
+                    <EditFieldSelect
+                      label="Материал"
+                      value={r.material}
+                      options={materials}
+                      onChange={(v) => updateRow(i, { material: v })}
+                    />
                     <input type="number" min="0" inputMode="decimal" placeholder="Объём" value={r.volume} onChange={(e) => updateRow(i, { volume: e.target.value })} style={fieldStyle} />
                     <input type="number" min="0" inputMode="decimal" placeholder="Тариф" value={r.tariff} onChange={(e) => updateRow(i, { tariff: e.target.value })} style={fieldStyle} />
                   </div>
@@ -580,14 +755,16 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
           }}>Отменить</button>
           <button
             type="button"
-            disabled={saving || participants.length === 0 || rows.length === 0}
+            disabled={!canSave}
             onClick={() => { void handleSave(); }}
             style={{
               flex: 2, height: 46, borderRadius: 12, border: "none",
-              background: "linear-gradient(135deg,#FF6B00,#FF9A00)", color: "#fff",
-              fontSize: 14, fontWeight: 600, fontFamily: "Inter, sans-serif", cursor: "pointer",
-              opacity: saving || participants.length === 0 || rows.length === 0 ? 0.5 : 1,
-              boxShadow: "0 4px 14px rgba(255,107,0,0.28)",
+              background: canSave ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.08)",
+              color: canSave ? "#fff" : "#c4c9d4",
+              fontSize: 14, fontWeight: 600, fontFamily: "Inter, sans-serif",
+              cursor: canSave ? "pointer" : "default",
+              opacity: saving ? 0.7 : 1,
+              boxShadow: canSave ? "0 4px 14px rgba(255,107,0,0.28)" : "none",
             }}
           >
             {saving ? "Сохранение…" : "Сохранить"}
@@ -614,11 +791,13 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
   const [removing, setRemoving] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const startPos = useRef<{ x: number; y: number } | null>(null);
   const directionLocked = useRef<"horizontal" | "vertical" | null>(null);
   const activePointerId = useRef<number | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
+  const scrollTopAtStart = useRef(0);
   const dxRef = useRef(0);
   const skipToggle = useRef(false);
 
@@ -645,6 +824,13 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
     }
   }
 
+  function openContextMenu(clientX: number, clientY: number) {
+    const portal = document.getElementById("app-portal");
+    if (!portal) return;
+    const pb = portal.getBoundingClientRect();
+    setMenu({ x: clientX - pb.left, y: clientY - pb.top });
+  }
+
   function commitDelete() {
     if (removing) return;
     setRemoving(true);
@@ -660,14 +846,24 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
     directionLocked.current = null;
     activePointerId.current = e.pointerId;
     longPressFired.current = false;
+    scrollTopAtStart.current = phoneRef.current?.scrollTop ?? 0;
     clearLongPress();
+    const target = e.currentTarget as HTMLElement;
     longPressTimer.current = setTimeout(() => {
+      longPressTimer.current = null;
+      // Скролл списка уже начался — не открываем меню
+      if ((phoneRef.current?.scrollTop ?? 0) !== scrollTopAtStart.current) return;
+      if (!startPos.current || activePointerId.current !== e.pointerId) return;
       longPressFired.current = true;
       skipToggle.current = true;
-      const portal = document.getElementById("app-portal");
-      if (!portal || !startPos.current) return;
-      const pb = portal.getBoundingClientRect();
-      setMenu({ x: startPos.current.x - pb.left, y: startPos.current.y - pb.top });
+      directionLocked.current = null;
+      setDragging(false);
+      setDx(0);
+      dxRef.current = 0;
+      if (!target.hasPointerCapture(e.pointerId)) {
+        try { target.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      }
+      openContextMenu(startPos.current.x, startPos.current.y);
       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
         try { navigator.vibrate(12); } catch { /* ignore */ }
       }
@@ -676,19 +872,22 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
 
   function onPointerMove(e: React.PointerEvent) {
     if (activePointerId.current !== e.pointerId || !startPos.current) return;
+    if (longPressFired.current) return;
+
     const dxRaw = e.clientX - startPos.current.x;
     const dyRaw = e.clientY - startPos.current.y;
     const absDx = Math.abs(dxRaw);
     const absDy = Math.abs(dyRaw);
 
-    if (absDx > DIRECTION_THRESHOLD || absDy > DIRECTION_THRESHOLD) clearLongPress();
+    // Мелкое дрожание не срывает hold; отмена только после явного сдвига
+    if (longPressTimer.current && (absDx > LONG_PRESS_MOVE_PX || absDy > LONG_PRESS_MOVE_PX)) {
+      clearLongPress();
+    }
 
     if (!directionLocked.current && (absDx > DIRECTION_THRESHOLD || absDy > DIRECTION_THRESHOLD)) {
       directionLocked.current = absDx > absDy ? "horizontal" : "vertical";
-      if (directionLocked.current === "horizontal") {
-        clearLongPress();
-        setDragging(true);
-      }
+      clearLongPress();
+      if (directionLocked.current === "horizontal") setDragging(true);
     }
 
     if (directionLocked.current !== "horizontal") return;
@@ -701,8 +900,13 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
     setDx(clamped);
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
+    if (activePointerId.current !== null && e.pointerId !== activePointerId.current) return;
     clearLongPress();
+    const el = cardRef.current;
+    if (el && e.pointerId != null && el.hasPointerCapture(e.pointerId)) {
+      try { el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    }
     if (longPressFired.current) {
       // меню уже открыто
     } else if (directionLocked.current === "horizontal") {
@@ -758,16 +962,16 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
       </div>
 
       <div
+        ref={cardRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onContextMenu={(e) => {
           e.preventDefault();
-          const portal = document.getElementById("app-portal");
-          if (!portal) return;
-          const pb = portal.getBoundingClientRect();
-          setMenu({ x: e.clientX - pb.left, y: e.clientY - pb.top });
+          clearLongPress();
+          skipToggle.current = true;
+          openContextMenu(e.clientX, e.clientY);
         }}
         style={{
           transform: `translateX(${translateX}px)`,
@@ -779,6 +983,8 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
           boxShadow: open ? "0 4px 20px rgba(0,0,0,0.10)" : "0 2px 10px rgba(0,0,0,0.05)",
           touchAction: "pan-y",
           userSelect: "none",
+          WebkitUserSelect: "none",
+          WebkitTouchCallout: "none",
         }}
       >
         <div style={{

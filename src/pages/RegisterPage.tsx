@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { Eye, EyeOff, Calculator } from "lucide-react";
 import { GlobalStyles } from "../components/shared";
-import { isAuthenticated, registerWithPassword } from "../lib/session";
+import { authFailureMessage, isAuthenticated, registerWithPassword } from "../lib/session";
 import { syncNow } from "../lib/sync";
 
 const MIN_PASSWORD = 6;
@@ -62,16 +62,21 @@ export default function RegisterPage() {
     setError("");
     try {
       await registerWithPassword({ email, password, surname, name });
-      await syncNow();
+      void syncNow();
       navigate("/home");
     } catch (err) {
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as { message?: string }).message)
           : "";
-      setError(msg.includes("email") || msg.includes("unique")
-        ? "Этот email уже зарегистрирован"
-        : "Не удалось зарегистрироваться");
+      setError(
+        authFailureMessage(
+          err,
+          msg.includes("email") || msg.includes("unique")
+            ? "Этот email уже зарегистрирован"
+            : "Не удалось зарегистрироваться",
+        ),
+      );
     } finally {
       setLoading(false);
     }

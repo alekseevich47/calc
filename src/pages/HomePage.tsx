@@ -567,7 +567,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
   ];
 
   function handleAdd() {
-    if (!row.location.trim() || !row.markingNum.trim() || !row.material.trim()) return;
+    if (!isShiftRowComplete({ ...row, volume: vol, tariff: tar })) return;
     onAdd({
       location: row.location, markingNum: row.markingNum, markingType: row.markingType,
       volume: vol, material: row.material, tariff: tar,
@@ -584,7 +584,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
     setOpenCol(null);
   }
 
-  const canAdd = Boolean(row.location.trim() && row.markingNum.trim() && row.material.trim());
+  const canAdd = isShiftRowComplete(row);
 
   return (
     <>
@@ -717,6 +717,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
 
   const markingTypeAvailable = !!editRow.markingNum;
   const typeOptions = dict.markingTypes[editRow.markingNum] || [];
+  const canSave = isShiftRowComplete(editRow);
 
   function getOptions(col: ColKey): string[] {
     if (col === "location") return dict.locations;
@@ -830,8 +831,13 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
         borderTop: "1px solid rgba(99,102,241,0.08)",
       }}>
         <button
-          onClick={() => onSave({ location: editRow.location, markingNum: editRow.markingNum, markingType: editRow.markingType, volume: vol, material: editRow.material, tariff: tar })}
-          style={{ fontSize: 12, fontWeight: 600, color: "#6366f1", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}
+          type="button"
+          disabled={!canSave}
+          onClick={() => {
+            if (!canSave) return;
+            onSave({ location: editRow.location, markingNum: editRow.markingNum, markingType: editRow.markingType, volume: vol, material: editRow.material, tariff: tar });
+          }}
+          style={{ fontSize: 12, fontWeight: 600, color: canSave ? "#6366f1" : "#d1d5db", background: "none", border: "none", cursor: canSave ? "pointer" : "default", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}
         >
           Сохранить
         </button>
@@ -1393,6 +1399,7 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
 
   const accent = isNew ? "rgba(255,107,0,0.04)" : "rgba(99,102,241,0.04)";
   const accentBorder = isNew ? "rgba(255,107,0,0.20)" : "rgba(99,102,241,0.20)";
+  const canSave = isShiftRowComplete(draft);
 
   return (
     <>
@@ -1454,7 +1461,11 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
               {payment > 0 ? payment.toLocaleString("ru-RU") + " ₽" : "—"}
             </span>
             <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => {
+              <button
+                type="button"
+                disabled={!canSave}
+                onClick={() => {
+                if (!canSave) return;
                 onSave(draft);
                 if (isNew) {
                   setDraft((p) => ({
@@ -1469,8 +1480,11 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
                 }
               }} style={{
                 height: 28, padding: "0 10px", borderRadius: 8, border: "none",
-                background: isNew ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "linear-gradient(135deg,#6366f1,#818cf8)",
-                color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
+                background: !canSave
+                  ? "rgba(0,0,0,0.08)"
+                  : isNew ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "linear-gradient(135deg,#6366f1,#818cf8)",
+                color: canSave ? "#fff" : "#c4c9d4", fontSize: 12, fontWeight: 600,
+                cursor: canSave ? "pointer" : "default", fontFamily: "Inter, sans-serif",
               }}>
                 {isNew ? "Добавить" : "Сохранить"}
               </button>

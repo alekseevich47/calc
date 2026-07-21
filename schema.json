@@ -180,7 +180,7 @@
       }
     },
     "authToken": {
-      "duration": 432000
+      "duration": 2592000
     },
     "passwordResetToken": {
       "duration": 1800

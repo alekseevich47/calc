@@ -44,6 +44,8 @@ export interface ShiftRowData {
 export interface CachedShift {
   id: string;
   pbId?: string;
+  /** PB users.id автора смены — изоляция истории/ЗП по владельцу. */
+  authorId?: string;
   date: string; // YYYY-MM-DD
   participants: string[];
   participantIds?: string[];
@@ -184,6 +186,49 @@ export async function putShift(shift: CachedShift): Promise<void> {
 export async function deleteShift(id: string): Promise<void> {
   const db = await getDb();
   await db.delete("shifts_cache", id);
+}
+
+const DATA_OWNER_KEY = "calc_data_owner";
+
+/** Очистить пользовательские данные (смены, очередь, свои teammates в кэше). Справочники остаются. */
+export async function clearUserScopedData(): Promise<void> {
+  const db = await getDb();
+  const tx = db.transaction(["shifts_cache", "sync_queue", "dictionaries_cache"], "readwrite");
+  await tx.objectStore("shifts_cache").clear();
+  await tx.objectStore("sync_queue").clear();
+  const dictsStore = tx.objectStore("dictionaries_cache");
+  const cached = await dictsStore.get(DICT_KEY);
+  if (cached) {
+    await dictsStore.put({ ...cached, participants: [], updatedAt: Date.now() });
+  }
+  await tx.done;
+  try {
+    localStorage.removeItem(DATA_OWNER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * При смене пользователя — сбросить чужой кэш смен/очереди/teammates.
+ * Один браузер / одно устройство не должно смешивать данные аккаунтов.
+ */
+export async function ensureUserDataScope(userId: string): Promise<void> {
+  const id = userId.trim();
+  if (!id) return;
+  let prev = "";
+  try {
+    prev = localStorage.getItem(DATA_OWNER_KEY) ?? "";
+  } catch {
+    prev = "";
+  }
+  if (prev === id) return;
+  await clearUserScopedData();
+  try {
+    localStorage.setItem(DATA_OWNER_KEY, id);
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function enqueue(item: Omit<SyncQueueItem, "attempts"> & { attempts?: number }): Promise<void> {

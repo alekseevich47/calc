@@ -1,4 +1,5 @@
 import { isPocketBaseConfigured, pb } from "./pocketbase";
+import { clearUserScopedData, ensureUserDataScope } from "./db";
 
 const AUTH_KEY = "calc_auth_stub";
 const PB_SESSION_KEY = "pocketbase_auth_session";
@@ -65,6 +66,12 @@ export function clearSession(): void {
   clearStubSession();
   sessionStorage.removeItem(PB_SESSION_KEY);
   pb.authStore.clear();
+  void clearUserScopedData();
+}
+
+async function scopeAfterAuth(): Promise<void> {
+  const id = String(pb.authStore.record?.id ?? "").trim();
+  if (id) await ensureUserDataScope(id);
 }
 
 /** `users.surname` + `users.name` текущего пользователя (PB) или stub-имя. */
@@ -95,6 +102,7 @@ export async function loginWithPassword(
 ): Promise<void> {
   if (isPocketBaseConfigured()) {
     await pb.collection("users").authWithPassword(login.trim(), password);
+    await scopeAfterAuth();
     persistRemember(remember);
     return;
   }
@@ -127,5 +135,6 @@ export async function registerWithPassword(input: {
     name,
   });
   await pb.collection("users").authWithPassword(email, input.password);
+  await scopeAfterAuth();
   persistRemember(remember);
 }

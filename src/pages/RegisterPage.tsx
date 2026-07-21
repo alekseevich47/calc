@@ -5,6 +5,38 @@ import { GlobalStyles } from "../components/shared";
 import { isAuthenticated, registerWithPassword } from "../lib/session";
 import { syncNow } from "../lib/sync";
 
+const MIN_PASSWORD = 6;
+
+type FieldErrors = {
+  email?: string;
+  password?: string;
+  surname?: string;
+  name?: string;
+};
+
+function validateFields(input: {
+  email: string;
+  password: string;
+  surname: string;
+  name: string;
+}): FieldErrors {
+  const errors: FieldErrors = {};
+  const email = input.email.trim();
+  if (!email || !email.includes("@")) {
+    errors.email = "Укажите почту с символом @";
+  }
+  if (input.password.length < MIN_PASSWORD) {
+    errors.password = `Минимум ${MIN_PASSWORD} символов`;
+  }
+  if (!input.surname.trim()) {
+    errors.surname = "Введите фамилию";
+  }
+  if (!input.name.trim()) {
+    errors.name = "Введите имя";
+  }
+  return errors;
+}
+
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -14,20 +46,18 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   if (isAuthenticated()) {
     return <Navigate to="/home" replace />;
   }
 
-  const canSubmit =
-    email.trim().length > 0 &&
-    password.length >= 8 &&
-    surname.trim().length > 0 &&
-    name.trim().length > 0;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit || loading) return;
+    if (loading) return;
+    const nextErrors = validateFields({ email, password, surname, name });
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     setLoading(true);
     setError("");
     try {
@@ -72,6 +102,18 @@ export default function RegisterPage() {
           box-shadow: 0 0 0 3px rgba(255,107,0,0.10);
           background: rgba(255,255,255,0.92);
         }
+        .auth-input.auth-input-error {
+          border-color: #ef4444;
+          box-shadow: 0 0 0 3px rgba(239,68,68,0.12);
+        }
+        .auth-input.auth-input-error:focus {
+          border-color: #ef4444;
+          box-shadow: 0 0 0 3px rgba(239,68,68,0.16);
+        }
+        .auth-field-hint {
+          margin: 0; font-size: 12px; font-weight: 500; color: #ef4444;
+          line-height: 1.3;
+        }
         .auth-btn {
           width: 100%; height: 50px; border-radius: 14px; border: none;
           background: linear-gradient(135deg, #FF6B00 0%, #FF9A00 100%);
@@ -96,6 +138,7 @@ export default function RegisterPage() {
       <div style={{ position: "absolute", bottom: -60, left: -80, width: 300, height: 300, background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
 
       <form
+        noValidate
         onSubmit={(e) => { void handleSubmit(e); }}
         style={{
           width: "100%", maxWidth: 330, display: "flex", flexDirection: "column", gap: 0,
@@ -119,25 +162,71 @@ export default function RegisterPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Почта</label>
-            <input className="auth-input" type="email" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" autoCapitalize="off" />
+            <label style={{ fontSize: 12, fontWeight: 600, color: fieldErrors.email ? "#ef4444" : "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Почта</label>
+            <input
+              className={`auth-input${fieldErrors.email ? " auth-input-error" : ""}`}
+              type="email"
+              placeholder="email@example.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+              }}
+              autoComplete="email"
+              autoCapitalize="off"
+            />
+            {fieldErrors.email && <p className="auth-field-hint">{fieldErrors.email}</p>}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Пароль</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: fieldErrors.password ? "#ef4444" : "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Пароль</label>
             <div style={{ position: "relative" }}>
-              <input className="auth-input" type={showPassword ? "text" : "password"} placeholder="Минимум 8 символов" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" style={{ paddingRight: 48 } as React.CSSProperties} />
+              <input
+                className={`auth-input${fieldErrors.password ? " auth-input-error" : ""}`}
+                type={showPassword ? "text" : "password"}
+                placeholder={`Минимум ${MIN_PASSWORD} символов`}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                autoComplete="new-password"
+                style={{ paddingRight: 48 } as React.CSSProperties}
+              />
               <button type="button" onClick={() => setShowPassword((v) => !v)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", color: "#9ca3af", outline: "none" }}>
                 {showPassword ? <EyeOff size={18} strokeWidth={1.8} /> : <Eye size={18} strokeWidth={1.8} />}
               </button>
             </div>
+            {fieldErrors.password && <p className="auth-field-hint">{fieldErrors.password}</p>}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Фамилия</label>
-            <input className="auth-input" type="text" placeholder="Фамилия" value={surname} onChange={(e) => setSurname(e.target.value)} autoComplete="family-name" />
+            <label style={{ fontSize: 12, fontWeight: 600, color: fieldErrors.surname ? "#ef4444" : "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Фамилия</label>
+            <input
+              className={`auth-input${fieldErrors.surname ? " auth-input-error" : ""}`}
+              type="text"
+              placeholder="Фамилия"
+              value={surname}
+              onChange={(e) => {
+                setSurname(e.target.value);
+                if (fieldErrors.surname) setFieldErrors((prev) => ({ ...prev, surname: undefined }));
+              }}
+              autoComplete="family-name"
+            />
+            {fieldErrors.surname && <p className="auth-field-hint">{fieldErrors.surname}</p>}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Имя</label>
-            <input className="auth-input" type="text" placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" />
+            <label style={{ fontSize: 12, fontWeight: 600, color: fieldErrors.name ? "#ef4444" : "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Имя</label>
+            <input
+              className={`auth-input${fieldErrors.name ? " auth-input-error" : ""}`}
+              type="text"
+              placeholder="Имя"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: undefined }));
+              }}
+              autoComplete="given-name"
+            />
+            {fieldErrors.name && <p className="auth-field-hint">{fieldErrors.name}</p>}
           </div>
         </div>
 
@@ -145,7 +234,7 @@ export default function RegisterPage() {
           <p style={{ margin: "0 0 12px", fontSize: 13, color: "#ef4444", fontWeight: 500 }}>{error}</p>
         )}
 
-        <button type="submit" className="auth-btn" disabled={loading || !canSubmit}>
+        <button type="submit" className="auth-btn" disabled={loading}>
           {loading ? (
             <>
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ animation: "spin 0.9s linear infinite", flexShrink: 0 }}>

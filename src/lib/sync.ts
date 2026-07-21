@@ -4,6 +4,7 @@ import {
   dequeue,
   deleteShift as deleteShiftFromDb,
   enqueue,
+  ensureUserDataScope,
   fromIsoDate,
   getDictionaries,
   getShift,
@@ -22,6 +23,10 @@ import {
 } from "./db";
 import { isPocketBaseConfigured, pb } from "./pocketbase";
 import { formatUserName, getCurrentUserFullName } from "./session";
+
+function currentAuthorId(): string {
+  return String(pb.authStore.record?.id ?? "").trim();
+}
 
 function isPbId(id?: string): boolean {
   return !!id && /^[a-z0-9]{15}$/i.test(id);
@@ -149,7 +154,13 @@ export function useShifts(): CachedShift[] {
   const [shifts, setShifts] = useState<CachedShift[]>([]);
   useEffect(() => {
     let cancelled = false;
-    const load = () => { void listShifts().then((s) => { if (!cancelled) setShifts(s); }); };
+    const load = () => {
+      void listShifts().then((s) => {
+        if (cancelled) return;
+        const me = currentAuthorId();
+        setShifts(me ? s.filter((x) => !x.authorId || x.authorId === me) : s);
+      });
+    };
     load();
     const unsub = subscribe(() => load());
     return () => { cancelled = true; unsub(); };
@@ -210,6 +221,7 @@ export async function confirmShift(input: {
 
   const shift: CachedShift = {
     id: newId(),
+    authorId: currentAuthorId() || undefined,
     date: toIsoDate(input.date),
     participants: [...input.participants],
     participantIds,
@@ -330,6 +342,7 @@ export async function updateShift(id: string, input: ShiftWriteInput): Promise<C
   const resolved = await resolveShiftWrite(input);
   const shift: CachedShift = {
     ...existing,
+    authorId: existing.authorId || currentAuthorId() || undefined,
     date: toIsoDate(input.date),
     participants: resolved.participants,
     participantIds: resolved.participantIds,
@@ -394,6 +407,13 @@ async function pullFromServer(): Promise<void> {
     return;
   }
 
+  const authorId = currentAuthorId();
+  if (!authorId) {
+    setSnapshot({ lastError: "Нет id пользователя — войдите снова" });
+    return;
+  }
+  await ensureUserDataScope(authorId);
+
   const [locations, markingNumbers, markingTypes, materials, teammates] = await Promise.all([
     safeList("locations", { sort: "name" }),
     safeList("marking_numbers", { sort: "number" }),
@@ -457,10 +477,14 @@ async function pullFromServer(): Promise<void> {
   }
 
   try {
+    // Только свои смены (listRule тоже фильтрует по author)
     const remote = await pb.collection("shifts").getFullList({
+      filter: `author="${authorId}"`,
       sort: "-date",
       expand: "shift_rows_via_shift",
     });
+
+    const remoteIds = new Set(remote.map((r) => r.id));
 
     for (const rec of remote) {
       let rows: ShiftRowData[] = [];
@@ -503,6 +527,7 @@ async function pullFromServer(): Promise<void> {
       await putShift({
         id: existing?.id ?? rec.id,
         pbId: rec.id,
+        authorId,
         date: dateRaw,
         participants: participantNames.length ? participantNames : (existing?.participants ?? []),
         participantIds: existing?.participantIds,
@@ -511,6 +536,18 @@ async function pullFromServer(): Promise<void> {
         updatedAt: Date.now(),
         pendingSync: false,
       });
+    }
+
+    // Убрать чужие / удалённые на сервере (не трогать pending)
+    for (const localShift of await listShifts()) {
+      if (localShift.pendingSync) continue;
+      if (localShift.authorId && localShift.authorId !== authorId) {
+        await deleteShiftFromDb(localShift.id);
+        continue;
+      }
+      if (localShift.pbId && !remoteIds.has(localShift.pbId)) {
+        await deleteShiftFromDb(localShift.id);
+      }
     }
   } catch (err) {
     console.warn("[sync] pull shifts failed:", err);
@@ -614,7 +651,8 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
     .map((n) => partByName.get(n))
     .filter((id): id is string => Boolean(id) && isPbId(id));
 
-  const authorId = String(pb.authStore.record?.id ?? "").trim();
+  const authorId = currentAuthorId();
+  if (!authorId) throw new Error("Нет id пользователя — войдите снова");
   const statusPayload = shift.status === "draft" ? "draft" : "confirmed";
 
   for (const r of rows) {
@@ -628,7 +666,7 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
     if (!pbId) {
       const created = await pb.collection("shifts").create({
         date: shift.date,
-        author: authorId || undefined,
+        author: authorId,
         participants: participantsPayload,
         status: statusPayload,
       });
@@ -636,6 +674,7 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
       await putShift({
         ...shift,
         rows,
+        authorId,
         participants: participantsPayload,
         participantIds: teammateIds,
         pbId,
@@ -645,6 +684,7 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
     } else {
       await pb.collection("shifts").update(pbId, {
         date: shift.date,
+        author: authorId,
         participants: participantsPayload,
         status: statusPayload,
       });
@@ -676,6 +716,7 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
     await putShift({
       ...shift,
       rows,
+      authorId,
       participants: participantsPayload,
       participantIds: teammateIds,
       pbId,

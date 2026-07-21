@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
-import { Calendar, SlidersHorizontal, X, Check, ChevronDown, ChevronUp, Pencil, Trash2, Plus } from "lucide-react";
+import { Calendar, SlidersHorizontal, X, Check, ChevronDown, ChevronUp, Trash2, Plus } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useOutletContext } from "react-router";
 import type { CachedShift } from "../lib/db";
 import { markingTypesMap } from "../lib/db";
 import {
@@ -13,6 +14,7 @@ import {
   useShifts,
 } from "../lib/sync";
 import { getCurrentUserFullName } from "../lib/session";
+import type { ShellContext } from "./AppShell";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -284,6 +286,7 @@ function ContextMenu({ x, y, onEdit, onDelete, onClose }: {
 }) {
   const menuW = 188;
   const [left, setLeft] = useState(x);
+  const dismissReady = useRef(false);
 
   useEffect(() => {
     const portal = document.getElementById("app-portal");
@@ -292,37 +295,95 @@ function ContextMenu({ x, y, onEdit, onDelete, onClose }: {
     setLeft(Math.max(12, Math.min(x, pw - menuW - 12)));
   }, [x]);
 
+  // После long-press не закрывать по «хвостовому» pointer/click
+  useEffect(() => {
+    dismissReady.current = false;
+    const t = setTimeout(() => { dismissReady.current = true; }, 280);
+    return () => clearTimeout(t);
+  }, []);
+
+  function tryDismiss() {
+    if (!dismissReady.current) return;
+    onClose();
+  }
+
   return createPortal(
     <>
-      <div onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose(); }} style={{ position: "absolute", inset: 0, zIndex: 400 }} />
+      <div
+        onPointerDown={(e) => { e.preventDefault(); tryDismiss(); }}
+        onClick={(e) => { e.preventDefault(); tryDismiss(); }}
+        onContextMenu={(e) => { e.preventDefault(); onClose(); }}
+        style={{ position: "absolute", inset: 0, zIndex: 400, pointerEvents: "auto" }}
+      />
       <div style={{
         position: "absolute", top: Math.max(12, y), left, width: menuW, zIndex: 401,
+        pointerEvents: "auto",
         background: "rgba(255,255,255,0.98)", backdropFilter: "blur(20px)",
         borderRadius: 14, border: "1px solid rgba(0,0,0,0.08)",
         boxShadow: "0 12px 36px rgba(0,0,0,0.18)",
         overflow: "hidden", fontFamily: "Inter, sans-serif",
         animation: "fadeUp 0.16s ease forwards",
       }}>
-        <button type="button" onClick={() => { onClose(); onEdit(); }} style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 10,
-          padding: "13px 14px", border: "none", background: "none", cursor: "pointer",
-          fontFamily: "Inter, sans-serif", outline: "none",
-          borderBottom: "1px solid rgba(0,0,0,0.06)",
-        }}>
-          <Pencil size={15} strokeWidth={2} color="#6366f1" />
-          <span style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>Редактировать</span>
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onClose(); onEdit(); }}
+          style={{
+            width: "100%", display: "flex", alignItems: "center",
+            padding: "13px 16px", border: "none", background: "none", cursor: "pointer",
+            fontFamily: "Inter, sans-serif", outline: "none",
+            borderBottom: "1px solid rgba(0,0,0,0.06)",
+            fontSize: 14, fontWeight: 500, color: "#111827", textAlign: "left",
+          }}
+        >
+          Редактировать
         </button>
-        <button type="button" onClick={() => { onClose(); onDelete(); }} style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 10,
-          padding: "13px 14px", border: "none", background: "none", cursor: "pointer",
-          fontFamily: "Inter, sans-serif", outline: "none",
-        }}>
-          <Trash2 size={15} strokeWidth={2} color="#ef4444" />
-          <span style={{ fontSize: 14, fontWeight: 500, color: "#ef4444" }}>Удалить</span>
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onClose(); onDelete(); }}
+          style={{
+            width: "100%", display: "flex", alignItems: "center",
+            padding: "13px 16px", border: "none", background: "none", cursor: "pointer",
+            fontFamily: "Inter, sans-serif", outline: "none",
+            fontSize: 14, fontWeight: 500, color: "#ef4444", textAlign: "left",
+          }}
+        >
+          Удалить
         </button>
       </div>
     </>,
     document.getElementById("app-portal")!,
+  );
+}
+
+function RestorePlaceholder({ onRestore }: { onRestore: () => void }) {
+  return (
+    <div style={{
+      borderRadius: 18,
+      background: "rgba(0,0,0,0.04)",
+      border: "1px dashed rgba(0,0,0,0.10)",
+      padding: "14px 16px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minHeight: 64,
+      animation: "fadeUp 0.18s ease forwards",
+    }}>
+      <button
+        type="button"
+        onClick={onRestore}
+        style={{
+          height: 36, padding: "0 18px", borderRadius: 12, border: "none", cursor: "pointer",
+          background: "rgba(255,255,255,0.9)",
+          boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
+          fontSize: 13, fontWeight: 600, color: "#374151",
+          fontFamily: "Inter, sans-serif", outline: "none",
+        }}
+      >
+        Восстановить
+      </button>
+    </div>
   );
 }
 
@@ -540,10 +601,12 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
 
 // ─── Shift Card ───────────────────────────────────────────────────────────────
 
-function ShiftCard({ shift, onRequestEdit }: {
+function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
   shift: Shift;
   onRequestEdit: (s: Shift) => void;
+  onRequestDelete: (s: Shift) => void;
 }) {
+  const { phoneRef } = useOutletContext<ShellContext>();
   const [open, setOpen] = useState(false);
   const [dx, setDx] = useState(0);
   const [isSnapped, setIsSnapped] = useState(false);
@@ -566,6 +629,15 @@ function ShiftCard({ shift, onRequestEdit }: {
     .map(r => `${r.markingNum} — ${r.markingType} · ${fmtVol(r.volume)}`)
     .join("  ·  ");
 
+  useEffect(() => {
+    if (!menu) return;
+    const el = phoneRef.current;
+    if (!el) return;
+    const close = () => setMenu(null);
+    el.addEventListener("scroll", close, { passive: true });
+    return () => el.removeEventListener("scroll", close);
+  }, [menu, phoneRef]);
+
   function clearLongPress() {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
@@ -578,7 +650,8 @@ function ShiftCard({ shift, onRequestEdit }: {
     setRemoving(true);
     setIsSnapped(false);
     setDx(0);
-    setTimeout(() => { void removeShift(shift.id); }, 280);
+    setMenu(null);
+    setTimeout(() => { onRequestDelete(shift); }, 280);
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -668,7 +741,7 @@ function ShiftCard({ shift, onRequestEdit }: {
         position: "absolute", right: 0, top: 0, bottom: 0, width: SWIPE_SNAP,
         background: "linear-gradient(135deg,#ef4444,#dc2626)",
         display: "flex", alignItems: "center", justifyContent: "center",
-        borderRadius: "0 18px 18px 0",
+        borderRadius: 18,
         opacity: deleteProgress,
         transform: `translateX(${(1 - deleteProgress) * 14}px) scale(${0.88 + 0.12 * deleteProgress})`,
         transition: dragging ? "none" : "opacity 0.22s ease, transform 0.22s ease",
@@ -829,6 +902,24 @@ export default function HistoryPage() {
   const [showFilter, setShowFilter] = useState(false);
   const [filterParticipants, setFilterParticipants] = useState<string[]>([]);
   const [editing, setEditing] = useState<Shift | null>(null);
+  /** Soft-delete: id → true, пока на экране History; flush при уходе/закрытии. */
+  const [pendingDeletes, setPendingDeletes] = useState<Record<string, true>>({});
+  const pendingDeletesRef = useRef(pendingDeletes);
+  pendingDeletesRef.current = pendingDeletes;
+
+  useEffect(() => {
+    function flush() {
+      const ids = Object.keys(pendingDeletesRef.current);
+      for (const id of ids) void removeShift(id);
+      pendingDeletesRef.current = {};
+    }
+    const onPageHide = () => flush();
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      flush();
+    };
+  }, []);
 
   const filtered = shifts.filter(s => {
     const inRange =
@@ -840,9 +931,11 @@ export default function HistoryPage() {
     return inRange && matchParticipants;
   });
 
-  const totalVol = filtered.reduce((s, sh) => s + sh.rows.reduce((a, r) => a + r.volume, 0), 0);
-  const totalPay = filtered.reduce((s, sh) => s + shiftTotal(sh), 0);
-  const totalPerPerson = filtered.reduce((s, sh) => s + perPerson(sh), 0);
+  const activeFiltered = filtered.filter((s) => !pendingDeletes[s.id]);
+
+  const totalVol = activeFiltered.reduce((s, sh) => s + sh.rows.reduce((a, r) => a + r.volume, 0), 0);
+  const totalPay = activeFiltered.reduce((s, sh) => s + shiftTotal(sh), 0);
+  const totalPerPerson = activeFiltered.reduce((s, sh) => s + perPerson(sh), 0);
 
   function formatPeriod() {
     if (!dateRange.from && !dateRange.to) return "Весь период";
@@ -902,11 +995,23 @@ export default function HistoryPage() {
           </div>
         ) : (
           filtered.map(shift => (
-            <ShiftCard
-              key={shift.id}
-              shift={shift}
-              onRequestEdit={setEditing}
-            />
+            pendingDeletes[shift.id] ? (
+              <RestorePlaceholder
+                key={shift.id}
+                onRestore={() => setPendingDeletes((prev) => {
+                  const next = { ...prev };
+                  delete next[shift.id];
+                  return next;
+                })}
+              />
+            ) : (
+              <ShiftCard
+                key={shift.id}
+                shift={shift}
+                onRequestEdit={setEditing}
+                onRequestDelete={(s) => setPendingDeletes((prev) => ({ ...prev, [s.id]: true }))}
+              />
+            )
           ))
         )}
 

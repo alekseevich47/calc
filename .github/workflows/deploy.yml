@@ -1,0 +1,42 @@
+name: Deploy calc
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        env:
+          VITE_POCKETBASE_URL: https://urban42.online/calc
+        run: pnpm run build
+
+      # Secrets: SSH_HOST, SSH_USER, SSH_KEY
+      # Optional: SSH_PORT (default 22171), DEPLOY_PATH (default /var/www/calc/dist/)
+      - name: Upload dist via rsync
+        uses: burnett01/rsync-deployments@7.0.2
+        with:
+          switches: -avz --delete --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r
+          path: dist/
+          remote_path: /var/www/calc/dist/
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_KEY }}
+          remote_port: 22171

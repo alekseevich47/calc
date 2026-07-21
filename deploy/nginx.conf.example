@@ -1,0 +1,56 @@
+# Calc — фрагменты для Nginx (подпуть /calc на общем server urban42.online)
+#
+# НЕ заменяет /etc/nginx/sites-available/urban целиком.
+# Вставлять только блоки ниже в существующий server { ... } на 443,
+# не трогая location других проектов (/, /api/, /tt/, /map/, /smile, …).
+#
+# Upstream (рядом с другими upstream в начале файла):
+#
+#   upstream pocketbase_calc {
+#       server 127.0.0.1:8095;
+#       keepalive 32;
+#   }
+
+# Редирект без завершающего слэша
+location = /calc {
+    return 301 /calc/;
+}
+
+# Статика SPA (сборка Vite с base: '/calc/')
+location /calc/ {
+    alias /var/www/calc/dist/;
+    index index.html;
+    try_files $uri $uri/ /calc/index.html;
+
+    # index.html и SW — без долгого кэша
+    location ~* ^/calc/(index\.html|sw\.js|registerSW\.js|workbox-.*\.js|manifest\.webmanifest)$ {
+        add_header Cache-Control "no-cache" always;
+    }
+
+    location ~* \.(?:js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, no-transform";
+    }
+}
+
+# PocketBase API (same-origin → CORS не нужен)
+location /calc/api/ {
+    proxy_pass http://pocketbase_calc/api/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 100M;
+}
+
+# PocketBase Admin UI
+location /calc/_/ {
+    proxy_pass http://pocketbase_calc/_/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}

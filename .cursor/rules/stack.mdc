@@ -27,7 +27,7 @@ alwaysApply: true
 | Иконки | `lucide-react` |
 | Tailwind / shadcn-ui (`src/app/components/ui/*`) | подключены как инфраструктура, но страницы их **не используют** — не подключать к новым экранам без явного решения, не удалять пока не мешает |
 | Неиспользуемое в deps | `motion`, MUI, Emotion, recharts, react-dnd, sonner, vaul, cmdk, react-hook-form — артефакты Figma Make, не использовать без причины |
-| PWA / офлайн / IndexedDB / API | **не реализовано** — SW, manifest, IndexedDB, `navigator.storage.persist()`, backend отсутствуют |
+| PWA / офлайн / IndexedDB / API | частично: `vite-plugin-pwa`, `src/lib/{pocketbase,db,sync,session}.ts`, deps `pocketbase`+`idb`; прод-сборка/SW под `/calc/` ещё ломаются (см. «Прод и Nginx») |
 | Умный ввод | Парсер regex в `AppShell.tsx` (`parseQuickText`) — без fuzzy match по справочнику |
 
 **Правило работы с этим кодом:** это Figma Make прототип — все стили/анимации/иконки/переходы уже сделаны и **сохраняются как есть**; добираем реальную логику (state/persist/PWA/API) вокруг существующей вёрстки, не переписывая визуал.
@@ -154,8 +154,27 @@ Mobile — фиксированный phone mockup 390×844 (`AppShell`/`AuthPag
 - **Backend/БД**: PocketBase — единый бинарник, поднимается на том же VPS, что и статика фронтенда. Коллекции: встроенная auth `users` + `locations`, `marking_numbers`, `marking_types`, `materials` (справочники), `shifts`, `shift_rows` (данные смен). Регистрации нет — пользователей создаёт админ через встроенную админку PocketBase.
 - **Клиент**: официальный JS SDK `pocketbase` (npm), singleton-клиент `src/lib/pocketbase.ts`, сессия — через встроенный `authStore` (persist в `localStorage`).
 - **Офлайн-кэш**: IndexedDB через `idb`, слой `src/lib/db.ts` + `src/lib/sync.ts` (очередь на запись, синк при онлайне, единый источник `syncStatus` вместо текущего дублирования в `AppShell.tsx`/`HomePage.tsx`).
-- **Деплой**: git-based — сервер (один VPS, SSH) + Nginx (реверс-прокси на PocketBase `127.0.0.1:8090` + раздача `dist/` статики фронтенда, `try_files $uri /index.html` под react-router) + Let's Encrypt (certbot) для HTTPS. Автодеплой — GitHub Actions по push в `main` (сборка в CI, доставка `dist/` на сервер по SSH).
+- **Деплой**: git-based — сервер (один VPS, SSH) + Nginx + Let's Encrypt. Автодеплой — GitHub Actions по push в `main` (сборка в CI, доставка `dist/` на сервер по SSH) — **ещё не заведён** (нет `.github/workflows/`).
 - **PWA-обвязка**: `vite-plugin-pwa` для manifest/SW интеграции со сборкой (вместо ручного SW).
+
+## Прод и Nginx (факт, urban42.online) — не ломать чужие location
+
+- **Публичный URL приложения:** `https://urban42.online/calc/` (подпуть, не корень домена).
+- **VPS:** Ubuntu 24.04, SSH `calc-vps` → user `sa`, порт **22171** (не 22).
+- **Общий Nginx:** один `server` на `urban42.online` / `www` / `api` — файл `/etc/nginx/sites-available/urban` (symlink в `sites-enabled`). На том же server живут другие проекты (`/`, `/api/`, `/_/`, `/tt/`, `/tt-api/`, `/map/`, `/smile`, …). **Править только блоки `/calc*`** (и при необходимости `upstream pocketbase_calc`). Не переписывать файл целиком, не трогать чужие `location`/`upstream`.
+- **Calc уже в Nginx:**
+  - `upstream pocketbase_calc` → `127.0.0.1:8095`
+  - `location /calc/` → `alias /var/www/calc/dist/;` + `try_files` (статика SPA)
+  - `location /calc/api/` → proxy на `pocketbase_calc/api/`
+  - `location /calc/_/` → proxy на админку PocketBase calc
+- **PocketBase calc:** systemd `pocketbase-calc.service`, слушает `127.0.0.1:8095` (не наружу). CORS не нужен при том же origin (`VITE_POCKETBASE_URL=https://urban42.online/calc`).
+- **Код на сервере:** `/var/www/calc` (git clone `main`, есть `dist/`, Node 20 + pnpm). Продовый `.env` на сервере может отсутствовать — задавать `VITE_POCKETBASE_URL` при сборке.
+- **Обязательная сборка под подпуть** (иначе чёрный экран):
+  - Vite `base: '/calc/'`
+  - `createBrowserRouter(..., { basename: '/calc' })`
+  - PWA: `start_url`/`scope`/иконки с префиксом `/calc/`, `navigateFallback: '/calc/index.html'` (сейчас в билде fallback на `/index.html` — ломает SW)
+- **`/calc` без слэша:** сейчас **404** (есть только `location /calc/`). Нужен точечный редирект: `location = /calc { return 301 /calc/; }` — больше ничего в общем конфиге не менять.
+- Перед правками Nginx: бэкап файла, `nginx -t`, затем `systemctl reload nginx`.
 
 ## Дизайн
 
@@ -179,7 +198,8 @@ Mobile — фиксированный phone mockup 390×844 (`AppShell`/`AuthPag
 
 - Продуктовые требования и структура экранов согласованы.
 - Дизайн реализован как Figma Make прототип (Vite+React+TS+react-router, inline-стили, lucide-react) — визуал/анимации готовы и **не трогаются**.
-- Desktop-раскладка (sidebar) **частично реализована** (`AppShell.tsx` + `DesktopHomePage` в `HomePage.tsx`), но с известными багами (см. выше) и без адаптации `AuthPage`/`HistoryPage`/`ProfilePage`.
-- Backend/деплой **спроектированы, не реализованы**: PocketBase и git-деплой на VPS решены архитектурно (см. раздел «Backend и деплой»), пошаговый план — `Tasks/TASKS_start.md`.
-- Не реализовано относительно спеки: PWA (manifest/SW), IndexedDB и офлайн-очередь, синк с сервером, `navigator.storage.persist()`, онбординг «На экран Домой», реальная авторизация/сессия, связь Главная↔История (persist смен), fuzzy match в парсере.
-- Технический долг Figma Make (не мешает, но иметь в виду): неиспользуемые deps (motion, MUI, shadcn kit и др.), нет `tsconfig`/`eslint`/`tailwind.config`/lock-файла, `HomePcPage.tsx` — мёртвый код.
+- Desktop-раскладка (sidebar) **частично реализована** (`AppShell.tsx` + `DesktopHomePage` в `HomePage.tsx`).
+- **Прод:** домен `urban42.online`, приложение под `/calc/`, PocketBase calc на `:8095` через `/calc/api/` — инфраструктура на VPS есть; сайт сейчас отдаёт HTML, но UI пустой из‑за base/SW/basename (см. «Прод и Nginx»).
+- **Блок 3 (деплой):** 3.1–3.2 на VPS готовы; Nginx: `/calc`→`/calc/`, статика + `/calc/api/` + `/calc/_/`; сборка с `base/basename '/calc/'`; референс `deploy/nginx.conf.example`; CI `.github/workflows/deploy.yml` (нужны секреты `SSH_HOST`/`SSH_USER`/`SSH_KEY`).
+- Не закрыто относительно спеки: стабильный прод под `/calc/`, CI-деплой, онбординг «На экран Домой», полная связь UI↔sync, fuzzy match в парсере.
+- Технический долг Figma Make: неиспользуемые deps (motion, MUI, shadcn kit и др.) — не трогать без причины.

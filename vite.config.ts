@@ -7,6 +7,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+/** Production (and local) mount path — must match Nginx `location /calc/` */
+const BASE = '/calc/'
+
 function figmaAssetResolver() {
   return {
     name: 'figma-asset-resolver',
@@ -20,6 +23,7 @@ function figmaAssetResolver() {
 }
 
 export default defineConfig({
+  base: BASE,
   plugins: [
     figmaAssetResolver(),
     react(),
@@ -37,7 +41,8 @@ export default defineConfig({
         name: 'Учёт разметки',
         short_name: 'Разметка',
         description: 'Учёт смен и расчёт зарплаты бригад дорожной разметки',
-        start_url: '/',
+        start_url: BASE,
+        scope: BASE,
         display: 'standalone',
         orientation: 'portrait-primary',
         background_color: '#ffffff',
@@ -45,25 +50,25 @@ export default defineConfig({
         lang: 'ru',
         icons: [
           {
-            src: '/icons/icon-192.png',
+            src: `${BASE}icons/icon-192.png`,
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/icons/icon-512.png',
+            src: `${BASE}icons/icon-512.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/icons/icon-192-maskable.png',
+            src: `${BASE}icons/icon-192-maskable.png`,
             sizes: '192x192',
             type: 'image/png',
             purpose: 'maskable',
           },
           {
-            src: '/icons/icon-512-maskable.png',
+            src: `${BASE}icons/icon-512-maskable.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
@@ -73,7 +78,7 @@ export default defineConfig({
       workbox: {
         // App shell only — data cache lives in IndexedDB (Block 2)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2}'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${BASE}index.html`,
       },
       devOptions: {
         enabled: false,

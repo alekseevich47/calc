@@ -4,8 +4,8 @@ import { useOutletContext } from "react-router";
 import { Plus, Calendar, ChevronDown, X, Search, Check, Trash2 } from "lucide-react";
 import { StatusBadge } from "../components/shared";
 import { DEFAULT_DICTIONARIES, markingTypesMap } from "../lib/db";
-import { getCurrentUserFullName } from "../lib/session";
-import { confirmShift, createTeammate, buildParticipantOptions, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
+import { getCurrentUserFullName, looksLikePbId, subscribeAuthStore } from "../lib/session";
+import { confirmShift, createTeammate, buildParticipantOptions, isShiftRowComplete, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 import type { QuickRow, ShellContext } from "./AppShell";
 
 // ─── Dictionaries context (из IndexedDB / PocketBase) ─────────────────────────
@@ -144,9 +144,18 @@ function ParticipantsBlock({
   );
 
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
+    let remove: (() => void) | undefined;
+    const raf = requestAnimationFrame(() => {
+      const h = (e: PointerEvent) => {
+        if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false);
+      };
+      document.addEventListener("pointerdown", h);
+      remove = () => document.removeEventListener("pointerdown", h);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      remove?.();
+    };
   }, []);
 
   const toggle = (name: string) => setSelected(selected.includes(name) ? selected.filter((n) => n !== name) : [...selected, name]);
@@ -411,13 +420,20 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Не фокусируем поиск автоматически — иначе на mobile сразу открывается клавиатура.
-    const h = (e: MouseEvent) => {
-      const el = document.getElementById("dd-card");
-      if (el && !el.contains(e.target as Node)) onClose();
+    // pointerdown + rAF: на iOS synthetic mousedown от тапа открытия сразу закрывал dropdown
+    let remove: (() => void) | undefined;
+    const raf = requestAnimationFrame(() => {
+      const h = (e: PointerEvent) => {
+        const el = document.getElementById("dd-card");
+        if (el && !el.contains(e.target as Node)) onClose();
+      };
+      document.addEventListener("pointerdown", h);
+      remove = () => document.removeEventListener("pointerdown", h);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      remove?.();
     };
-    setTimeout(() => document.addEventListener("mousedown", h), 0);
-    return () => document.removeEventListener("mousedown", h);
   }, [onClose]);
 
   const filtered = options.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
@@ -451,16 +467,22 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
           </div>
         )}
       </div>
-      <div style={{ maxHeight: 200, overflowY: "auto" }}>
+      <div style={{ maxHeight: 200, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         {filtered.map((opt) => {
           const isSel = value === opt;
           return (
-            <button key={opt} onClick={() => { onSelect(opt); onClose(); }} style={{
+            <button
+              key={opt}
+              type="button"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => { onSelect(opt); onClose(); }}
+              style={{
               width: "100%", minHeight: 40, padding: "0 14px",
               display: "flex", alignItems: "center", justifyContent: "space-between",
               background: isSel ? "rgba(255,107,0,0.07)" : "transparent",
               border: "none", borderBottom: "1px solid rgba(0,0,0,0.04)",
               cursor: "pointer", outline: "none", fontFamily: "Inter, sans-serif",
+              WebkitTapHighlightColor: "transparent",
             }}>
               <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 400 }}>{opt}</span>
               {isSel && <Check size={14} strokeWidth={2.5} color="#FF6B00" />}
@@ -545,6 +567,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
   ];
 
   function handleAdd() {
+    if (!row.location.trim() || !row.markingNum.trim() || !row.material.trim()) return;
     onAdd({
       location: row.location, markingNum: row.markingNum, markingType: row.markingType,
       volume: vol, material: row.material, tariff: tar,
@@ -560,6 +583,8 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
     }));
     setOpenCol(null);
   }
+
+  const canAdd = Boolean(row.location.trim() && row.markingNum.trim() && row.material.trim());
 
   return (
     <>
@@ -632,7 +657,8 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
           <button
             type="button"
             onClick={handleAdd}
-            style={{ fontSize: 12, fontWeight: 600, color: "#FF6B00", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}
+            disabled={!canAdd}
+            style={{ fontSize: 12, fontWeight: 600, color: canAdd ? "#FF6B00" : "#d1d5db", background: "none", border: "none", cursor: canAdd ? "pointer" : "default", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}
           >
             Добавить
           </button>
@@ -1105,12 +1131,19 @@ function DateChip({ selected, setSelected, portalTarget }: { selected: Date; set
 
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => {
-      const cal = document.getElementById("date-cal");
-      if (cal && !cal.contains(e.target as Node) && !chipRef.current?.contains(e.target as Node)) setOpen(false);
+    let remove: (() => void) | undefined;
+    const raf = requestAnimationFrame(() => {
+      const h = (e: PointerEvent) => {
+        const cal = document.getElementById("date-cal");
+        if (cal && !cal.contains(e.target as Node) && !chipRef.current?.contains(e.target as Node)) setOpen(false);
+      };
+      document.addEventListener("pointerdown", h);
+      remove = () => document.removeEventListener("pointerdown", h);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      remove?.();
     };
-    setTimeout(() => document.addEventListener("mousedown", h), 0);
-    return () => document.removeEventListener("mousedown", h);
   }, [open]);
 
   function buildDays(y: number, m: number) {
@@ -1476,7 +1509,7 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
   const totalVol = rows.reduce((s, r) => s + r.volume, 0);
   const totalPay = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
   const pp = participants.length > 0 ? Math.round(totalPay / participants.length) : 0;
-  const canConfirm = rows.length > 0 && participants.length > 0;
+  const canConfirm = rows.some(isShiftRowComplete) && participants.length > 0;
 
   const dateStr = selectedDate.toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" });
 
@@ -1747,7 +1780,7 @@ export default function HomePage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAddTeammate, setShowAddTeammate] = useState(false);
-  const participantsInited = useRef(false);
+  const [userName, setUserName] = useState(() => getCurrentUserFullName());
 
   function handleSyncClick() {
     void (async () => {
@@ -1757,13 +1790,23 @@ export default function HomePage() {
     })();
   }
 
+  // Имя может появиться позже (ensureAuthProfile / authRefresh) — не залипать на PB-id
+  useEffect(() => {
+    const syncName = () => setUserName(getCurrentUserFullName());
+    syncName();
+    return subscribeAuthStore(syncName);
+  }, []);
+
   // Участники: себя + свои teammates; по умолчанию — только текущий
   useEffect(() => {
-    if (participantsInited.current) return;
-    const me = getCurrentUserFullName();
-    if (me) setParticipants([me]);
-    participantsInited.current = true;
-  }, []);
+    const me = userName.trim();
+    if (!me || looksLikePbId(me)) return;
+    setParticipants((prev) => {
+      const cleaned = prev.filter((p) => p && !looksLikePbId(p));
+      if (cleaned.includes(me)) return cleaned.length === prev.length ? prev : cleaned;
+      return [me, ...cleaned.filter((p) => p !== me)];
+    });
+  }, [userName]);
 
   useEffect(() => {
     registerAddRow((quick: QuickRow) => {
@@ -1780,13 +1823,14 @@ export default function HomePage() {
   }, [dictOptions.locations, registerAddRow]);
 
   async function handleConfirmSave() {
-    if (saving || rows.length === 0 || participants.length === 0) return;
+    const complete = rows.filter(isShiftRowComplete);
+    if (saving || complete.length === 0 || participants.length === 0) return;
     setSaving(true);
     try {
       await confirmShift({
         date: selectedDate,
         participants,
-        rows: rows.map(({ location, markingNum, markingType, volume, material, tariff }) => ({
+        rows: complete.map(({ location, markingNum, markingType, volume, material, tariff }) => ({
           location, markingNum, markingType, volume, material, tariff,
         })),
       });
@@ -1798,7 +1842,8 @@ export default function HomePage() {
   }
 
   const total = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
-  const canConfirm = rows.length > 0 && participants.length > 0;
+  const completeCount = rows.filter(isShiftRowComplete).length;
+  const canConfirm = completeCount > 0 && participants.length > 0;
 
   const body = isDesktop ? (
     <DesktopHomePage
@@ -1851,7 +1896,7 @@ export default function HomePage() {
             onMouseDown={(e) => { if (canConfirm) { e.currentTarget.style.transform = "scale(0.97)"; e.currentTarget.style.boxShadow = "0 3px 10px rgba(255,107,0,0.22)"; }}}
             onMouseUp={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = canConfirm ? "0 6px 20px rgba(255,107,0,0.28)" : "none"; }}
           >
-            {canConfirm ? `Подтвердить смену · ${fmt(total)}` : rows.length === 0 ? "Подтвердить смену" : "Выберите участников"}
+            {canConfirm ? `Подтвердить смену · ${fmt(total)}` : completeCount === 0 ? "Подтвердить смену" : "Выберите участников"}
           </button>
         </div>
 

@@ -8,16 +8,21 @@ export type UserNameFields = {
   surname?: string | null;
   name?: string | null;
   id?: string;
+  email?: string | null;
 };
 
-/** Отображаемое имя: «Фамилия Имя». */
+/** Отображаемое имя: «Фамилия Имя» (без fallback на PB id). */
 export function formatUserName(u: UserNameFields | null | undefined): string {
   if (!u) return "";
   const parts = [u.surname, u.name]
     .map((x) => String(x ?? "").trim())
     .filter(Boolean);
-  if (parts.length) return parts.join(" ");
-  return u.id ? String(u.id) : "";
+  return parts.length ? parts.join(" ") : "";
+}
+
+/** Похоже на PocketBase id (15 символов) — не показывать как имя. */
+export function looksLikePbId(value: string): boolean {
+  return /^[a-z0-9]{15}$/i.test(value.trim());
 }
 
 /** Восстановить PB-сессию из sessionStorage (режим без «Запомнить»). */
@@ -72,14 +77,52 @@ export function clearSession(): void {
 async function scopeAfterAuth(): Promise<void> {
   const id = String(pb.authStore.record?.id ?? "").trim();
   if (id) await ensureUserDataScope(id);
+  await ensureAuthProfile();
+}
+
+/**
+ * Подтянуть актуальный users-record (surname/name).
+ * Нужно на iOS/PWA: в authStore иногда лежит урезанный кэш без кастомных полей → вместо имени показывался id.
+ */
+export async function ensureAuthProfile(): Promise<void> {
+  if (!isPocketBaseConfigured() || !pb.authStore.isValid) return;
+  const token = pb.authStore.token;
+  const id = String(pb.authStore.record?.id ?? "").trim();
+  if (!token || !id) return;
+
+  try {
+    await pb.collection("users").authRefresh();
+  } catch {
+    /* токен мог протухнуть — ниже попробуем getOne при валидной сессии */
+  }
+
+  const rec = pb.authStore.record as UserNameFields | null;
+  if (formatUserName(rec)) return;
+
+  try {
+    const full = await pb.collection("users").getOne(id);
+    pb.authStore.save(token, full);
+  } catch {
+    /* офлайн / нет прав — оставляем как есть */
+  }
 }
 
 /** `users.surname` + `users.name` текущего пользователя (PB) или stub-имя. */
 export function getCurrentUserFullName(): string {
+  if (!isPocketBaseConfigured()) return "Иванов А.В.";
   const rec = pb.authStore.record as UserNameFields | null;
   const formatted = formatUserName(rec);
   if (formatted) return formatted;
-  return "Иванов А.В.";
+  const email = String(rec?.email ?? "").trim();
+  if (email) return email;
+  return "";
+}
+
+/** Подписка на смену authStore (имя после authRefresh и т.п.). */
+export function subscribeAuthStore(onChange: () => void): () => void {
+  return pb.authStore.onChange(() => {
+    onChange();
+  });
 }
 
 function persistRemember(remember: boolean): void {

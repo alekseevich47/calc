@@ -22,14 +22,27 @@ import {
   type ShiftRowData,
 } from "./db";
 import { isPocketBaseConfigured, pb } from "./pocketbase";
-import { formatUserName, getCurrentUserFullName } from "./session";
+import { formatUserName, getCurrentUserFullName, looksLikePbId } from "./session";
 
 function currentAuthorId(): string {
   return String(pb.authStore.record?.id ?? "").trim();
 }
 
 function isPbId(id?: string): boolean {
-  return !!id && /^[a-z0-9]{15}$/i.test(id);
+  return !!id && looksLikePbId(id);
+}
+
+/** Строка готова к подтверждению/пушу (есть место, №, материал). */
+export function isShiftRowComplete(r: {
+  location?: string;
+  markingNum?: string;
+  material?: string;
+}): boolean {
+  return Boolean(
+    String(r.location ?? "").trim() &&
+    String(r.markingNum ?? "").trim() &&
+    String(r.material ?? "").trim(),
+  );
 }
 
 /** Опции выбора: текущий пользователь + свои teammates (без других users). */
@@ -188,13 +201,18 @@ export async function confirmShift(input: {
     tariff: number;
   }>;
 }): Promise<CachedShift> {
+  const completeRows = input.rows.filter(isShiftRowComplete);
+  if (completeRows.length === 0) {
+    throw new Error("Заполните место, № разметки и материал хотя бы в одной строке");
+  }
+
   const dicts = await getDictionaries();
   const locByName = new Map(dicts.locations.map((x) => [x.name, x.id]));
   const numByVal = new Map(dicts.markingNumbers.map((x) => [x.number, x.id]));
   const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));
   const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
 
-  const rows: ShiftRowData[] = input.rows.map((r) => {
+  const rows: ShiftRowData[] = completeRows.map((r) => {
     const markingNumberId = numByVal.get(r.markingNum);
     const markingTypeId = markingNumberId
       ? dicts.markingTypes.find((t) => t.markingNumberId === markingNumberId && t.name === r.markingType)?.id
@@ -215,7 +233,17 @@ export async function confirmShift(input: {
   });
 
   // teammate PB-ids (для себя id нет — имена уходят в shifts.participants как JSON)
-  const participantIds = input.participants
+  let participants = input.participants
+    .map((n) => n.trim())
+    .filter((n) => n && !looksLikePbId(n));
+  if (participants.length === 0) {
+    const me = getCurrentUserFullName();
+    if (me && !looksLikePbId(me)) participants = [me];
+  }
+  if (participants.length === 0) {
+    throw new Error("Выберите участников смены");
+  }
+  const participantIds = participants
     .map((n) => partByName.get(n))
     .filter((id): id is string => Boolean(id));
 
@@ -223,7 +251,7 @@ export async function confirmShift(input: {
     id: newId(),
     authorId: currentAuthorId() || undefined,
     date: toIsoDate(input.date),
-    participants: [...input.participants],
+    participants,
     participantIds,
     status: "confirmed",
     rows,
@@ -626,7 +654,7 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
   const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));
   const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
 
-  const rows = shift.rows.map((r) => {
+  const resolvedRows = shift.rows.map((r) => {
     const markingNumberId = isPbId(r.markingNumberId) ? r.markingNumberId : numByVal.get(r.markingNum);
     const markingTypeId = isPbId(r.markingTypeId)
       ? r.markingTypeId
@@ -643,7 +671,13 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
   });
 
   // PB shifts.participants = JSON array of full names (не relation→users)
-  const participantsPayload = shift.participants.map((n) => n.trim()).filter(Boolean);
+  let participantsPayload = shift.participants
+    .map((n) => n.trim())
+    .filter((n) => n && !looksLikePbId(n));
+  if (participantsPayload.length === 0) {
+    const me = getCurrentUserFullName();
+    if (me) participantsPayload = [me];
+  }
   if (participantsPayload.length === 0) {
     throw new Error("Нет участников смены");
   }
@@ -655,10 +689,23 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
   if (!authorId) throw new Error("Нет id пользователя — войдите снова");
   const statusPayload = shift.status === "draft" ? "draft" : "confirmed";
 
-  for (const r of rows) {
-    if (!r.locationId || !r.markingNumberId || !r.materialId) {
-      throw new Error(`Нет PB-id для строки «${r.location} / ${r.markingNum}» — обновите справочники (синк)`);
+  // Пустые/битые строки (часто iOS: dropdown не записался) — не валим весь синк
+  const rows = resolvedRows.filter((r) => r.locationId && r.markingNumberId && r.materialId);
+  const skipped = resolvedRows.length - rows.length;
+  if (rows.length === 0) {
+    const sample = resolvedRows[0];
+    const label = `${sample?.location ?? ""} / ${sample?.markingNum ?? ""}`.trim();
+    if (!label || label === "/") {
+      // Нерепарируемый мусор в очереди — снимаем, чтобы статус не висел «Не синхр.»
+      await dequeue(item.id);
+      await putShift({ ...shift, pendingSync: false, updatedAt: Date.now() });
+      emit();
+      throw new Error("В очереди смена с пустыми строками — откройте История и заполните поля, затем сохраните");
     }
+    throw new Error(`Нет PB-id для строки «${label}» — обновите справочники (синк)`);
+  }
+  if (skipped > 0) {
+    console.warn(`[sync] skip ${skipped} incomplete row(s) in shift ${shift.id}`);
   }
 
   if (item.op === "create_shift" || item.op === "update_shift") {
@@ -789,7 +836,7 @@ export type StatsPeriod = "week" | "month" | "alltime";
 
 export function computeUserStats(
   shifts: CachedShift[],
-  userName: string,
+  _userName: string,
   period: StatsPeriod,
 ): { earned: number; volume: number; shifts: number } {
   const now = new Date();
@@ -798,8 +845,8 @@ export function computeUserStats(
   startOfWeek.setHours(0, 0, 0, 0);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // shifts уже отфильтрованы по author в useShifts — считаем все свои
   const filtered = shifts.filter((s) => {
-    if (!s.participants.includes(userName)) return false;
     if (period === "alltime") return true;
     const d = fromIsoDate(s.date);
     if (period === "week") return d >= startOfWeek;

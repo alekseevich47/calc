@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { User, LogOut, ChevronRight, Wifi, WifiOff, RefreshCw, CloudOff, Globe, Info, X, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { SyncStatus } from "../components/shared";
-import { clearSession, getCurrentUserFullName } from "../lib/session";
+import { clearSession, getCurrentUserFullName, subscribeAuthStore } from "../lib/session";
 import {
   computeUserStats,
+  peekSyncSnapshot,
   syncNow,
   useShifts,
   useSyncStatus,
@@ -124,14 +125,25 @@ function AboutSheet({ onClose }: { onClose: () => void }) {
           <span style={{ fontSize: 13, color: "#9ca3af" }}>Версия 1.0.0 (build 42)</span>
         </div>
         <div style={{ background: "rgba(0,0,0,0.04)", borderRadius: 14, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {[
-            ["Разработчик", "ООО «ДорМаркинг»"],
-            ["Поддержка",   "support@dormarking.ru"],
-            ["Лицензия",    "Proprietary"],
-          ].map(([k, v]) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 13, color: "#6b7280" }}>{k}</span>
-              <span style={{ fontSize: 13, fontWeight: 500, color: "#111827" }}>{v}</span>
+          {([
+            { label: "Разработка", value: "urbanstudio" },
+            { label: "Поддержка", value: "kkabenyuk@gmail.com", href: "mailto:kkabenyuk@gmail.com" },
+            { label: "Telegram", value: "@alekseevich47", href: "https://t.me/alekseevich47" },
+          ] as const).map(({ label, value, href }) => (
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 13, color: "#6b7280", flexShrink: 0 }}>{label}</span>
+              {href ? (
+                <a
+                  href={href}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  style={{ fontSize: 13, fontWeight: 500, color: "#FF6B00", textDecoration: "none", textAlign: "right", wordBreak: "break-all" }}
+                >
+                  {value}
+                </a>
+              ) : (
+                <span style={{ fontSize: 13, fontWeight: 500, color: "#111827", textAlign: "right" }}>{value}</span>
+              )}
             </div>
           ))}
         </div>
@@ -152,14 +164,25 @@ export default function ProfilePage() {
   const [language, setLanguage] = useState("Русский");
   const [showLang, setShowLang] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
-  const userName = getCurrentUserFullName();
+  const [userName, setUserName] = useState(() => getCurrentUserFullName());
 
-  const stats = computeUserStats(shifts, userName, period);
-  const alltime = computeUserStats(shifts, userName, "alltime");
+  useEffect(() => {
+    const sync = () => setUserName(getCurrentUserFullName());
+    sync();
+    return subscribeAuthStore(sync);
+  }, []);
+
+  const displayName = userName || "Пользователь";
+  const stats = computeUserStats(shifts, displayName, period);
+  const alltime = computeUserStats(shifts, displayName, "alltime");
 
   function handleSync() {
     if (syncStatus === "synced") return;
-    void syncNow();
+    void (async () => {
+      await syncNow();
+      const err = peekSyncSnapshot().lastError;
+      if (err) window.alert(err);
+    })();
   }
 
   const sync = SYNC_CFG[syncStatus];
@@ -180,7 +203,7 @@ export default function ProfilePage() {
             <User size={24} strokeWidth={1.8} color="white" />
           </div>
           <div>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>{userName}</p>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>{displayName}</p>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#9ca3af" }}>Оператор разметки</p>
           </div>
         </div>

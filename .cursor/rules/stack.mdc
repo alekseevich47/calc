@@ -90,6 +90,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Chrome/Firefox на iOS = WebKit (как Safari) — те же ограничения.
 - Обязателен онбординг с инструкцией «На экран Домой» для iPhone.
 - iPhone — first-class target; решения проверять с учётом Safari/PWA.
+- **Зум отключён** на всех страницах: `index.html` viewport `maximum-scale=1, user-scalable=no` + `touch-action: manipulation` на `html, body` (pinch / double-tap).
 
 ## Авторизация
 
@@ -206,7 +207,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 ## Дизайн
 
 - Frame (дизайн-референс Figma): Mobile 390×844 / Android 412×915; Desktop 1440×900. В рантайме — full-bleed viewport, не фиксированная рамка.
-- Крупные тач-цели (≥48px), высокий контраст (работа на объекте).
+- Крупные тач-цели (≥48px), высокий контраст (работа на объекте); зум страницы запрещён (viewport + touch-action).
 - Акцент: оранжевый `#FF6B00` (или согласованный бренд).
 - Общие компоненты mobile/desktop, разная раскладка.
 - Навбар: glass-пилюля + отдельный FAB «+».

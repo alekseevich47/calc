@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import RequireAuth from "./RequireAuth";
 import AuthPage from "../pages/AuthPage";
+import RegisterPage from "../pages/RegisterPage";
 import AppShell from "../pages/AppShell";
 import HomePage from "../pages/HomePage";
 import HistoryPage from "../pages/HistoryPage";
@@ -11,6 +12,10 @@ export const router = createBrowserRouter(
     {
       path: "/",
       Component: AuthPage,
+    },
+    {
+      path: "/register",
+      Component: RegisterPage,
     },
     {
       Component: RequireAuth,

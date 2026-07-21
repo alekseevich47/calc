@@ -5,7 +5,7 @@ import { Plus, Calendar, ChevronDown, X, Search, Check, Trash2 } from "lucide-re
 import { StatusBadge } from "../components/shared";
 import { DEFAULT_DICTIONARIES, markingTypesMap } from "../lib/db";
 import { getCurrentUserFullName } from "../lib/session";
-import { confirmShift, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
+import { confirmShift, createTeammate, buildParticipantOptions, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 import type { QuickRow, ShellContext } from "./AppShell";
 
 // ─── Dictionaries context (из IndexedDB / PocketBase) ─────────────────────────
@@ -33,12 +33,114 @@ function useDict() { return useContext(DictContext); }
 
 // ─── Participants ─────────────────────────────────────────────────────────────
 
+function AddTeammateSheet({ onClose, onCreated }: {
+  onClose: () => void;
+  onCreated: (name: string) => void;
+}) {
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const item = await createTeammate(value);
+      onCreated(item.name);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const portalTarget = document.getElementById("app-portal") ?? document.body;
+  const portalW = portalTarget.getBoundingClientRect?.().width ?? 0;
+  const isCentered = portalTarget === document.body || portalW >= 900;
+
+  return createPortal(
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: portalTarget === document.body ? "fixed" : "absolute", inset: 0,
+        zIndex: portalTarget === document.body ? 1000 : 200, pointerEvents: "auto",
+        background: "rgba(0,0,0,0.35)",
+        display: "flex", alignItems: isCentered ? "center" : "flex-end",
+        justifyContent: isCentered ? "center" : undefined,
+        animation: "fadeInBd 0.2s ease forwards",
+      }}
+    >
+      <div style={{
+        width: isCentered ? 420 : "100%",
+        background: "rgba(248,249,252,0.98)",
+        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+        borderRadius: isCentered ? 24 : "24px 24px 0 0",
+        boxShadow: isCentered ? "0 24px 80px rgba(0,0,0,0.20)" : "0 -8px 40px rgba(0,0,0,0.18)",
+        padding: "16px 20px calc(16px + env(safe-area-inset-bottom))",
+        fontFamily: "Inter, sans-serif",
+        animation: "sheetUp 0.28s cubic-bezier(0.22,1,0.36,1) forwards",
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", paddingBottom: 10 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 99, background: "rgba(0,0,0,0.12)" }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>
+            Новый участник
+          </h2>
+          <button type="button" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#9ca3af", outline: "none", display: "flex" }}>
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
+        <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
+          Фамилия и имя
+        </label>
+        <input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); }}
+          placeholder="Иванов Иван"
+          style={{
+            width: "100%", height: 48, borderRadius: 12, border: "1.5px solid rgba(0,0,0,0.10)",
+            padding: "0 14px", fontSize: 15, fontFamily: "Inter, sans-serif", outline: "none",
+            background: "#fff", boxSizing: "border-box", marginBottom: 8,
+          }}
+        />
+        {error && <p style={{ margin: "0 0 10px", fontSize: 12, color: "#ef4444" }}>{error}</p>}
+        <button
+          type="button"
+          disabled={saving || !value.trim()}
+          onClick={() => { void handleSave(); }}
+          style={{
+            width: "100%", height: 48, borderRadius: 14, border: "none", marginTop: 8,
+            background: value.trim() ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.07)",
+            color: value.trim() ? "#fff" : "#c4c9d4",
+            fontSize: 15, fontWeight: 700, cursor: value.trim() ? "pointer" : "not-allowed",
+            fontFamily: "Inter, sans-serif", outline: "none",
+            boxShadow: value.trim() ? "0 6px 20px rgba(255,107,0,0.28)" : "none",
+            opacity: saving ? 0.7 : 1,
+          }}
+        >
+          {saving ? "Сохранение…" : "Сохранить"}
+        </button>
+      </div>
+    </div>,
+    portalTarget,
+  );
+}
+
 function ParticipantsBlock({
   selected, setSelected,
 }: { selected: string[]; setSelected: (v: string[]) => void }) {
   const [open, setOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
-  const { participants: allParticipants } = useDict();
+  const { participants: teammates } = useDict();
+  const allParticipants = useMemo(
+    () => buildParticipantOptions(teammates),
+    [teammates],
+  );
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false); };
@@ -139,19 +241,41 @@ function fmt(n: number) { return n.toLocaleString("ru-RU") + " ₽"; }
 const SWIPE_SNAP = 72;
 const DIRECTION_THRESHOLD = 6; // px before we lock direction
 
-function SwipeableRow({ row, onDelete, onEdit }: { row: FilledRow; onDelete: () => void; onEdit: () => void }) {
+function SwipeableRow({ row, onDelete, onEdit, scrollRef }: {
+  row: FilledRow;
+  onDelete: () => void;
+  onEdit: () => void;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+}) {
   const [dx, setDx] = useState(0);
   const [isSnapped, setIsSnapped] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [viewportW, setViewportW] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
   const startPos = useRef<{ x: number; y: number } | null>(null);
   const directionLocked = useRef<"horizontal" | "vertical" | null>(null);
   const activePointerId = useRef<number | null>(null);
+  const dxRef = useRef(0);
   const payment = fmt(row.volume * row.tariff);
 
-  // Whether delete zone is visually present
-  const showDelete = dx < -4 || isSnapped;
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const sync = () => {
+      setViewportW(el.clientWidth);
+      setScrollLeft(el.scrollLeft);
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    el.addEventListener("scroll", sync, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", sync);
+    };
+  }, [scrollRef]);
 
   function onPointerDown(e: React.PointerEvent) {
-    // Only primary button / single touch
     if (e.button !== 0 && e.pointerType === "mouse") return;
     startPos.current = { x: e.clientX, y: e.clientY };
     directionLocked.current = null;
@@ -165,62 +289,72 @@ function SwipeableRow({ row, onDelete, onEdit }: { row: FilledRow; onDelete: () 
     const absDx = Math.abs(dxRaw);
     const absDy = Math.abs(dyRaw);
 
-    // Lock direction once movement exceeds threshold
     if (!directionLocked.current && (absDx > DIRECTION_THRESHOLD || absDy > DIRECTION_THRESHOLD)) {
       directionLocked.current = absDx > absDy ? "horizontal" : "vertical";
+      if (directionLocked.current === "horizontal") setDragging(true);
     }
 
     if (directionLocked.current !== "horizontal") return;
 
-    // Prevent scroll when we've taken over
     e.preventDefault();
     if (!(e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     }
 
     const clamped = Math.min(0, dxRaw + (isSnapped ? -SWIPE_SNAP : 0));
+    dxRef.current = clamped;
     setDx(clamped);
   }
 
   function onPointerUp() {
     if (directionLocked.current === "horizontal") {
-      const committed = dx < -(SWIPE_SNAP / 2);
+      const committed = dxRef.current < -(SWIPE_SNAP / 2);
       setIsSnapped(committed);
       setDx(0);
+      dxRef.current = 0;
     } else if (directionLocked.current === null) {
-      // No movement — treat as a tap
       if (isSnapped) {
-        setIsSnapped(false); // close delete zone on tap
+        setIsSnapped(false);
       } else {
         onEdit();
       }
     }
+    setDragging(false);
     startPos.current = null;
     directionLocked.current = null;
     activePointerId.current = null;
   }
 
   const translateX = isSnapped ? -SWIPE_SNAP : dx;
+  const deleteProgress = Math.min(1, Math.abs(translateX) / SWIPE_SNAP);
+  const clipW = viewportW || "100%";
 
   return (
-    <div style={{ position: "relative", overflow: "hidden", borderBottom: "1px solid rgba(0,0,0,0.055)" }}>
-      {/* Delete zone — only rendered during/after swipe */}
-      {showDelete && (
-        <div style={{
-          position: "absolute", right: 0, top: 0, bottom: 0, width: SWIPE_SNAP,
-          background: "linear-gradient(135deg,#ef4444,#dc2626)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          opacity: Math.min(1, Math.abs(translateX) / SWIPE_SNAP),
-          transition: "opacity 0.1s",
-        }}>
-          <button onClick={() => { setIsSnapped(false); setDx(0); onDelete(); }} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: "white", outline: "none", padding: 0 }}>
-            <Trash2 size={16} strokeWidth={1.8} color="white" />
-            <span style={{ fontSize: 10, fontWeight: 600, color: "white" }}>Удалить</span>
-          </button>
-        </div>
-      )}
+    <div style={{
+      position: "sticky", left: 0, zIndex: 1,
+      width: clipW, maxWidth: "100%",
+      overflow: "hidden",
+      borderBottom: "1px solid rgba(0,0,0,0.055)",
+    }}>
+      <div style={{
+        position: "absolute", right: 0, top: 0, bottom: 0, width: SWIPE_SNAP,
+        background: "linear-gradient(135deg,#ef4444,#dc2626)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        opacity: deleteProgress,
+        transform: `translateX(${(1 - deleteProgress) * 12}px) scale(${0.88 + 0.12 * deleteProgress})`,
+        transition: dragging ? "none" : "opacity 0.22s ease, transform 0.22s ease",
+        pointerEvents: deleteProgress > 0.45 ? "auto" : "none",
+      }}>
+        <button
+          type="button"
+          onClick={() => { setIsSnapped(false); setDx(0); onDelete(); }}
+          style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: "white", outline: "none", padding: 0 }}
+        >
+          <Trash2 size={16} strokeWidth={1.8} color="white" />
+          <span style={{ fontSize: 10, fontWeight: 600, color: "white" }}>Удалить</span>
+        </button>
+      </div>
 
-      {/* Row content */}
       <div
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -228,36 +362,39 @@ function SwipeableRow({ row, onDelete, onEdit }: { row: FilledRow; onDelete: () 
         onPointerCancel={onPointerUp}
         style={{
           transform: `translateX(${translateX}px)`,
-          transition: (directionLocked.current === "horizontal") ? "none" : "transform 0.28s cubic-bezier(0.34,1.56,0.64,1)",
+          transition: dragging ? "none" : "transform 0.28s cubic-bezier(0.34,1.56,0.64,1)",
           background: "rgba(255,255,255,0.90)",
           userSelect: "none",
-          // Allow native vertical scroll and horizontal table scroll to work when not in swipe mode
           touchAction: "pan-y",
         }}
       >
-        <table style={{ borderCollapse: "collapse", minWidth: 610, tableLayout: "fixed", width: "100%" }}>
-          <colgroup>
-            <col style={{ width: 28 }} />
-            {COL_DEFS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
-          </colgroup>
-          <tbody>
-            <tr>
-              <td style={{ padding: "10px 4px 10px 10px", verticalAlign: "middle" }}>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#d1d5db", margin: "0 auto" }} />
-              </td>
-              {/* location — wraps to two lines for long names */}
-              <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 500, verticalAlign: "middle", whiteSpace: "normal", lineHeight: 1.35, wordBreak: "break-word" }}>
-                {row.location}
-              </td>
-              <td style={{ padding: "10px 8px", fontSize: 12, color: "#111827", fontWeight: 600, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.markingNum}</td>
-              <td style={{ padding: "10px 8px", fontSize: 11, color: "#6b7280", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.markingType}</td>
-              <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 500, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.volume} м²</td>
-              <td style={{ padding: "10px 8px", fontSize: 11, color: "#6b7280", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.material}</td>
-              <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.tariff} ₽</td>
-              <td style={{ padding: "10px 8px", fontSize: 12, color: "#059669", fontWeight: 700, verticalAlign: "middle", whiteSpace: "nowrap" }}>{payment}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div style={{ width: clipW, overflow: "hidden" }}>
+          <table style={{
+            borderCollapse: "collapse", tableLayout: "fixed", width: 610,
+            marginLeft: -scrollLeft,
+          }}>
+            <colgroup>
+              <col style={{ width: 28 }} />
+              {COL_DEFS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+            </colgroup>
+            <tbody>
+              <tr>
+                <td style={{ padding: "10px 4px 10px 10px", verticalAlign: "middle" }}>
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#d1d5db", margin: "0 auto" }} />
+                </td>
+                <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 500, verticalAlign: "middle", whiteSpace: "normal", lineHeight: 1.35, wordBreak: "break-word" }}>
+                  {row.location}
+                </td>
+                <td style={{ padding: "10px 8px", fontSize: 12, color: "#111827", fontWeight: 600, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.markingNum}</td>
+                <td style={{ padding: "10px 8px", fontSize: 11, color: "#6b7280", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.markingType}</td>
+                <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 500, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.volume} м²</td>
+                <td style={{ padding: "10px 8px", fontSize: 11, color: "#6b7280", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.material}</td>
+                <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.tariff} ₽</td>
+                <td style={{ padding: "10px 8px", fontSize: 12, color: "#059669", fontWeight: 700, verticalAlign: "middle", whiteSpace: "nowrap" }}>{payment}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -372,6 +509,10 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
 
   function openDrop(col: ColKey, td: HTMLTableCellElement | null) {
     if (!td || !phoneRef.current) return;
+    if (openCol === col) {
+      setOpenCol(null);
+      return;
+    }
     const pb = phoneRef.current.getBoundingClientRect();
     const tb = td.getBoundingClientRect();
     const ddW = 240;
@@ -407,6 +548,16 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
       location: row.location, markingNum: row.markingNum, markingType: row.markingType,
       volume: vol, material: row.material, tariff: tar,
     });
+    // Объём / материал / тариф / оплата остаются для следующей строки
+    setRow((p) => ({
+      location: "",
+      markingNum: "",
+      markingType: "",
+      volume: p.volume,
+      material: p.material,
+      tariff: p.tariff,
+    }));
+    setOpenCol(null);
   }
 
   return (
@@ -435,7 +586,15 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
                 );
               }
               return (
-                <td key={col} onClick={(e) => { if (!locked) openDrop(col, e.currentTarget); }} style={{
+                <td
+                  key={col}
+                  onMouseDown={(e) => { if (isOpen) e.stopPropagation(); }}
+                  onClick={(e) => {
+                    if (locked) return;
+                    if (openCol === col) setOpenCol(null);
+                    else openDrop(col, e.currentTarget);
+                  }}
+                  style={{
                   padding: "8px 8px", verticalAlign: "middle", cursor: locked ? "not-allowed" : "pointer",
                   background: isOpen ? "rgba(255,107,0,0.10)" : locked ? "rgba(0,0,0,0.015)" : "rgba(255,107,0,0.03)",
                   borderBottom: "1.5px solid rgba(255,107,0,0.25)",
@@ -542,6 +701,10 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
 
   function openDrop(col: ColKey, td: HTMLTableCellElement | null) {
     if (!td || !phoneRef.current) return;
+    if (openCol === col) {
+      setOpenCol(null);
+      return;
+    }
     const pb = phoneRef.current.getBoundingClientRect();
     const tb = td.getBoundingClientRect();
     const ddW = 240;
@@ -598,7 +761,15 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
                 );
               }
               return (
-                <td key={col} onClick={(e) => { if (!locked) openDrop(col, e.currentTarget); }} style={{
+                <td
+                  key={col}
+                  onMouseDown={(e) => { if (isOpen) e.stopPropagation(); }}
+                  onClick={(e) => {
+                    if (locked) return;
+                    if (openCol === col) setOpenCol(null);
+                    else openDrop(col, e.currentTarget);
+                  }}
+                  style={{
                   padding: "8px 8px", verticalAlign: "middle", cursor: locked ? "not-allowed" : "pointer",
                   background: isOpen ? "rgba(99,102,241,0.10)" : locked ? "rgba(0,0,0,0.015)" : "rgba(99,102,241,0.04)",
                   borderBottom: "1.5px solid rgba(99,102,241,0.20)",
@@ -670,7 +841,7 @@ function WorkTable({ rows, setRows, phoneRef }: {
 
   function addRow(data: Omit<FilledRow, "id">) {
     setRows((p) => [...p, { ...data, id: Date.now() }]);
-    setAdding(false);
+    // форма остаётся открытой — NewRowForm сам сохраняет объём/материал/тариф
   }
 
   function saveRow(id: number, data: Omit<FilledRow, "id">) {
@@ -712,6 +883,7 @@ function WorkTable({ rows, setRows, phoneRef }: {
             <SwipeableRow
               key={row.id}
               row={row}
+              scrollRef={scrollRef}
               onDelete={() => setRows((p) => p.filter((r) => r.id !== row.id))}
               onEdit={() => { setAdding(false); setEditingId(row.id); }}
             />
@@ -1172,6 +1344,10 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
   const payment = (parseFloat(draft.volume) || 0) * (parseFloat(draft.tariff) || 0);
 
   function openDrop(col: string, td: HTMLTableCellElement) {
+    if (openCol === col) {
+      setOpenCol(null);
+      return;
+    }
     const r = td.getBoundingClientRect();
     setAnchor({ top: r.bottom + 4, left: r.left, width: Math.max(r.width, 160) });
     setOpenCol(col);
@@ -1199,7 +1375,12 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
 
           return (
             <td key={col}
-              onClick={e => { if (!locked && options) openDrop(col, e.currentTarget); }}
+              onMouseDown={e => { if (isOpen) e.stopPropagation(); }}
+              onClick={e => {
+                if (locked || !options) return;
+                if (openCol === col) setOpenCol(null);
+                else openDrop(col, e.currentTarget);
+              }}
               style={{
                 padding: isNumeric ? "0 8px" : "0 12px", height: 46, verticalAlign: "middle",
                 background: isOpen ? "rgba(255,107,0,0.08)" : accent,
@@ -1239,7 +1420,20 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
               {payment > 0 ? payment.toLocaleString("ru-RU") + " ₽" : "—"}
             </span>
             <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => onSave(draft)} style={{
+              <button onClick={() => {
+                onSave(draft);
+                if (isNew) {
+                  setDraft((p) => ({
+                    location: "",
+                    markingNum: "",
+                    markingType: "",
+                    volume: p.volume,
+                    material: p.material,
+                    tariff: p.tariff,
+                  }));
+                  setOpenCol(null);
+                }
+              }} style={{
                 height: 28, padding: "0 10px", borderRadius: 8, border: "none",
                 background: isNew ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "linear-gradient(135deg,#6366f1,#818cf8)",
                 color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif",
@@ -1275,6 +1469,7 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateAnchor, setDateAnchor] = useState({ top: 0, left: 0 });
+  const [showAddTeammate, setShowAddTeammate] = useState(false);
   const dateBtnRef = useRef<HTMLButtonElement>(null);
 
   const totalVol = rows.reduce((s, r) => s + r.volume, 0);
@@ -1306,7 +1501,7 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
       markingType: d.markingType, volume: parseFloat(d.volume) || 0,
       material: d.material, tariff: parseFloat(d.tariff) || 0,
     }]);
-    setAdding(false);
+    // форма остаётся — DesktopEditRow сбрасывает место/№/тип, сохраняет объём/материал/тариф
   }
 
   function saveRow(id: number, d: DesktopRowDraft) {
@@ -1464,9 +1659,23 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
               ))}
             </div>
 
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Участники смены</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em" }}>Участники смены</div>
+              <button
+                type="button"
+                onClick={() => setShowAddTeammate(true)}
+                aria-label="Добавить участника"
+                style={{
+                  width: 28, height: 28, borderRadius: 8, border: "none", cursor: "pointer",
+                  background: "rgba(255,107,0,0.10)", color: "#FF6B00",
+                  display: "flex", alignItems: "center", justifyContent: "center", outline: "none",
+                }}
+              >
+                <Plus size={16} strokeWidth={2.5} />
+              </button>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {dict.participants.map(p => {
+              {buildParticipantOptions(dict.participants).map(p => {
                 const on = participants.includes(p);
                 return (
                   <button key={p} onClick={() => toggleParticipant(p)} style={{
@@ -1499,6 +1708,15 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
         </div>
       </div>
 
+      {showAddTeammate && (
+        <AddTeammateSheet
+          onClose={() => setShowAddTeammate(false)}
+          onCreated={(name) => {
+            if (!participants.includes(name)) setParticipants([...participants, name]);
+          }}
+        />
+      )}
+
       {showConfirm && (
         <ConfirmSheet
           rows={rows}
@@ -1527,6 +1745,7 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showAddTeammate, setShowAddTeammate] = useState(false);
   const participantsInited = useRef(false);
 
   function handleSyncClick() {
@@ -1537,16 +1756,13 @@ export default function HomePage() {
     })();
   }
 
-  // Участники: из PB users (full_name); по умолчанию — только текущий пользователь
+  // Участники: себя + свои teammates; по умолчанию — только текущий
   useEffect(() => {
-    if (!dicts || participantsInited.current) return;
+    if (participantsInited.current) return;
     const me = getCurrentUserFullName();
-    const names = dicts.participants.map((p) => p.name);
-    if (me && names.includes(me)) setParticipants([me]);
-    else if (me) setParticipants([me]);
-    else if (names[0]) setParticipants([names[0]]);
+    if (me) setParticipants([me]);
     participantsInited.current = true;
-  }, [dicts]);
+  }, []);
 
   useEffect(() => {
     registerAddRow((quick: QuickRow) => {
@@ -1642,12 +1858,33 @@ export default function HomePage() {
 
         {/* Participants */}
         <div style={{ margin: "0 16px 14px", background: "rgba(255,255,255,0.68)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.6)", borderRadius: 18, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", overflow: "visible" }}>
-          <div style={{ padding: "12px 16px 10px", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+          <div style={{ padding: "12px 16px 10px", borderBottom: "1px solid rgba(0,0,0,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#6b7280", letterSpacing: "0.04em", textTransform: "uppercase" }}>Участники смены</p>
+            <button
+              type="button"
+              onClick={() => setShowAddTeammate(true)}
+              aria-label="Добавить участника"
+              style={{
+                width: 28, height: 28, borderRadius: 8, border: "none", cursor: "pointer",
+                background: "rgba(255,107,0,0.10)", color: "#FF6B00",
+                display: "flex", alignItems: "center", justifyContent: "center", outline: "none",
+              }}
+            >
+              <Plus size={16} strokeWidth={2.5} />
+            </button>
           </div>
           <ParticipantsBlock selected={participants} setSelected={setParticipants} />
         </div>
       </div>
+
+      {showAddTeammate && (
+        <AddTeammateSheet
+          onClose={() => setShowAddTeammate(false)}
+          onCreated={(name) => {
+            if (!participants.includes(name)) setParticipants([...participants, name]);
+          }}
+        />
+      )}
 
       {showConfirm && (
         <ConfirmSheet

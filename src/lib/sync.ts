@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { SyncStatus } from "../components/shared";
 import {
   dequeue,
+  deleteShift as deleteShiftFromDb,
   enqueue,
   fromIsoDate,
   getDictionaries,
@@ -20,6 +21,31 @@ import {
   type ShiftRowData,
 } from "./db";
 import { isPocketBaseConfigured, pb } from "./pocketbase";
+import { formatUserName, getCurrentUserFullName } from "./session";
+
+function isPbId(id?: string): boolean {
+  return !!id && /^[a-z0-9]{15}$/i.test(id);
+}
+
+/** Опции выбора: текущий пользователь + свои teammates (без других users). */
+export function buildParticipantOptions(teammateNames: string[], me = getCurrentUserFullName()): string[] {
+  const rest = teammateNames.filter((n) => n && n !== me);
+  return me ? [me, ...rest] : rest;
+}
+
+/** Разбор shifts.participants: JSON-имена или legacy relation→users. */
+function parseShiftParticipantNames(rec: {
+  participants?: unknown;
+  expand?: { participants?: Array<{ surname?: string; name?: string; id: string }> };
+}): string[] {
+  const expanded = rec.expand?.participants;
+  if (expanded?.length) {
+    return expanded.map((p) => formatUserName(p)).filter(Boolean);
+  }
+  const raw = rec.participants;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((x) => String(x ?? "").trim()).filter(Boolean);
+}
 
 export type { SyncStatus };
 
@@ -177,13 +203,16 @@ export async function confirmShift(input: {
     };
   });
 
+  // teammate PB-ids (для себя id нет — имена уходят в shifts.participants как JSON)
+  const participantIds = input.participants
+    .map((n) => partByName.get(n))
+    .filter((id): id is string => Boolean(id));
+
   const shift: CachedShift = {
     id: newId(),
     date: toIsoDate(input.date),
     participants: [...input.participants],
-    participantIds: input.participants
-      .map((n) => partByName.get(n))
-      .filter((id): id is string => Boolean(id)),
+    participantIds,
     status: "confirmed",
     rows,
     updatedAt: Date.now(),
@@ -201,6 +230,147 @@ export async function confirmShift(input: {
   emit();
   void syncNow();
   return shift;
+}
+
+type ShiftWriteInput = {
+  date: Date;
+  participants: string[];
+  rows: Array<{
+    location: string;
+    markingNum: string;
+    markingType: string;
+    volume: number;
+    material: string;
+    tariff: number;
+  }>;
+};
+
+async function resolveShiftWrite(input: ShiftWriteInput): Promise<{
+  rows: ShiftRowData[];
+  participantIds: string[];
+  participants: string[];
+}> {
+  const dicts = await getDictionaries();
+  const locByName = new Map(dicts.locations.map((x) => [x.name, x.id]));
+  const numByVal = new Map(dicts.markingNumbers.map((x) => [x.number, x.id]));
+  const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));
+  const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
+
+  const rows: ShiftRowData[] = input.rows.map((r) => {
+    const markingNumberId = numByVal.get(r.markingNum);
+    const markingTypeId = markingNumberId
+      ? dicts.markingTypes.find((t) => t.markingNumberId === markingNumberId && t.name === r.markingType)?.id
+      : undefined;
+    return {
+      location: r.location,
+      markingNum: r.markingNum,
+      markingType: r.markingType,
+      volume: r.volume,
+      material: r.material,
+      tariff: r.tariff,
+      amount: r.volume * r.tariff,
+      locationId: locByName.get(r.location),
+      markingNumberId,
+      markingTypeId,
+      materialId: matByName.get(r.material),
+    };
+  });
+
+  let participantIds = input.participants
+    .map((n) => partByName.get(n))
+    .filter((id): id is string => Boolean(id));
+
+  return { rows, participantIds, participants: [...input.participants] };
+}
+
+async function dequeueShiftOps(shiftId: string): Promise<void> {
+  const queue = await listQueue();
+  await Promise.all(queue.filter((q) => q.shiftId === shiftId).map((q) => dequeue(q.id)));
+}
+
+/** Создать своего участника («Фамилия Имя») — локально + очередь create_teammate. */
+export async function createTeammate(fullNameRaw: string): Promise<{ id: string; name: string }> {
+  const fullName = fullNameRaw.trim().replace(/\s+/g, " ");
+  if (!fullName) throw new Error("Введите фамилию и имя");
+
+  const me = getCurrentUserFullName();
+  if (me && fullName === me) {
+    return { id: "self", name: me };
+  }
+
+  const dicts = await getDictionaries();
+  const existing = dicts.participants.find((p) => p.name === fullName);
+  if (existing) return existing;
+
+  const localId = newId();
+  const item = { id: localId, name: fullName };
+  await putDictionaries({
+    ...dicts,
+    participants: [...dicts.participants, item],
+  });
+
+  await enqueue({
+    id: newId(),
+    op: "create_teammate",
+    shiftId: localId,
+    fullName,
+    createdAt: Date.now(),
+  });
+  await refreshStatus();
+  emit();
+  void syncNow();
+  return item;
+}
+
+/** Обновить смену в кэше + очередь update/create. */
+export async function updateShift(id: string, input: ShiftWriteInput): Promise<CachedShift | null> {
+  const existing = await getShift(id);
+  if (!existing) return null;
+
+  const resolved = await resolveShiftWrite(input);
+  const shift: CachedShift = {
+    ...existing,
+    date: toIsoDate(input.date),
+    participants: resolved.participants,
+    participantIds: resolved.participantIds,
+    rows: resolved.rows,
+    updatedAt: Date.now(),
+    pendingSync: true,
+  };
+
+  await putShift(shift);
+  await dequeueShiftOps(id);
+  await enqueue({
+    id: newId(),
+    op: existing.pbId ? "update_shift" : "create_shift",
+    shiftId: id,
+    createdAt: Date.now(),
+  });
+  await refreshStatus();
+  emit();
+  void syncNow();
+  return shift;
+}
+
+/** Удалить смену локально; если есть pbId — в очередь delete_shift. */
+export async function removeShift(id: string): Promise<void> {
+  const existing = await getShift(id);
+  if (!existing) return;
+
+  await dequeueShiftOps(id);
+  if (existing.pbId) {
+    await enqueue({
+      id: newId(),
+      op: "delete_shift",
+      shiftId: id,
+      pbId: existing.pbId,
+      createdAt: Date.now(),
+    });
+  }
+  await deleteShiftFromDb(id);
+  await refreshStatus();
+  emit();
+  void syncNow();
 }
 
 // ─── Pull dictionaries + shifts from PocketBase ───────────────────────────────
@@ -224,13 +394,22 @@ async function pullFromServer(): Promise<void> {
     return;
   }
 
-  const [locations, markingNumbers, markingTypes, materials, users] = await Promise.all([
+  const [locations, markingNumbers, markingTypes, materials, teammates] = await Promise.all([
     safeList("locations", { sort: "name" }),
     safeList("marking_numbers", { sort: "number" }),
     safeList("marking_types", { sort: "name" }),
     safeList("materials", { sort: "name" }),
-    safeList("users", { fields: "id,full_name" }),
+    safeList("teammates", { sort: "full_name", fields: "id,full_name,owner" }),
   ]);
+
+  const local = await getDictionaries();
+  const pendingLocal = local.participants.filter((p) => !isPbId(p.id));
+  const fromServer = teammates
+    .map((r) => ({
+      id: r.id,
+      name: String(r.full_name ?? "").trim(),
+    }))
+    .filter((p) => p.name);
 
   const dicts: Dictionaries = {
     locations: locations.map((r) => ({ id: r.id, name: String(r.name) })),
@@ -248,22 +427,18 @@ async function pullFromServer(): Promise<void> {
       ),
     })),
     materials: materials.map((r) => ({ id: r.id, name: String(r.name) })),
-    participants: users.map((r) => ({
-      id: r.id,
-      name: String(r.full_name || r.id),
-    })),
+    participants: [
+      ...fromServer,
+      ...pendingLocal.filter((p) => !fromServer.some((s) => s.name === p.name)),
+    ],
     updatedAt: Date.now(),
   };
-
-  if (dicts.participants.length === 0) {
-    const local = await getDictionaries();
-    dicts.participants = local.participants;
-  }
 
   const hasAny =
     dicts.locations.length > 0 ||
     dicts.markingNumbers.length > 0 ||
-    dicts.materials.length > 0;
+    dicts.materials.length > 0 ||
+    dicts.participants.length > 0;
 
   if (hasAny) {
     await putDictionaries(dicts);
@@ -273,7 +448,7 @@ async function pullFromServer(): Promise<void> {
       markingNumbers: dicts.markingNumbers.length,
       markingTypes: dicts.markingTypes.length,
       materials: dicts.materials.length,
-      participants: dicts.participants.length,
+      teammates: dicts.participants.length,
     });
   } else {
     const msg = "Справочники в PB пусты или нет прав на чтение (listRule)";
@@ -284,7 +459,7 @@ async function pullFromServer(): Promise<void> {
   try {
     const remote = await pb.collection("shifts").getFullList({
       sort: "-date",
-      expand: "participants,shift_rows_via_shift",
+      expand: "shift_rows_via_shift",
     });
 
     for (const rec of remote) {
@@ -320,10 +495,7 @@ async function pullFromServer(): Promise<void> {
         continue;
       }
 
-      const parts = (rec.expand?.participants as Array<{ full_name?: string; name?: string; id: string }> | undefined) ?? [];
-      const participantNames = parts.map((p) => p.full_name || p.name || p.id);
-      const participantIds = Array.isArray(rec.participants) ? rec.participants.map(String) : parts.map((p) => p.id);
-
+      const participantNames = parseShiftParticipantNames(rec);
       const dateRaw = String(rec.date).slice(0, 10);
       const existing = (await listShifts()).find((s) => s.pbId === rec.id);
       if (existing?.pendingSync) continue;
@@ -333,7 +505,7 @@ async function pullFromServer(): Promise<void> {
         pbId: rec.id,
         date: dateRaw,
         participants: participantNames.length ? participantNames : (existing?.participants ?? []),
-        participantIds,
+        participantIds: existing?.participantIds,
         status: (rec.status as "draft" | "confirmed") || "confirmed",
         rows,
         updatedAt: Date.now(),
@@ -346,6 +518,60 @@ async function pullFromServer(): Promise<void> {
 }
 
 async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]): Promise<void> {
+  if (item.op === "delete_shift") {
+    if (!isPocketBaseConfigured() || !pb.authStore.isValid) {
+      throw new Error("Нет сессии PocketBase — войдите через email/пароль");
+    }
+    const pbId = item.pbId;
+    if (pbId) {
+      try {
+        const old = await pb.collection("shift_rows").getFullList({ filter: `shift="${pbId}"` });
+        await Promise.all(old.map((r) => pb.collection("shift_rows").delete(r.id)));
+      } catch {
+        /* ignore */
+      }
+      try {
+        await pb.collection("shifts").delete(pbId);
+      } catch (err) {
+        // уже удалено на сервере — ок
+        const status = (err as { status?: number })?.status;
+        if (status !== 404) throw err;
+      }
+    }
+    await dequeue(item.id);
+    return;
+  }
+
+  if (item.op === "create_teammate") {
+    if (!isPocketBaseConfigured() || !pb.authStore.isValid) {
+      throw new Error("Нет сессии PocketBase — войдите через email/пароль");
+    }
+    const fullName = String(item.fullName ?? "").trim().replace(/\s+/g, " ");
+    const localId = item.shiftId;
+    if (!fullName) {
+      await dequeue(item.id);
+      return;
+    }
+    const ownerId = String(pb.authStore.record?.id ?? "").trim();
+    if (!ownerId) throw new Error("Нет id пользователя — войдите снова");
+
+    const created = await pb.collection("teammates").create({
+      owner: ownerId,
+      full_name: fullName,
+    });
+
+    const dicts = await getDictionaries();
+    await putDictionaries({
+      ...dicts,
+      participants: dicts.participants.map((p) =>
+        p.id === localId || p.name === fullName ? { id: created.id, name: fullName } : p,
+      ),
+    });
+    await dequeue(item.id);
+    emit();
+    return;
+  }
+
   const shift = await getShift(item.shiftId);
   if (!shift) {
     await dequeue(item.id);
@@ -362,7 +588,6 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
   const numByVal = new Map(dicts.markingNumbers.map((x) => [x.number, x.id]));
   const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));
   const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
-  const isPbId = (id?: string) => !!id && /^[a-z0-9]{15}$/i.test(id);
 
   const rows = shift.rows.map((r) => {
     const markingNumberId = isPbId(r.markingNumberId) ? r.markingNumberId : numByVal.get(r.markingNum);
@@ -380,10 +605,17 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
     };
   });
 
-  const participantIds = (shift.participantIds?.length
-    ? shift.participantIds
-    : shift.participants.map((n) => partByName.get(n)).filter((id): id is string => Boolean(id))
-  ).filter(isPbId);
+  // PB shifts.participants = JSON array of full names (не relation→users)
+  const participantsPayload = shift.participants.map((n) => n.trim()).filter(Boolean);
+  if (participantsPayload.length === 0) {
+    throw new Error("Нет участников смены");
+  }
+  const teammateIds = participantsPayload
+    .map((n) => partByName.get(n))
+    .filter((id): id is string => Boolean(id) && isPbId(id));
+
+  const authorId = String(pb.authStore.record?.id ?? "").trim();
+  const statusPayload = shift.status === "draft" ? "draft" : "confirmed";
 
   for (const r of rows) {
     if (!r.locationId || !r.markingNumberId || !r.materialId) {
@@ -396,30 +628,38 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
     if (!pbId) {
       const created = await pb.collection("shifts").create({
         date: shift.date,
-        author: pb.authStore.record?.id,
-        participants: participantIds.length ? participantIds : undefined,
-        status: shift.status,
+        author: authorId || undefined,
+        participants: participantsPayload,
+        status: statusPayload,
       });
       pbId = created.id;
+      await putShift({
+        ...shift,
+        rows,
+        participants: participantsPayload,
+        participantIds: teammateIds,
+        pbId,
+        pendingSync: true,
+        updatedAt: Date.now(),
+      });
     } else {
       await pb.collection("shifts").update(pbId, {
         date: shift.date,
-        participants: participantIds,
-        status: shift.status,
+        participants: participantsPayload,
+        status: statusPayload,
       });
     }
 
-    if (shift.pbId) {
-      try {
-        const old = await pb.collection("shift_rows").getFullList({ filter: `shift="${pbId}"` });
-        await Promise.all(old.map((r) => pb.collection("shift_rows").delete(r.id)));
-      } catch {
-        /* ignore */
-      }
+    try {
+      const old = await pb.collection("shift_rows").getFullList({ filter: `shift="${pbId}"` });
+      await Promise.all(old.map((r) => pb.collection("shift_rows").delete(r.id)));
+    } catch {
+      /* ignore */
     }
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
+      // PB required number: 0 считается blank → нумерация с 1
       await pb.collection("shift_rows").create({
         shift: pbId,
         location: r.locationId,
@@ -429,14 +669,15 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
         material: r.materialId,
         rate: r.tariff,
         amount: r.amount,
-        sort_order: i,
+        sort_order: i + 1,
       });
     }
 
     await putShift({
       ...shift,
       rows,
-      participantIds,
+      participants: participantsPayload,
+      participantIds: teammateIds,
       pbId,
       pendingSync: false,
       updatedAt: Date.now(),

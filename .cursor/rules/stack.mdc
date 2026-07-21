@@ -44,28 +44,31 @@ src/
 │       ├── ui/               # shadcn kit (~40 файлов), не используется страницами
 │       └── figma/ImageWithFallback.tsx  # не используется
 ├── pages/
-│   ├── AuthPage.tsx          # PB authWithPassword / stub; без скролла
+│   ├── AuthPage.tsx          # PB authWithPassword / stub; ссылка на регистрацию; без скролла
+│   ├── RegisterPage.tsx      # регистрация: email, пароль, surname, name → PB create + login
 │   ├── AppShell.tsx          # outlet + fixed BottomNav + FAB + QuickInput + parseQuickText
-│   ├── HomePage.tsx          # смена: PB-справочники, участники users.full_name
+│   ├── HomePage.tsx          # смена: PB-справочники; участники = себя + teammates
 │   ├── HistoryPage.tsx       # история из кэша смен
 │   └── ProfilePage.tsx       # профиль + logout clearSession
 ├── components/shared.tsx     # BottomNav, StatusBadge, GlobalStyles
 └── styles/                   # index.css, tailwind.css, theme.css (shadcn, не brand), fonts.css (Inter)
 ```
 
-Mobile / desktop shell — **без** phone mockup 390×844 и без серого `#e8eaed`: full-bleed на `100dvh`, фон — бело-оранжевый градиент (`#f0f4ff` → `#fdf9f5` → `#fff7ed`) в `AuthPage` и `AppShell`.
-- **Auth**: `overflow: hidden`, без скролла страницы.
+Mobile / desktop shell — **без** phone mockup 390×844 и без серого `#e8eaed`: full-bleed на `100dvh`, фон — бело-оранжевый градиент (`#f0f4ff` → `#fdf9f5` → `#fff7ed`) в `AuthPage` / `RegisterPage` и `AppShell`.
+- **Auth / Register**: `overflow: hidden` (форма регистрации может скроллиться внутри), без скролла страницы.
 - **AppShell mobile**: контент скроллится (`overflowY: auto` в `phoneRef`), `BottomNav` — `position: fixed` снизу (не уезжает при pull-to-refresh / overscroll); `overscroll-behavior: none/contain`.
 - Desktop: `useIsDesktop()` (breakpoint **1024px**) → collapsible sidebar 64↔240px; `HomePage.tsx` содержит встроенный `DesktopHomePage`. Orphan `HomePcPage.tsx` — мёртвый код (см. `Tasks/TASKS_start.md`, Блок 1.2).
 
 ## Статус экранов (по коду, не по спеке)
 
-- **Главная**: справочники из PB (`locations`, `marking_numbers`, `marking_types`, `materials` → IDB). Если видны моки — нет валидной PB-сессии или pull не прошёл (см. alert по тапу на бейдж). `Не синхр.` = очередь не ушла на сервер. Логин только email+пароль PB; после входа — `syncNow`. URL: `VITE_POCKETBASE_URL` или fallback `origin/calc`.
-- **История**: смены из кэша/`useShifts`, фильтр по периоду/участникам, expandable карточки, итоги. Скролл страницы в shell.
-- **Профиль**: имя из `getCurrentUserFullName()` (PB `full_name`); статистика из кэша смен; logout → `clearSession` + navigate.
+- **Главная**: справочники из PB (`locations`, `marking_numbers`, `marking_types`, `materials` → IDB); участники — себя + `teammates`. Если видны моки мест/материалов — нет валидной PB-сессии или pull не прошёл (см. alert по тапу на бейдж). `Не синхр.` = очередь не ушла на сервер. Логин только email+пароль PB; после входа — `syncNow`. URL: `VITE_POCKETBASE_URL` или fallback `origin/calc`.
+- **История**: смены из кэша/`useShifts`, фильтр по периоду/участникам, expandable карточки, итоги. Свайп влево → удаление (`removeShift` + очередь `delete_shift`); long-press / ПКМ → меню «Редактировать / Удалить»; редактирование — bottom sheet (дата, участники, строки). Скролл страницы в shell.
+- **Профиль**: имя из `getCurrentUserFullName()` (PB `surname` + `name`); статистика из кэша смен; logout → `clearSession` + navigate.
 - **Навигация**: bottom glass-пилюля `position: fixed` + FAB «+» (mobile) / sidebar (desktop).
-- **Авторизация**: при наличии PB URL — `authWithPassword` (email); stub только если URL не задан. Full-bleed, без скролла.
+- **Авторизация**: при наличии PB URL — `authWithPassword` (email); stub только если URL не задан. Full-bleed, без скролла. Под кнопкой «Войти» — ссылка на `/register`.
+- **Регистрация**: `RegisterPage` — почта, пароль, фамилия, имя; без email-подтверждения; `create` + сразу вход.
 - **Умный ввод**: bottom sheet → regex-парсер → превью → подтверждение — без fuzzy match.
+- **Главная (ввод строк)**: после «Добавить» форма остаётся; место/№/тип сбрасываются, **объём / материал / тариф / оплата сохраняются**. Повторный тап по открытому dropdown закрывает его. Swipe-delete строки клипит к видимой ширине скролла (не тянет всю minWidth-таблицу), «Удалить» появляется плавно.
 ## Известные баги десктопа и роутинга (см. `Tasks/TASKS_start.md`, Блок 1)
 
 - Confirm-модалка в `DesktopHomePage` подключена через `showConfirm` (проверить регрессии).
@@ -90,11 +93,11 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 
 ## Авторизация
 
-- Только логин + пароль (выдаёт модератор). Identity в PB — `email` (`schema.json` / `users`).
-- Регистрации **нет**.
-- «Запомнить меня» **по умолчанию**: PB `authStore` (localStorage); без галочки — sessionStorage + `restoreSession()`.
-- UI: `AuthPage` — full-bleed `100dvh`, **без скролла**; фон бело-оранжевый градиент.
-- `session.ts`: `loginWithPassword`, `getCurrentUserFullName` (`users.full_name`), `clearSession` чистит PB + stub.
+- Identity в PB — `email` (`schema.json` / `users`). Поля имени: **`surname`**, **`name`** (отображение везде: «Фамилия Имя»).
+- Вход: логин (email) + пароль. «Запомнить меня» **по умолчанию**: PB `authStore` (localStorage); без галочки — sessionStorage + `restoreSession()`.
+- Регистрация: `/register` — почта, пароль, фамилия, имя; без подтверждения почты; `users.create` + `authWithPassword`. В PB нужен `createRule: ""` на `users`.
+- UI: `AuthPage` / `RegisterPage` — full-bleed `100dvh`; фон бело-оранжевый градиент.
+- `session.ts`: `loginWithPassword`, `registerWithPassword`, `formatUserName` / `getCurrentUserFullName` (`surname` + `name`), `clearSession` чистит PB + stub.
 
 ## Навигация
 
@@ -119,16 +122,29 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
   5. Материал — `materials.name`
   6. Тариф — ручной ввод
   7. Оплата — read-only, `объём × тариф`
-- Mobile: при редактировании строки — кнопка «Добавить»; бар «Заполните поля»/«Отмена» sticky по горизонтали (не уезжает со скроллом таблицы); dropdown select — без автооткрытия клавиатуры, клавиатура только по тапу в «Поиск».
+- Mobile: при редактировании строки — кнопка «Добавить»; бар «Заполните поля»/«Отмена» sticky по горизонтали (не уезжает со скроллом таблицы); dropdown select — без автооткрытия клавиатуры, клавиатура только по тапу в «Поиск»; повторный тап по открытому полю закрывает dropdown.
+- После «Добавить» форма не закрывается: место/№/тип очищаются, объём/материал/тариф (и оплата) остаются.
+- Swipe-delete строки: клип к видимой ширине горизонтального скролла, плавное появление «Удалить».
 - «Подтвердить» → модалка → `confirmShift`; **disabled**, если нет строк **или** нет участников.
-- Участники: список из `users.full_name`; по умолчанию выбран **только текущий**; можно снять всех (тогда confirm disabled).
-- Кнопка «+»: textarea → парсер → подтверждение.
+- Участники смены:
+  - в списке только **текущий пользователь** + **свои** записи из коллекции `teammates` (другие зарегистрированные `users` **не** показываются);
+  - по умолчанию выбран **только текущий**; можно снять всех (тогда confirm disabled);
+  - справа от заголовка «Участники смены» — кнопка **«+»** → sheet «Фамилия и имя» (один текст) → `createTeammate` (IDB + очередь `create_teammate` → PB);
+  - созданные teammates снова появляются в выпадающем списке.
+- PB `shifts.participants` — **JSON** массив строк-имён (`["Фамилия Имя", …]`), required; `author` по-прежнему relation → `users`.
+- Коллекция `teammates`: `owner` (relation→users), `full_name` (text); правила — только свои записи (`owner = @request.auth.id`).
+- `shifts.status` в PB: select-значения **`draft`** и **`confirmed`** (два отдельных value; не одна строка `draft, confirme`).
+- `shift_rows.sort_order` — required number; в PB `0` = blank → клиент шлёт `1…n`.
+- Кнопка «+» (FAB): textarea → парсер → подтверждение.
 ### 2. История
 
 - Список/таблицы сохранённых смен.
 - Фильтр: одна дата или период; фильтр по участникам.
 - Итог: деньги + объём (м²).
 - Зарплата делится **поровну** на число участников смены.
+- Свайп влево по карточке → плавное появление «Удалить» → `removeShift`.
+- Long-press (и ПКМ) → меню «Редактировать / Удалить».
+- Редактирование: sheet с датой, участниками и всеми полями строк; «Сохранить» → `updateShift`, «Отменить» → закрытие без записи.
 
 ### 3. Профиль
 
@@ -151,9 +167,9 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 
 ## Backend и деплой (решено, план — `Tasks/TASKS_start.md`)
 
-- **Backend/БД**: PocketBase — единый бинарник, поднимается на том же VPS, что и статика фронтенда. Коллекции: встроенная auth `users` + `locations`, `marking_numbers`, `marking_types`, `materials` (справочники), `shifts`, `shift_rows` (данные смен). Регистрации нет — пользователей создаёт админ через встроенную админку PocketBase.
+- **Backend/БД**: PocketBase — единый бинарник, поднимается на том же VPS, что и статика фронтенда. Коллекции: встроенная auth `users` (`email`, `surname`, `name`) + `locations`, `marking_numbers`, `marking_types`, `materials` (справочники), `teammates` (свои участники смены: `owner`+`full_name`), `shifts` (`participants` = JSON имён), `shift_rows` (данные смен). Регистрация через клиент (`createRule: ""` на `users`); админка PB — для модерации.
 - **Клиент**: официальный JS SDK `pocketbase` (npm), singleton-клиент `src/lib/pocketbase.ts`, сессия — через встроенный `authStore` (persist в `localStorage`).
-- **Офлайн-кэш**: IndexedDB через `idb`, слой `src/lib/db.ts` + `src/lib/sync.ts` (очередь на запись, синк при онлайне, единый источник `syncStatus` вместо текущего дублирования в `AppShell.tsx`/`HomePage.tsx`).
+- **Офлайн-кэш**: IndexedDB через `idb`, слой `src/lib/db.ts` + `src/lib/sync.ts` (очередь: `create_shift` / `update_shift` / `delete_shift` / `create_teammate`; синк при онлайне; `confirmShift` / `updateShift` / `removeShift` / `createTeammate`; единый источник `syncStatus`).
 - **Деплой**: git-based — сервер (один VPS, SSH) + Nginx + Let's Encrypt. Автодеплой — GitHub Actions по push в `main` (сборка в CI, доставка `dist/` на сервер по SSH) — **ещё не заведён** (нет `.github/workflows/`).
 - **PWA-обвязка**: `vite-plugin-pwa` для manifest/SW интеграции со сборкой (вместо ручного SW).
 
@@ -191,7 +207,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 **Не делать:**
 - App Store / Play Store натив
 - Background Sync как единственный путь синка
-- Регистрация пользователей
+- Email-подтверждение при регистрации
 - Полагаться только на локальное хранилище без сервера как SoT
 
 ## Статус

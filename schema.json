@@ -3,7 +3,7 @@
     "id": "_pb_users_auth_",
     "listRule": "@request.auth.id != \"\"",
     "viewRule": "@request.auth.id != \"\"",
-    "createRule": null,
+    "createRule": "",
     "updateRule": null,
     "deleteRule": null,
     "name": "users",
@@ -89,10 +89,25 @@
         "autogeneratePattern": "",
         "help": "",
         "hidden": false,
-        "id": "text1579384326",
+        "id": "text_surname_users",
         "max": 255,
         "min": 0,
-        "name": "full_name",
+        "name": "surname",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text_name_users",
+        "max": 255,
+        "min": 0,
+        "name": "name",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
@@ -863,18 +878,14 @@
         "type": "relation"
       },
       {
-        "cascadeDelete": false,
-        "collectionId": "_pb_users_auth_",
-        "help": "",
         "hidden": false,
-        "id": "relation1902735506",
-        "maxSelect": 100,
-        "minSelect": 0,
+        "id": "json_shift_participants",
+        "maxSize": 2000000,
         "name": "participants",
         "presentable": false,
         "required": true,
         "system": false,
-        "type": "relation"
+        "type": "json"
       },
       {
         "help": "",
@@ -887,7 +898,8 @@
         "system": false,
         "type": "select",
         "values": [
-          "draft, confirme"
+          "draft",
+          "confirmed"
         ]
       },
       {
@@ -912,6 +924,86 @@
       }
     ],
     "indexes": [],
+    "system": false
+  },
+  {
+    "id": "pbc_teammates_calc",
+    "listRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "viewRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "createRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "updateRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "deleteRule": "@request.auth.id != \"\" && owner = @request.auth.id",
+    "name": "teammates",
+    "type": "base",
+    "fields": [
+      {
+        "autogeneratePattern": "[a-z0-9]{15}",
+        "help": "",
+        "hidden": false,
+        "id": "text3208210256",
+        "max": 15,
+        "min": 15,
+        "name": "id",
+        "pattern": "^[a-z0-9]+$",
+        "presentable": false,
+        "primaryKey": true,
+        "required": true,
+        "system": true,
+        "type": "text"
+      },
+      {
+        "cascadeDelete": true,
+        "collectionId": "_pb_users_auth_",
+        "help": "Владелец справочника (кто создал участника)",
+        "hidden": false,
+        "id": "relation_teammates_owner",
+        "maxSelect": 1,
+        "minSelect": 0,
+        "name": "owner",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "relation"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "Фамилия и имя одним текстом",
+        "hidden": false,
+        "id": "text_teammates_full_name",
+        "max": 255,
+        "min": 1,
+        "name": "full_name",
+        "pattern": "",
+        "presentable": true,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "hidden": false,
+        "id": "autodate2990389176",
+        "name": "created",
+        "onCreate": true,
+        "onUpdate": false,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      },
+      {
+        "hidden": false,
+        "id": "autodate3332085495",
+        "name": "updated",
+        "onCreate": true,
+        "onUpdate": true,
+        "presentable": false,
+        "system": false,
+        "type": "autodate"
+      }
+    ],
+    "indexes": [
+      "CREATE INDEX `idx_teammates_owner` ON `teammates` (`owner`)"
+    ],
     "system": false
   },
   {

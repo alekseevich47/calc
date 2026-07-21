@@ -53,12 +53,17 @@ export interface CachedShift {
   pendingSync: boolean;
 }
 
-export type SyncQueueOp = "create_shift" | "update_shift";
+export type SyncQueueOp = "create_shift" | "update_shift" | "delete_shift" | "create_teammate";
 
 export interface SyncQueueItem {
   id: string;
   op: SyncQueueOp;
+  /** Для shift-ops — id смены; для create_teammate — локальный id участника. */
   shiftId: string;
+  /** Для delete_shift — PB id, т.к. запись уже удалена из кэша. */
+  pbId?: string;
+  /** Для create_teammate — «Фамилия Имя». */
+  fullName?: string;
   createdAt: number;
   attempts: number;
   lastError?: string;
@@ -128,15 +133,8 @@ export const DEFAULT_DICTIONARIES: Dictionaries = {
     { id: "mat_paint", name: "Краска" },
     { id: "mat_plastic", name: "Холодный пластик" },
   ],
-  participants: [
-    { id: "u_ivanov", name: "Иванов А.В." },
-    { id: "u_petrova", name: "Петрова М.С." },
-    { id: "u_sidorov", name: "Сидоров К.Н." },
-    { id: "u_kozlova", name: "Козлова Е.Д." },
-    { id: "u_novikov", name: "Новиков Р.О." },
-    { id: "u_fedorova", name: "Федорова Т.И." },
-    { id: "u_morozov", name: "Морозов Д.Г." },
-  ],
+  /** Свои добавленные участники (`teammates`), не список всех users. */
+  participants: [],
   updatedAt: 0,
 };
 

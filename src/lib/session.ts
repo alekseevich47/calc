@@ -5,6 +5,10 @@ const PB_SESSION_KEY = "pocketbase_auth_session";
 
 /** Восстановить PB-сессию из sessionStorage (режим без «Запомнить»). */
 export function restoreSession(): void {
+  // Старый stub-флаг не должен маскировать отсутствие PB-сессии
+  if (isPocketBaseConfigured()) {
+    clearStubSession();
+  }
   if (!isPocketBaseConfigured() || pb.authStore.isValid) return;
   try {
     const raw = sessionStorage.getItem(PB_SESSION_KEY);

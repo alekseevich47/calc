@@ -86,7 +86,10 @@ export const STATUS_CONFIG: Record<SyncStatus, { label: string; shortLabel: stri
 export function StatusBadge({ status, onClick, compact }: { status: SyncStatus; onClick: () => void; compact?: boolean }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <button onClick={onClick} style={{
+    <button
+      onClick={onClick}
+      title={cfg.label}
+      style={{
       display: "inline-flex", alignItems: "center", gap: compact ? 4 : 6,
       background: "rgba(255,255,255,0.72)",
       backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",

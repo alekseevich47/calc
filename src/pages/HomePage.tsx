@@ -5,7 +5,7 @@ import { Plus, Calendar, ChevronDown, X, Search, Check, Trash2 } from "lucide-re
 import { StatusBadge } from "../components/shared";
 import { DEFAULT_DICTIONARIES, markingTypesMap } from "../lib/db";
 import { getCurrentUserFullName } from "../lib/session";
-import { confirmShift, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
+import { confirmShift, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 import type { QuickRow, ShellContext } from "./AppShell";
 
 // ─── Dictionaries context (из IndexedDB / PocketBase) ─────────────────────────
@@ -1284,6 +1284,14 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
 
   const dateStr = selectedDate.toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" });
 
+  function handleSyncClick() {
+    void (async () => {
+      await syncNow();
+      const err = peekSyncSnapshot().lastError;
+      if (err) window.alert(err);
+    })();
+  }
+
   function openDatePicker() {
     const btn = dateBtnRef.current;
     if (!btn) return;
@@ -1319,7 +1327,7 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "32px 0 24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: "#111827", letterSpacing: "-0.04em" }}>Смена</h1>
-          <StatusBadge status={syncStatus} onClick={() => { void syncNow(); }} />
+          <StatusBadge status={syncStatus} onClick={handleSyncClick} />
         </div>
         <button
           ref={dateBtnRef}
@@ -1521,6 +1529,14 @@ export default function HomePage() {
   const [saving, setSaving] = useState(false);
   const participantsInited = useRef(false);
 
+  function handleSyncClick() {
+    void (async () => {
+      await syncNow();
+      const err = peekSyncSnapshot().lastError;
+      if (err) window.alert(err);
+    })();
+  }
+
   // Участники: из PB users (full_name); по умолчанию — только текущий пользователь
   useEffect(() => {
     if (!dicts || participantsInited.current) return;
@@ -1581,7 +1597,7 @@ export default function HomePage() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "52px 20px 14px", borderBottom: "1px solid rgba(0,0,0,0.06)", flexShrink: 0, gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#111827", letterSpacing: "-0.04em", whiteSpace: "nowrap" }}>Смена</h1>
-          <StatusBadge status={syncStatus} compact onClick={() => { void syncNow(); }} />
+          <StatusBadge status={syncStatus} compact onClick={handleSyncClick} />
         </div>
         <DateChip selected={selectedDate} setSelected={setSelectedDate} portalTarget={phoneRef.current} />
       </div>

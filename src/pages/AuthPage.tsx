@@ -27,7 +27,7 @@ export default function AuthPage() {
     setError("");
     try {
       await loginWithPassword(login, password, remember);
-      void syncNow();
+      await syncNow();
       navigate("/home");
     } catch {
       setError("Неверный логин или пароль");

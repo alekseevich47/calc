@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router";
 import { createPortal } from "react-dom";
 import { X, Check, Home, List, User, Plus, Calculator, Wifi, WifiOff, RefreshCw, CloudOff } from "lucide-react";
 import { BottomNav, GlobalStyles, type SyncStatus } from "../components/shared";
-import { syncNow, useSyncStatus } from "../lib/sync";
+import { peekSyncSnapshot, syncNow, useSyncStatus } from "../lib/sync";
 
 // ─── Types shared with pages ──────────────────────────────────────────────────
 
@@ -474,7 +474,11 @@ export default function AppShell() {
   function handleQuickAdd(row: QuickRow) { addRowRef.current?.(row); }
   function handleSync() {
     if (syncStatus === "synced") return;
-    void syncNow();
+    void (async () => {
+      await syncNow();
+      const err = peekSyncSnapshot().lastError;
+      if (err) window.alert(err);
+    })();
   }
 
   const context: ShellContext = { phoneRef, registerAddRow, isDesktop };

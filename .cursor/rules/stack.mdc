@@ -60,13 +60,12 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 
 ## Статус экранов (по коду, не по спеке)
 
-- **Главная**: справочники таблицы из PB (`locations`, `marking_numbers`, `marking_types`, `materials` → IndexedDB/`useDictionaries`); участники — `users.full_name`. Mobile: компактный `StatusBadge` (`Синхр.` и т.п.); кнопка «Добавить» в форме строки; dropdown без автофокуса клавиатуры (только тап в «Поиск»); sticky-бар «Заполните поля»/Отмена при гориз. скролле таблицы; confirm disabled без участников. Сохранение смены — через `confirmShift` → очередь синка.
+- **Главная**: справочники из PB (`locations`, `marking_numbers`, `marking_types`, `materials` → IDB). Если видны моки — нет валидной PB-сессии или pull не прошёл (см. alert по тапу на бейдж). `Не синхр.` = очередь не ушла на сервер. Логин только email+пароль PB; после входа — `syncNow`. URL: `VITE_POCKETBASE_URL` или fallback `origin/calc`.
 - **История**: смены из кэша/`useShifts`, фильтр по периоду/участникам, expandable карточки, итоги. Скролл страницы в shell.
 - **Профиль**: имя из `getCurrentUserFullName()` (PB `full_name`); статистика из кэша смен; logout → `clearSession` + navigate.
 - **Навигация**: bottom glass-пилюля `position: fixed` + FAB «+» (mobile) / sidebar (desktop).
-- **Авторизация**: при `VITE_POCKETBASE_URL` — `pb.collection('users').authWithPassword`; иначе stub-сессия. Full-bleed, без скролла.
+- **Авторизация**: при наличии PB URL — `authWithPassword` (email); stub только если URL не задан. Full-bleed, без скролла.
 - **Умный ввод**: bottom sheet → regex-парсер → превью → подтверждение — без fuzzy match.
-
 ## Известные баги десктопа и роутинга (см. `Tasks/TASKS_start.md`, Блок 1)
 
 - Confirm-модалка в `DesktopHomePage` подключена через `showConfirm` (проверить регрессии).

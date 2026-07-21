@@ -1,10 +1,34 @@
 import PocketBase from "pocketbase";
 
-const url = import.meta.env.VITE_POCKETBASE_URL?.replace(/\/$/, "") ?? "";
+/**
+ * Base URL для SDK (без хвоста `/api` — SDK добавит сам).
+ * 1) `VITE_POCKETBASE_URL` из сборки
+ * 2) same-origin fallback `/calc` — если env не прошили в бандл (частый кейс PWA/ручной деплой)
+ */
+function resolvePocketBaseUrl(): string {
+  const fromEnv = (import.meta.env.VITE_POCKETBASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
+  if (fromEnv) return fromEnv;
+  if (typeof window !== "undefined") {
+    const path = window.location.pathname || "";
+    if (path === "/calc" || path.startsWith("/calc/")) {
+      return `${window.location.origin}/calc`;
+    }
+  }
+  return "";
+}
 
-/** Singleton PocketBase-клиент. Пустой URL → сеть недоступна, работаем только с локальным кэшем. */
+const url = resolvePocketBaseUrl();
+
+/** Singleton PocketBase-клиент. Пустой URL → только локальный кэш. */
 export const pb = new PocketBase(url || "http://127.0.0.1:8090");
 
+// Иначе параллельные getFullList в sync могут отменять друг друга.
+pb.autoCancellation(false);
+
 export function isPocketBaseConfigured(): boolean {
-  return Boolean(import.meta.env.VITE_POCKETBASE_URL);
+  return Boolean(resolvePocketBaseUrl());
+}
+
+export function getPocketBaseUrl(): string {
+  return resolvePocketBaseUrl();
 }

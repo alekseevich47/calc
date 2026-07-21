@@ -27,12 +27,14 @@ type SyncSnapshot = {
   status: SyncStatus;
   pendingCount: number;
   online: boolean;
+  lastError: string | null;
 };
 
 let snapshot: SyncSnapshot = {
   status: typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "synced",
   pendingCount: 0,
   online: typeof navigator === "undefined" || navigator.onLine,
+  lastError: null,
 };
 
 let syncing = false;
@@ -56,7 +58,12 @@ async function refreshStatus() {
   else if (syncing) status = "syncing";
   else if (pending > 0) status = "pending";
   else status = "synced";
-  setSnapshot({ status, pendingCount: pending, online });
+  setSnapshot({
+    status,
+    pendingCount: pending,
+    online,
+    lastError: pending === 0 ? null : snapshot.lastError,
+  });
 }
 
 function subscribe(listener: () => void) {
@@ -78,6 +85,11 @@ export function useSyncStatus(): SyncStatus {
 
 export function useSyncSnapshot(): SyncSnapshot {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+/** Актуальный снимок синка (для alert после syncNow). */
+export function peekSyncSnapshot(): SyncSnapshot {
+  return snapshot;
 }
 
 /** Один раз при старте — не блокирует рендер. */
@@ -193,54 +205,80 @@ export async function confirmShift(input: {
 
 // ─── Pull dictionaries + shifts from PocketBase ───────────────────────────────
 
-async function pullFromServer(): Promise<void> {
-  if (!isPocketBaseConfigured() || !pb.authStore.isValid) return;
-
+async function safeList(collection: string, opts?: { sort?: string; fields?: string }) {
   try {
-    const [locations, markingNumbers, markingTypes, materials, users] = await Promise.all([
-      pb.collection("locations").getFullList({ sort: "name" }),
-      pb.collection("marking_numbers").getFullList({ sort: "number" }),
-      pb.collection("marking_types").getFullList({ sort: "name" }),
-      pb.collection("materials").getFullList({ sort: "name" }),
-      pb.collection("users").getFullList({ fields: "id,full_name" }).catch(() => []),
-    ]);
-
-    const dicts: Dictionaries = {
-      locations: locations.map((r) => ({ id: r.id, name: String(r.name) })),
-      markingNumbers: markingNumbers.map((r) => ({
-        id: r.id,
-        number: String(r.number ?? ""),
-      })),
-      markingTypes: markingTypes.map((r) => ({
-        id: r.id,
-        name: String(r.name),
-        markingNumberId: String(r.marking_number),
-      })),
-      materials: materials.map((r) => ({ id: r.id, name: String(r.name) })),
-      participants: users.map((r) => ({
-        id: r.id,
-        name: String(r.full_name || r.id),
-      })),
-      updatedAt: Date.now(),
-    };
-
-    if (dicts.participants.length === 0) {
-      const local = await getDictionaries();
-      dicts.participants = local.participants;
-    }
-
-    // Не затираем локальный кэш пустым ответом PB (справочники ещё не заполнены).
-    const hasAny =
-      dicts.locations.length > 0 ||
-      dicts.markingNumbers.length > 0 ||
-      dicts.materials.length > 0;
-    if (hasAny) {
-      await putDictionaries(dicts);
-    } else {
-      console.warn("[sync] PB dictionaries empty — keeping local cache. Fill locations/marking_numbers/marking_types/materials in admin.");
-    }
+    return await pb.collection(collection).getFullList(opts);
   } catch (err) {
-    console.warn("[sync] pull dictionaries failed:", err);
+    console.warn(`[sync] list ${collection} failed:`, err);
+    return [];
+  }
+}
+
+async function pullFromServer(): Promise<void> {
+  if (!isPocketBaseConfigured()) {
+    setSnapshot({ lastError: "PocketBase URL не задан" });
+    return;
+  }
+  if (!pb.authStore.isValid) {
+    setSnapshot({ lastError: "Нет сессии PocketBase — войдите снова" });
+    return;
+  }
+
+  const [locations, markingNumbers, markingTypes, materials, users] = await Promise.all([
+    safeList("locations", { sort: "name" }),
+    safeList("marking_numbers", { sort: "number" }),
+    safeList("marking_types", { sort: "name" }),
+    safeList("materials", { sort: "name" }),
+    safeList("users", { fields: "id,full_name" }),
+  ]);
+
+  const dicts: Dictionaries = {
+    locations: locations.map((r) => ({ id: r.id, name: String(r.name) })),
+    markingNumbers: markingNumbers.map((r) => ({
+      id: r.id,
+      number: String(r.number ?? ""),
+    })),
+    markingTypes: markingTypes.map((r) => ({
+      id: r.id,
+      name: String(r.name),
+      markingNumberId: String(
+        typeof r.marking_number === "object" && r.marking_number
+          ? (r.marking_number as { id?: string }).id ?? r.marking_number
+          : r.marking_number,
+      ),
+    })),
+    materials: materials.map((r) => ({ id: r.id, name: String(r.name) })),
+    participants: users.map((r) => ({
+      id: r.id,
+      name: String(r.full_name || r.id),
+    })),
+    updatedAt: Date.now(),
+  };
+
+  if (dicts.participants.length === 0) {
+    const local = await getDictionaries();
+    dicts.participants = local.participants;
+  }
+
+  const hasAny =
+    dicts.locations.length > 0 ||
+    dicts.markingNumbers.length > 0 ||
+    dicts.materials.length > 0;
+
+  if (hasAny) {
+    await putDictionaries(dicts);
+    setSnapshot({ lastError: null });
+    console.info("[sync] dictionaries updated", {
+      locations: dicts.locations.length,
+      markingNumbers: dicts.markingNumbers.length,
+      markingTypes: dicts.markingTypes.length,
+      materials: dicts.materials.length,
+      participants: dicts.participants.length,
+    });
+  } else {
+    const msg = "Справочники в PB пусты или нет прав на чтение (listRule)";
+    console.warn(`[sync] ${msg}`);
+    setSnapshot({ lastError: msg });
   }
 
   try {
@@ -249,7 +287,6 @@ async function pullFromServer(): Promise<void> {
       expand: "participants,shift_rows_via_shift",
     });
 
-    // Если expand shift_rows недоступен — тянем строки отдельно
     for (const rec of remote) {
       let rows: ShiftRowData[] = [];
       try {
@@ -303,8 +340,8 @@ async function pullFromServer(): Promise<void> {
         pendingSync: false,
       });
     }
-  } catch {
-    /* ignore */
+  } catch (err) {
+    console.warn("[sync] pull shifts failed:", err);
   }
 }
 
@@ -316,7 +353,42 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
   }
 
   if (!isPocketBaseConfigured() || !pb.authStore.isValid) {
-    throw new Error("PocketBase недоступен или нет сессии");
+    throw new Error("Нет сессии PocketBase — войдите через email/пароль");
+  }
+
+  // Перепривязка имён → актуальные PB id (на случай, если смена создана на мок-справочниках)
+  const dicts = await getDictionaries();
+  const locByName = new Map(dicts.locations.map((x) => [x.name, x.id]));
+  const numByVal = new Map(dicts.markingNumbers.map((x) => [x.number, x.id]));
+  const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));
+  const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
+  const isPbId = (id?: string) => !!id && /^[a-z0-9]{15}$/i.test(id);
+
+  const rows = shift.rows.map((r) => {
+    const markingNumberId = isPbId(r.markingNumberId) ? r.markingNumberId : numByVal.get(r.markingNum);
+    const markingTypeId = isPbId(r.markingTypeId)
+      ? r.markingTypeId
+      : markingNumberId
+        ? dicts.markingTypes.find((t) => t.markingNumberId === markingNumberId && t.name === r.markingType)?.id
+        : undefined;
+    return {
+      ...r,
+      locationId: isPbId(r.locationId) ? r.locationId : locByName.get(r.location),
+      markingNumberId,
+      markingTypeId,
+      materialId: isPbId(r.materialId) ? r.materialId : matByName.get(r.material),
+    };
+  });
+
+  const participantIds = (shift.participantIds?.length
+    ? shift.participantIds
+    : shift.participants.map((n) => partByName.get(n)).filter((id): id is string => Boolean(id))
+  ).filter(isPbId);
+
+  for (const r of rows) {
+    if (!r.locationId || !r.markingNumberId || !r.materialId) {
+      throw new Error(`Нет PB-id для строки «${r.location} / ${r.markingNum}» — обновите справочники (синк)`);
+    }
   }
 
   if (item.op === "create_shift" || item.op === "update_shift") {
@@ -325,21 +397,18 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
       const created = await pb.collection("shifts").create({
         date: shift.date,
         author: pb.authStore.record?.id,
-        participants: shift.participantIds?.length
-          ? shift.participantIds
-          : undefined,
+        participants: participantIds.length ? participantIds : undefined,
         status: shift.status,
       });
       pbId = created.id;
     } else {
       await pb.collection("shifts").update(pbId, {
         date: shift.date,
-        participants: shift.participantIds,
+        participants: participantIds,
         status: shift.status,
       });
     }
 
-    // Удаляем старые строки на сервере при update — для create просто пишем
     if (shift.pbId) {
       try {
         const old = await pb.collection("shift_rows").getFullList({ filter: `shift="${pbId}"` });
@@ -349,8 +418,8 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
       }
     }
 
-    for (let i = 0; i < shift.rows.length; i++) {
-      const r = shift.rows[i];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
       await pb.collection("shift_rows").create({
         shift: pbId,
         location: r.locationId,
@@ -364,7 +433,14 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
       });
     }
 
-    await putShift({ ...shift, pbId, pendingSync: false, updatedAt: Date.now() });
+    await putShift({
+      ...shift,
+      rows,
+      participantIds,
+      pbId,
+      pendingSync: false,
+      updatedAt: Date.now(),
+    });
   }
 
   await dequeue(item.id);
@@ -384,17 +460,22 @@ export async function syncNow(): Promise<void> {
     await pullFromServer();
 
     const queue = await listQueue();
+    let lastErr: string | null = null;
     for (const item of queue) {
       try {
         await pushQueueItem(item);
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        lastErr = msg;
+        console.warn("[sync] push failed:", msg, item);
         await updateQueueItem({
           ...item,
           attempts: item.attempts + 1,
-          lastError: err instanceof Error ? err.message : String(err),
+          lastError: msg,
         });
       }
     }
+    if (lastErr) setSnapshot({ lastError: lastErr });
   } finally {
     syncing = false;
     await refreshStatus();

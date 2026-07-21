@@ -202,14 +202,14 @@ async function pullFromServer(): Promise<void> {
       pb.collection("marking_numbers").getFullList({ sort: "number" }),
       pb.collection("marking_types").getFullList({ sort: "name" }),
       pb.collection("materials").getFullList({ sort: "name" }),
-      pb.collection("users").getFullList({ fields: "id,full_name,name" }).catch(() => []),
+      pb.collection("users").getFullList({ fields: "id,full_name" }).catch(() => []),
     ]);
 
     const dicts: Dictionaries = {
       locations: locations.map((r) => ({ id: r.id, name: String(r.name) })),
       markingNumbers: markingNumbers.map((r) => ({
         id: r.id,
-        number: String(r.number ?? r.name ?? ""),
+        number: String(r.number ?? ""),
       })),
       markingTypes: markingTypes.map((r) => ({
         id: r.id,
@@ -219,7 +219,7 @@ async function pullFromServer(): Promise<void> {
       materials: materials.map((r) => ({ id: r.id, name: String(r.name) })),
       participants: users.map((r) => ({
         id: r.id,
-        name: String(r.full_name || r.name || r.id),
+        name: String(r.full_name || r.id),
       })),
       updatedAt: Date.now(),
     };

@@ -4,6 +4,7 @@ import { useOutletContext } from "react-router";
 import { Plus, Calendar, ChevronDown, X, Search, Check, Trash2 } from "lucide-react";
 import { StatusBadge } from "../components/shared";
 import { DEFAULT_DICTIONARIES, markingTypesMap } from "../lib/db";
+import { getCurrentUserFullName } from "../lib/session";
 import { confirmShift, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 import type { QuickRow, ShellContext } from "./AppShell";
 
@@ -272,14 +273,14 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (withSearch) inputRef.current?.focus();
+    // Не фокусируем поиск автоматически — иначе на mobile сразу открывается клавиатура.
     const h = (e: MouseEvent) => {
       const el = document.getElementById("dd-card");
       if (el && !el.contains(e.target as Node)) onClose();
     };
     setTimeout(() => document.addEventListener("mousedown", h), 0);
     return () => document.removeEventListener("mousedown", h);
-  }, []);
+  }, [onClose]);
 
   const filtered = options.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
 
@@ -300,8 +301,15 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
         {withSearch && (
           <div style={{ position: "relative" }}>
             <Search size={13} strokeWidth={2} color="#9ca3af" style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-            <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск..."
-              style={{ width: "100%", height: 32, borderRadius: 8, border: "1px solid rgba(0,0,0,0.09)", background: "rgba(0,0,0,0.03)", padding: "0 10px 0 28px", fontSize: 13, color: "#111827", fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box" }} />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => { /* клавиатура только по тапу в поиск */ }}
+              placeholder="Поиск..."
+              inputMode="search"
+              style={{ width: "100%", height: 32, borderRadius: 8, border: "1px solid rgba(0,0,0,0.09)", background: "rgba(0,0,0,0.03)", padding: "0 10px 0 28px", fontSize: 13, color: "#111827", fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box" }}
+            />
           </div>
         )}
       </div>
@@ -329,15 +337,27 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
 
 // ─── New-row edit form ────────────────────────────────────────────────────────
 
-function NewRowForm({ phoneRef, onAdd, onCancel }: {
+function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
   phoneRef: React.RefObject<HTMLDivElement | null>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
   onAdd: (row: Omit<FilledRow, "id">) => void;
   onCancel: () => void;
 }) {
   const [row, setRow] = useState<EditRow>({ location: "", markingNum: "", markingType: "", volume: "", material: "", tariff: "" });
   const [openCol, setOpenCol] = useState<ColKey | null>(null);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 240 });
+  const [barWidth, setBarWidth] = useState<number | undefined>();
   const dict = useDict();
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setBarWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [scrollRef]);
 
   const markingTypeAvailable = !!row.markingNum;
   const typeOptions = dict.markingTypes[row.markingNum] || [];
@@ -382,6 +402,13 @@ function NewRowForm({ phoneRef, onAdd, onCancel }: {
     { key: "tariff" },
   ];
 
+  function handleAdd() {
+    onAdd({
+      location: row.location, markingNum: row.markingNum, markingType: row.markingType,
+      volume: vol, material: row.material, tariff: tar,
+    });
+  }
+
   return (
     <>
       <table style={{ borderCollapse: "collapse", minWidth: 610, tableLayout: "fixed", width: "100%", borderTop: "1.5px solid rgba(255,107,0,0.2)" }}>
@@ -402,7 +429,7 @@ function NewRowForm({ phoneRef, onAdd, onCancel }: {
               if (isNumeric) {
                 return (
                   <td key={col} style={{ padding: "4px 6px", verticalAlign: "middle", background: "rgba(255,107,0,0.03)", borderBottom: "1.5px solid rgba(255,107,0,0.25)" }}>
-                    <input type="number" min="0" placeholder={col === "tariff" ? "0 ₽" : "0"} value={(row as any)[col]} onChange={(e) => setVal(col, e.target.value)}
+                    <input type="number" min="0" inputMode="decimal" placeholder={col === "tariff" ? "0 ₽" : "0"} value={(row as any)[col]} onChange={(e) => setVal(col, e.target.value)}
                       style={{ width: "100%", height: 28, borderRadius: 6, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(255,255,255,0.8)", padding: "0 6px", fontSize: 12, color: "#111827", fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box" }} />
                   </td>
                 );
@@ -432,9 +459,25 @@ function NewRowForm({ phoneRef, onAdd, onCancel }: {
           </tr>
         </tbody>
       </table>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 12px 4px" }}>
-        <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>Заполните поля строки</p>
-        <button onClick={onCancel} style={{ fontSize: 11, color: "#d1d5db", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}>Отмена</button>
+      <div style={{
+        position: "sticky", left: 0, zIndex: 2,
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+        padding: "8px 12px",
+        width: barWidth ?? "100%", boxSizing: "border-box",
+        background: "rgba(255,255,255,0.94)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        borderTop: "1px solid rgba(0,0,0,0.04)",
+      }}>
+        <p style={{ margin: 0, fontSize: 11, color: "#9ca3af", flex: 1, minWidth: 0 }}>Заполните поля строки</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={handleAdd}
+            style={{ fontSize: 12, fontWeight: 600, color: "#FF6B00", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}
+          >
+            Добавить
+          </button>
+          <button type="button" onClick={onCancel} style={{ fontSize: 11, color: "#d1d5db", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}>Отмена</button>
+        </div>
       </div>
       {isDropdownCol(openCol) && (() => {
         const portal = document.getElementById("app-portal");
@@ -456,8 +499,9 @@ function NewRowForm({ phoneRef, onAdd, onCancel }: {
 // ─── Edit Row Form ────────────────────────────────────────────────────────────
 // Same layout as NewRowForm but pre-filled; saves changes to existing row.
 
-function EditRowForm({ phoneRef, row, onSave, onCancel }: {
+function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
   phoneRef: React.RefObject<HTMLDivElement | null>;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
   row: FilledRow;
   onSave: (updated: Omit<FilledRow, "id">) => void;
   onCancel: () => void;
@@ -472,7 +516,18 @@ function EditRowForm({ phoneRef, row, onSave, onCancel }: {
   });
   const [openCol, setOpenCol] = useState<ColKey | null>(null);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 240 });
+  const [barWidth, setBarWidth] = useState<number | undefined>();
   const dict = useDict();
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setBarWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [scrollRef]);
 
   const markingTypeAvailable = !!editRow.markingNum;
   const typeOptions = dict.markingTypes[editRow.markingNum] || [];
@@ -537,7 +592,7 @@ function EditRowForm({ phoneRef, row, onSave, onCancel }: {
               if (isNumeric) {
                 return (
                   <td key={col} style={{ padding: "4px 6px", verticalAlign: "middle", background: "rgba(99,102,241,0.04)", borderBottom: "1.5px solid rgba(99,102,241,0.20)" }}>
-                    <input type="number" min="0" value={(editRow as any)[col]} onChange={(e) => setVal(col, e.target.value)}
+                    <input type="number" min="0" inputMode="decimal" value={(editRow as any)[col]} onChange={(e) => setVal(col, e.target.value)}
                       style={{ width: "100%", height: 28, borderRadius: 6, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(255,255,255,0.9)", padding: "0 6px", fontSize: 12, color: "#111827", fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box" }} />
                   </td>
                 );
@@ -568,7 +623,14 @@ function EditRowForm({ phoneRef, row, onSave, onCancel }: {
         </tbody>
       </table>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 12px 4px", background: "rgba(99,102,241,0.03)" }}>
+      <div style={{
+        position: "sticky", left: 0, zIndex: 2,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "8px 12px",
+        width: barWidth ?? "100%", boxSizing: "border-box",
+        background: "rgba(255,255,255,0.94)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+        borderTop: "1px solid rgba(99,102,241,0.08)",
+      }}>
         <button
           onClick={() => onSave({ location: editRow.location, markingNum: editRow.markingNum, markingType: editRow.markingType, volume: vol, material: editRow.material, tariff: tar })}
           style={{ fontSize: 12, fontWeight: 600, color: "#6366f1", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}
@@ -604,6 +666,7 @@ function WorkTable({ rows, setRows, phoneRef }: {
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   function addRow(data: Omit<FilledRow, "id">) {
     setRows((p) => [...p, { ...data, id: Date.now() }]);
@@ -617,7 +680,7 @@ function WorkTable({ rows, setRows, phoneRef }: {
 
   return (
     <div>
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div ref={scrollRef} style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         <table style={{ borderCollapse: "collapse", minWidth: 610, tableLayout: "fixed", width: "100%" }}>
           <colgroup>
             <col style={{ width: 28 }} />
@@ -640,6 +703,7 @@ function WorkTable({ rows, setRows, phoneRef }: {
             <EditRowForm
               key={row.id}
               phoneRef={phoneRef}
+              scrollRef={scrollRef}
               row={row}
               onSave={(data) => saveRow(row.id, data)}
               onCancel={() => setEditingId(null)}
@@ -654,10 +718,10 @@ function WorkTable({ rows, setRows, phoneRef }: {
           )
         )}
 
-        {adding && <NewRowForm phoneRef={phoneRef} onAdd={addRow} onCancel={() => setAdding(false)} />}
+        {adding && <NewRowForm phoneRef={phoneRef} scrollRef={scrollRef} onAdd={addRow} onCancel={() => setAdding(false)} />}
 
         {!adding && !editingId && (
-          <div onClick={() => setAdding(true)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 10px", cursor: "pointer", borderTop: "1px dashed #e5e7eb" }}>
+          <div onClick={() => setAdding(true)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 10px", cursor: "pointer", borderTop: "1px dashed #e5e7eb", position: "sticky", left: 0, width: "max(100%, 0px)" }}>
             <div style={{ width: 20, height: 20, borderRadius: 6, border: "1.5px dashed #d1d5db", display: "flex", alignItems: "center", justifyContent: "center", color: "#d1d5db", flexShrink: 0 }}>
               <Plus size={11} strokeWidth={2.5} />
             </div>
@@ -1455,13 +1519,18 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const participantsInited = useRef(false);
 
-  // Дефолтные участники после загрузки справочника
+  // Участники: из PB users (full_name); по умолчанию — только текущий пользователь
   useEffect(() => {
-    if (dicts && participants.length === 0 && dicts.participants.length > 0) {
-      setParticipants(dicts.participants.slice(0, 3).map((p) => p.name));
-    }
-  }, [dicts, participants.length]);
+    if (!dicts || participantsInited.current) return;
+    const me = getCurrentUserFullName();
+    const names = dicts.participants.map((p) => p.name);
+    if (me && names.includes(me)) setParticipants([me]);
+    else if (me) setParticipants([me]);
+    else if (names[0]) setParticipants([names[0]]);
+    participantsInited.current = true;
+  }, [dicts]);
 
   useEffect(() => {
     registerAddRow((quick: QuickRow) => {
@@ -1478,7 +1547,7 @@ export default function HomePage() {
   }, [dictOptions.locations, registerAddRow]);
 
   async function handleConfirmSave() {
-    if (saving || rows.length === 0) return;
+    if (saving || rows.length === 0 || participants.length === 0) return;
     setSaving(true);
     try {
       await confirmShift({
@@ -1496,6 +1565,7 @@ export default function HomePage() {
   }
 
   const total = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
+  const canConfirm = rows.length > 0 && participants.length > 0;
 
   const body = isDesktop ? (
     <DesktopHomePage
@@ -1506,18 +1576,18 @@ export default function HomePage() {
       onConfirmSave={() => { void handleConfirmSave(); }}
     />
   ) : (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "52px 20px 14px", borderBottom: "1px solid rgba(0,0,0,0.06)", flexShrink: 0, gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#111827", letterSpacing: "-0.04em", whiteSpace: "nowrap" }}>Смена</h1>
-          <StatusBadge status={syncStatus} onClick={() => { void syncNow(); }} />
+          <StatusBadge status={syncStatus} compact onClick={() => { void syncNow(); }} />
         </div>
         <DateChip selected={selectedDate} setSelected={setSelectedDate} portalTarget={phoneRef.current} />
       </div>
 
-      {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: 96, WebkitOverflowScrolling: "touch" }}>
+      {/* Body — скролл страницы в AppShell */}
+      <div style={{ paddingBottom: 110 }}>
 
         {/* Table card */}
         <div style={{ margin: "14px 16px 0", background: "rgba(255,255,255,0.68)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.6)", borderRadius: 18, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", overflow: "visible", position: "relative" }}>
@@ -1531,24 +1601,24 @@ export default function HomePage() {
           <TotalBar rows={rows} />
         </div>
 
-        {/* Confirm button — active */}
+        {/* Confirm button */}
         <div style={{ padding: "14px 16px 6px" }}>
           <button
             onClick={() => setShowConfirm(true)}
             style={{
               width: "100%", height: 50, borderRadius: 14, border: "none",
-              background: rows.length > 0 ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.07)",
-              color: rows.length > 0 ? "#fff" : "#b0b7c3",
+              background: canConfirm ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.07)",
+              color: canConfirm ? "#fff" : "#b0b7c3",
               fontSize: 15, fontWeight: 600, fontFamily: "Inter, sans-serif", letterSpacing: "-0.01em",
-              cursor: rows.length > 0 ? "pointer" : "not-allowed", outline: "none",
-              boxShadow: rows.length > 0 ? "0 6px 20px rgba(255,107,0,0.28)" : "none",
+              cursor: canConfirm ? "pointer" : "not-allowed", outline: "none",
+              boxShadow: canConfirm ? "0 6px 20px rgba(255,107,0,0.28)" : "none",
               transition: "transform 0.12s, box-shadow 0.12s",
             }}
-            disabled={rows.length === 0}
-            onMouseDown={(e) => { if (rows.length > 0) { e.currentTarget.style.transform = "scale(0.97)"; e.currentTarget.style.boxShadow = "0 3px 10px rgba(255,107,0,0.22)"; }}}
-            onMouseUp={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = rows.length > 0 ? "0 6px 20px rgba(255,107,0,0.28)" : "none"; }}
+            disabled={!canConfirm}
+            onMouseDown={(e) => { if (canConfirm) { e.currentTarget.style.transform = "scale(0.97)"; e.currentTarget.style.boxShadow = "0 3px 10px rgba(255,107,0,0.22)"; }}}
+            onMouseUp={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = canConfirm ? "0 6px 20px rgba(255,107,0,0.28)" : "none"; }}
           >
-            {rows.length > 0 ? `Подтвердить смену · ${fmt(total)}` : "Подтвердить смену"}
+            {canConfirm ? `Подтвердить смену · ${fmt(total)}` : rows.length === 0 ? "Подтвердить смену" : "Выберите участников"}
           </button>
         </div>
 
@@ -1563,7 +1633,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Confirmation bottom sheet */}
       {showConfirm && (
         <ConfirmSheet
           rows={rows}
@@ -1573,7 +1642,7 @@ export default function HomePage() {
           onSave={() => { void handleConfirmSave(); }}
         />
       )}
-    </>
+    </div>
   );
 
   return <DictContext.Provider value={dictOptions}>{body}</DictContext.Provider>;

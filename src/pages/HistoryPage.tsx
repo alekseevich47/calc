@@ -422,9 +422,9 @@ export default function HistoryPage() {
   const hasFilter = filterParticipants.length > 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", fontFamily: "Inter, sans-serif" }}>
       {/* Header */}
-      <div style={{ padding: "52px 20px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", flexShrink: 0, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ padding: "52px 20px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#111827", letterSpacing: "-0.04em" }}>История</h1>
           <div style={{ display: "flex", gap: 8 }}>
@@ -455,8 +455,8 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Scrollable list */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px 0", display: "flex", flexDirection: "column", gap: 10, fontFamily: "Inter, sans-serif" }}>
+      {/* List */}
+      <div style={{ padding: "14px 16px 0", display: "flex", flexDirection: "column", gap: 10, paddingBottom: 110 }}>
         {filtered.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginTop: 48, opacity: 0.5 }}>
             <Calendar size={36} strokeWidth={1.3} color="#9ca3af" />
@@ -466,7 +466,6 @@ export default function HistoryPage() {
           filtered.map(shift => <ShiftCard key={shift.id} shift={shift} />)
         )}
 
-        {/* Summary block inside scroll area */}
         <div style={{
           margin: "4px 0 0",
           background: "rgba(255,255,255,0.82)",
@@ -474,7 +473,6 @@ export default function HistoryPage() {
           border: "1px solid rgba(255,255,255,0.65)",
           borderRadius: 16, padding: "12px 16px",
           boxShadow: "0 -2px 20px rgba(0,0,0,0.06)",
-          fontFamily: "Inter, sans-serif",
         }}>
           <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
             Период: {formatPeriod()}
@@ -491,9 +489,6 @@ export default function HistoryPage() {
             </div>
           </div>
         </div>
-
-        {/* Nav bar clearance */}
-        <div style={{ height: 88, flexShrink: 0 }} />
       </div>
 
       {/* Calendar portal */}

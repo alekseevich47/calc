@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { User, LogOut, ChevronRight, Wifi, WifiOff, RefreshCw, CloudOff, Globe, Info, X, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { SyncStatus } from "../components/shared";
-import { clearSession } from "../lib/session";
+import { clearSession, getCurrentUserFullName } from "../lib/session";
 import {
   computeUserStats,
   syncNow,
@@ -20,9 +20,6 @@ const PERIOD_LABELS: { key: Period; label: string }[] = [
 ];
 
 const LANG_OPTIONS = ["Русский", "English"];
-
-/** До PocketBase-auth (Блок 4) — имя текущего пользователя из профиля. */
-const CURRENT_USER_NAME = "Иванов А.В.";
 
 function fmt(n: number) {
   return n.toLocaleString("ru-RU") + " ₽";
@@ -155,9 +152,10 @@ export default function ProfilePage() {
   const [language, setLanguage] = useState("Русский");
   const [showLang, setShowLang] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const userName = getCurrentUserFullName();
 
-  const stats = computeUserStats(shifts, CURRENT_USER_NAME, period);
-  const alltime = computeUserStats(shifts, CURRENT_USER_NAME, "alltime");
+  const stats = computeUserStats(shifts, userName, period);
+  const alltime = computeUserStats(shifts, userName, "alltime");
 
   function handleSync() {
     if (syncStatus === "synced") return;
@@ -168,13 +166,13 @@ export default function ProfilePage() {
   const SyncIcon = sync.icon;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
       {/* Header */}
       <div style={{ padding: "52px 20px 14px", borderBottom: "1px solid rgba(0,0,0,0.06)", flexShrink: 0, fontFamily: "Inter, sans-serif" }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#111827", letterSpacing: "-0.04em" }}>Профиль</h1>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 0", display: "flex", flexDirection: "column", gap: 12, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ padding: "16px 16px 110px", display: "flex", flexDirection: "column", gap: 12, fontFamily: "Inter, sans-serif" }}>
 
         {/* Avatar + name */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, background: "rgba(255,255,255,0.68)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.6)", borderRadius: 18, padding: "16px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
@@ -182,7 +180,7 @@ export default function ProfilePage() {
             <User size={24} strokeWidth={1.8} color="white" />
           </div>
           <div>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>Иванов А.В.</p>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>{userName}</p>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#9ca3af" }}>Оператор разметки</p>
           </div>
         </div>
@@ -308,7 +306,7 @@ export default function ProfilePage() {
           Выйти
         </button>
 
-        <div style={{ height: 96, flexShrink: 0 }} />
+        <div style={{ height: 8, flexShrink: 0 }} />
       </div>
 
       {showLang  && <LangSheet current={language} onChange={setLanguage} onClose={() => setShowLang(false)} />}

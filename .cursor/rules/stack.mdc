@@ -44,36 +44,35 @@ src/
 │       ├── ui/               # shadcn kit (~40 файлов), не используется страницами
 │       └── figma/ImageWithFallback.tsx  # не используется
 ├── pages/
-│   ├── AuthPage.tsx          # логин/пароль; stub-сессия (`session.ts`); без PocketBase API
-│   ├── AppShell.tsx          # outlet + BottomNav + FAB «+» + QuickInputSheet + parseQuickText
-│   ├── HomePage.tsx          # главная / таблица работ — наиболее проработан
-│   ├── HistoryPage.tsx       # история, mock-данные, не связана с HomePage
-│   └── ProfilePage.tsx       # профиль, mock user/stats
+│   ├── AuthPage.tsx          # PB authWithPassword / stub; без скролла
+│   ├── AppShell.tsx          # outlet + fixed BottomNav + FAB + QuickInput + parseQuickText
+│   ├── HomePage.tsx          # смена: PB-справочники, участники users.full_name
+│   ├── HistoryPage.tsx       # история из кэша смен
+│   └── ProfilePage.tsx       # профиль + logout clearSession
 ├── components/shared.tsx     # BottomNav, StatusBadge, GlobalStyles
 └── styles/                   # index.css, tailwind.css, theme.css (shadcn, не brand), fonts.css (Inter)
 ```
 
-Mobile / desktop shell — **без** phone mockup 390×844 и без серого `#e8eaed`: full-bleed на `100dvh` (`overflow: hidden`), фон — бело-оранжевый градиент (`#f0f4ff` → `#fdf9f5` → `#fff7ed`) в `AuthPage` и `AppShell`. Desktop: `useIsDesktop()` (breakpoint **1024px**) → collapsible sidebar 64↔240px; `HomePage.tsx` содержит встроенный `DesktopHomePage` (широкая таблица, панель итогов, inline edit). Orphan `src/pages/HomePcPage.tsx` — мёртвый код, подлежит удалению (см. `Tasks/TASKS_start.md`, Блок 1.2).
+Mobile / desktop shell — **без** phone mockup 390×844 и без серого `#e8eaed`: full-bleed на `100dvh`, фон — бело-оранжевый градиент (`#f0f4ff` → `#fdf9f5` → `#fff7ed`) в `AuthPage` и `AppShell`.
+- **Auth**: `overflow: hidden`, без скролла страницы.
+- **AppShell mobile**: контент скроллится (`overflowY: auto` в `phoneRef`), `BottomNav` — `position: fixed` снизу (не уезжает при pull-to-refresh / overscroll); `overscroll-behavior: none/contain`.
+- Desktop: `useIsDesktop()` (breakpoint **1024px**) → collapsible sidebar 64↔240px; `HomePage.tsx` содержит встроенный `DesktopHomePage`. Orphan `HomePcPage.tsx` — мёртвый код (см. `Tasks/TASKS_start.md`, Блок 1.2).
 
 ## Статус экранов (по коду, не по спеке)
 
-- **Главная**: дата, таблица 7 колонок на mock-данных, добавление/редактирование строк, swipe-to-delete, dropdown с поиском, зависимость типа от номера разметки, расчёт оплаты в реальном времени, участники (dropdown+чипсы), confirm-модалка с итогами. Desktop-ветка (`DesktopHomePage`) работает, но confirm-модалка там не рендерится (баг). Сохранение (`onSave`) — заглушка, данные никуда не пишутся.
-- **История**: mock-смены, фильтр по периоду/участникам, expandable карточки, итоги. Не читает данные из Главной. На desktop нет отдельной вёрстки — использует mobile UI внутри sidebar-раскладки; завязана на `#phone-portal`, которого нет в desktop-ветке `AppShell` (баг).
-- **Профиль**: mock-пользователь и статистика, переключатель периода, статус синка и язык — только UI-заглушки (`setTimeout`); logout — просто `navigate("/")`, без очистки сессии. Та же проблема с `#phone-portal` на desktop.
-- **Навигация**: bottom glass-пилюля + отдельный FAB «+» (mobile) / sidebar (desktop) — соответствует спеке.
-- **Авторизация**: форма есть; stub-сессия через `session.ts` (`remember` → localStorage/sessionStorage); без PocketBase-проверки логина/пароля. Full-bleed как у остальных экранов (см. layout выше).
-- **Умный ввод**: bottom sheet с textarea → regex-парсер → превью → подтверждение — рабочий путь без fuzzy match и без справочника.
+- **Главная**: справочники таблицы из PB (`locations`, `marking_numbers`, `marking_types`, `materials` → IndexedDB/`useDictionaries`); участники — `users.full_name`. Mobile: компактный `StatusBadge` (`Синхр.` и т.п.); кнопка «Добавить» в форме строки; dropdown без автофокуса клавиатуры (только тап в «Поиск»); sticky-бар «Заполните поля»/Отмена при гориз. скролле таблицы; confirm disabled без участников. Сохранение смены — через `confirmShift` → очередь синка.
+- **История**: смены из кэша/`useShifts`, фильтр по периоду/участникам, expandable карточки, итоги. Скролл страницы в shell.
+- **Профиль**: имя из `getCurrentUserFullName()` (PB `full_name`); статистика из кэша смен; logout → `clearSession` + navigate.
+- **Навигация**: bottom glass-пилюля `position: fixed` + FAB «+» (mobile) / sidebar (desktop).
+- **Авторизация**: при `VITE_POCKETBASE_URL` — `pb.collection('users').authWithPassword`; иначе stub-сессия. Full-bleed, без скролла.
+- **Умный ввод**: bottom sheet → regex-парсер → превью → подтверждение — без fuzzy match.
 
 ## Известные баги десктопа и роутинга (см. `Tasks/TASKS_start.md`, Блок 1)
 
-- Два route на `path: "/"` без auth guard (`src/app/routes.ts`).
-- Confirm-модалка не рендерится в `DesktopHomePage` (`src/pages/HomePage.tsx`).
-- `#phone-portal` отсутствует в desktop-ветке `AppShell.tsx` → падают/не рендерятся `FilterSheet`, `MiniCalendar`, sheets в `HistoryPage.tsx`/`ProfilePage.tsx`.
+- Confirm-модалка в `DesktopHomePage` подключена через `showConfirm` (проверить регрессии).
 - `HomePcPage.tsx` — мёртвый код, дублирует логику, не в роутере.
-- `syncStatus` независимо продублирован в `AppShell.tsx` и `HomePage.tsx`.
-- ~~`MiniCalendar` хардкод `390px`~~ — позиция считается от `#app-portal` (актуально для full-bleed).
-- `react`/`react-dom` в `package.json` — только `peerDependencies` (optional), нет lock-файла, `tsconfig`, `eslint`, `.gitignore`, `public/`.
-
+- ~~`MiniCalendar` хардкод `390px`~~ — позиция от `#app-portal`.
+- `react`/`react-dom` в `package.json` — только `peerDependencies` (optional) — уточнять по факту lockfile.
 ## Дизайн-токены (как есть, не менять без причины)
 
 - Оранжевый акцент `#FF6B00` → `#FF9A00` (градиент) — захардкожен инлайново в каждом экране, не вынесен в переменную.
@@ -92,38 +91,39 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 
 ## Авторизация
 
-- Только логин + пароль (выдаёт модератор).
+- Только логин + пароль (выдаёт модератор). Identity в PB — `email` (`schema.json` / `users`).
 - Регистрации **нет**.
-- «Запомнить меня» **по умолчанию** (сессия локально).
-- UI: full-bleed `100dvh` / `overflow: hidden` на `AuthPage` и mobile/desktop `AppShell`; фон — бело-оранжевый градиент; серый `#e8eaed` и phone-рамка 390×844 убраны со всех экранов.
+- «Запомнить меня» **по умолчанию**: PB `authStore` (localStorage); без галочки — sessionStorage + `restoreSession()`.
+- UI: `AuthPage` — full-bleed `100dvh`, **без скролла**; фон бело-оранжевый градиент.
+- `session.ts`: `loginWithPassword`, `getCurrentUserFullName` (`users.full_name`), `clearSession` чистит PB + stub.
 
 ## Навигация
 
-**Mobile:** плавающая нижняя glass-пилюля — 3 вкладки: Главная | История | Профиль.
-- Активная вкладка растягивается (иконка + подпись), неактивные — только иконка.
-- Отдельная круглая кнопка «+» справа (**не** внутри пилюли) — быстрый текстовый ввод.
-- Статус сети/синка: Офлайн / Синхронизация / Синхронизировано (шапка или у навбара).
+**Mobile:** `BottomNav` — `position: fixed` у низа экрана (safe-area), не внутри скролла контента.
+- 3 вкладки: Главная | История | Профиль; активная растягивается.
+- FAB «+» справа — быстрый текстовый ввод.
+- Контент страниц скроллится в `AppShell` (`phoneRef`); auth — без скролла.
+- Статус синка (mobile шапка): компактный бейдж (`Синхр.` / `Синхр…` / `Не синхр.` / `Офлайн`), `StatusBadge compact`.
 
-**Desktop:** левый sidebar — те же разделы + статус + «+»; таблицы шире, формы в 2 колонки где уместно.
+**Desktop:** левый sidebar — те же разделы + статус + «+»; таблицы шире.
 
 ## Экраны
 
 ### 1. Главная (ввод смены)
 
-- Шапка: дата смены (выбор даты).
-- Таблица работ — столбцы:
-  1. Населённый пункт / трасса — dropdown
-  2. Номер разметки — dropdown (справочник отдельным файлом позже)
-  3. Тип разметки — dropdown, опционально, зависит от п.2
-  4. Объём — ручной ввод (шт или м)
-  5. Тип материала — dropdown (краска / пластик)
+- Шапка: дата смены; mobile — компактный sync-бейдж.
+- Таблица работ — опции из PB-справочников (`schema.json` → sync → IndexedDB):
+  1. Место — `locations.name`
+  2. № разметки — `marking_numbers.number`
+  3. Тип — `marking_types.name` (фильтр по relation `marking_number`)
+  4. Объём — ручной ввод
+  5. Материал — `materials.name`
   6. Тариф — ручной ввод
-  7. Оплата — read-only, `объём × тариф` в реальном времени
-- Всегда видна серая превью-строка; после выбора первого поля — активная; после заполненных — снова превью.
-- «Подтвердить» → модалка превью таблицы → сохранение.
-- Участники смены: мультивыбор чекбоксами через dropdown, выбранные — чипсы.
-- Кнопка «+»: модалка с textarea → парсер (основной) / лёгкая ИИ-модель (fallback) заполняет строки; пользователь **всегда** подтверждает результат.
-
+  7. Оплата — read-only, `объём × тариф`
+- Mobile: при редактировании строки — кнопка «Добавить»; бар «Заполните поля»/«Отмена» sticky по горизонтали (не уезжает со скроллом таблицы); dropdown select — без автооткрытия клавиатуры, клавиатура только по тапу в «Поиск».
+- «Подтвердить» → модалка → `confirmShift`; **disabled**, если нет строк **или** нет участников.
+- Участники: список из `users.full_name`; по умолчанию выбран **только текущий**; можно снять всех (тогда confirm disabled).
+- Кнопка «+»: textarea → парсер → подтверждение.
 ### 2. История
 
 - Список/таблицы сохранённых смен.

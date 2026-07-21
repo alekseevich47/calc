@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Navigate, useNavigate } from "react-router";
 import { Eye, EyeOff, Calculator } from "lucide-react";
 import { GlobalStyles } from "../components/shared";
-import { isAuthenticated, setSession } from "../lib/session";
+import { isAuthenticated, loginWithPassword } from "../lib/session";
+import { syncNow } from "../lib/sync";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   if (isAuthenticated()) {
     return <Navigate to="/home" replace />;
@@ -18,15 +20,20 @@ export default function AuthPage() {
 
   const canSubmit = login.trim().length > 0 && password.length > 0;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || loading) return;
     setLoading(true);
-    setTimeout(() => {
-      setSession(remember);
-      setLoading(false);
+    setError("");
+    try {
+      await loginWithPassword(login, password, remember);
+      void syncNow();
       navigate("/home");
-    }, 1200);
+    } catch {
+      setError("Неверный логин или пароль");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -82,8 +89,7 @@ export default function AuthPage() {
       <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "radial-gradient(circle, rgba(255,154,0,0.13) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: -60, left: -80, width: 300, height: 300, background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
 
-      <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 330, display: "flex", flexDirection: "column", gap: 0, animation: "authFadeUp 0.4s ease forwards", position: "relative" }}>
-        {/* Logo */}
+      <form onSubmit={(e) => { void handleSubmit(e); }} style={{ width: "100%", maxWidth: 330, display: "flex", flexDirection: "column", gap: 0, animation: "authFadeUp 0.4s ease forwards", position: "relative" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 28, gap: 10 }}>
           <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg, #FF6B00 0%, #FF9A00 100%)", boxShadow: "0 8px 24px rgba(255,107,0,0.30)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Calculator size={26} strokeWidth={1.8} color="#fff" />
@@ -98,7 +104,6 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Fields */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Логин</label>
@@ -115,7 +120,10 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Remember me */}
+        {error && (
+          <p style={{ margin: "0 0 12px", fontSize: 13, color: "#ef4444", fontWeight: 500 }}>{error}</p>
+        )}
+
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22, cursor: "pointer" }} onClick={() => setRemember((v) => !v)}>
           <div className={`checkbox-box${remember ? " checked" : ""}`}>
             {remember && (
@@ -127,7 +135,6 @@ export default function AuthPage() {
           <span style={{ fontSize: 14, color: "#374151", fontWeight: 500, userSelect: "none" }}>Запомнить меня</span>
         </div>
 
-        {/* Submit */}
         <button type="submit" className="auth-btn" disabled={loading || !canSubmit}>
           {loading ? (
             <>

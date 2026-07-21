@@ -14,7 +14,13 @@ export function BottomNav({ onFabClick }: { onFabClick?: () => void }) {
   const { pathname } = useLocation();
 
   return (
-    <div style={{ position: "absolute", bottom: 16, left: 16, right: 16, display: "flex", alignItems: "center", gap: 10, zIndex: 20 }}>
+    <div style={{
+      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40,
+      padding: "0 16px calc(16px + env(safe-area-inset-bottom, 0px))",
+      display: "flex", alignItems: "center", gap: 10,
+      pointerEvents: "none",
+    }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, pointerEvents: "auto" }}>
       <div style={{
         flex: 1, height: 64,
         background: "rgba(255,255,255,0.62)",
@@ -61,6 +67,7 @@ export function BottomNav({ onFabClick }: { onFabClick?: () => void }) {
       >
         <Plus size={22} strokeWidth={2.5} color="#ffffff" />
       </button>
+      </div>
     </div>
   );
 }
@@ -69,33 +76,36 @@ export function BottomNav({ onFabClick }: { onFabClick?: () => void }) {
 
 export type SyncStatus = "offline" | "syncing" | "pending" | "synced";
 
-export const STATUS_CONFIG: Record<SyncStatus, { label: string; color: string; animate: boolean }> = {
-  offline: { label: "Офлайн",              color: "#9ca3af", animate: false },
-  syncing: { label: "Синхронизация...",    color: "#f59e0b", animate: true  },
-  pending: { label: "Не синхронизировано", color: "#ef4444", animate: false },
-  synced:  { label: "Синхронизировано",    color: "#22c55e", animate: false },
+export const STATUS_CONFIG: Record<SyncStatus, { label: string; shortLabel: string; color: string; animate: boolean }> = {
+  offline: { label: "Офлайн",              shortLabel: "Офлайн",  color: "#9ca3af", animate: false },
+  syncing: { label: "Синхронизация...",    shortLabel: "Синхр…",  color: "#f59e0b", animate: true  },
+  pending: { label: "Не синхронизировано", shortLabel: "Не синхр.", color: "#ef4444", animate: false },
+  synced:  { label: "Синхронизировано",    shortLabel: "Синхр.",  color: "#22c55e", animate: false },
 };
 
-export function StatusBadge({ status, onClick }: { status: SyncStatus; onClick: () => void }) {
+export function StatusBadge({ status, onClick, compact }: { status: SyncStatus; onClick: () => void; compact?: boolean }) {
   const cfg = STATUS_CONFIG[status];
   return (
     <button onClick={onClick} style={{
-      display: "inline-flex", alignItems: "center", gap: 6,
+      display: "inline-flex", alignItems: "center", gap: compact ? 4 : 6,
       background: "rgba(255,255,255,0.72)",
       backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
       border: "1px solid rgba(255,255,255,0.45)",
-      borderRadius: 999, padding: "5px 10px 5px 8px",
+      borderRadius: 999, padding: compact ? "3px 7px 3px 6px" : "5px 10px 5px 8px",
       boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       cursor: "pointer", outline: "none", fontFamily: "Inter, sans-serif",
-      WebkitTapHighlightColor: "transparent",
+      WebkitTapHighlightColor: "transparent", flexShrink: 0, maxWidth: "100%",
     }}>
       <span style={{
-        width: 7, height: 7, borderRadius: "50%", background: cfg.color,
+        width: compact ? 6 : 7, height: compact ? 6 : 7, borderRadius: "50%", background: cfg.color,
         flexShrink: 0, display: "block",
         animation: cfg.animate ? "spin 1.2s linear infinite" : "none",
       }} />
-      <span style={{ fontSize: 12, fontWeight: 500, color: "#374151", letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>
-        {cfg.label}
+      <span style={{
+        fontSize: compact ? 10 : 12, fontWeight: 500, color: "#374151",
+        letterSpacing: "-0.01em", whiteSpace: "nowrap",
+      }}>
+        {compact ? cfg.shortLabel : cfg.label}
       </span>
     </button>
   );
@@ -107,6 +117,7 @@ export function GlobalStyles() {
   return (
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      html, body, #root { height: 100%; overscroll-behavior: none; }
       * { box-sizing: border-box; }
       @keyframes navFadeIn { from { opacity:0; transform:translateX(-4px); } to { opacity:1; transform:translateX(0); } }
       @keyframes fadeUp    { from { opacity:0; transform:translateY(8px);  } to { opacity:1; transform:translateY(0); } }

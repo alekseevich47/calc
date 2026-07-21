@@ -526,19 +526,28 @@ export default function AppShell() {
 
   // ── Mobile layout ───────────────────────────────────────────────────────────
   return (
-    <div ref={phoneRef} style={{
+    <div style={{
       height: "100dvh", maxHeight: "100dvh", overflow: "hidden",
       background: "linear-gradient(160deg, #f0f4ff 0%, #fdf9f5 55%, #fff7ed 100%)",
       fontFamily: "Inter, sans-serif",
       position: "relative",
       display: "flex", flexDirection: "column",
+      overscrollBehavior: "none",
     }}>
       <GlobalStyles />
       <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "radial-gradient(circle, rgba(255,154,0,0.11) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
 
-      <Outlet context={context} />
-
-      <div id="app-portal" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 90 }} />
+      <div
+        ref={phoneRef}
+        style={{
+          flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden",
+          WebkitOverflowScrolling: "touch", overscrollBehaviorY: "contain",
+          position: "relative", display: "flex", flexDirection: "column",
+        }}
+      >
+        <Outlet context={context} />
+        <div id="app-portal" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 90 }} />
+      </div>
 
       <BottomNav onFabClick={() => setShowQuickInput(true)} />
 

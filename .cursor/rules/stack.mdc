@@ -53,7 +53,7 @@ src/
 └── styles/                   # index.css, tailwind.css, theme.css (shadcn, не brand), fonts.css (Inter)
 ```
 
-Mobile — phone mockup 390×844 только в `AppShell` (после входа). `AuthPage` — full-bleed на `100dvh` без скролла и без серого фона/рамки; фон — бело-оранжевый градиент (`#f0f4ff` → `#fdf9f5` → `#fff7ed`). Desktop-раскладка (sidebar) **частично реализована**: `AppShell.tsx` рендерит `useIsDesktop()` (breakpoint **1024px**) → collapsible sidebar 64↔240px вместо phone mockup; `HomePage.tsx` содержит встроенный `DesktopHomePage` (широкая таблица, панель итогов, inline edit) — это и есть актуальная «ПК версия». Есть orphan-файл `src/pages/HomePcPage.tsx` (standalone desktop-прототип, НЕ подключён к роутеру, ссылается на несуществующий `/home-pc`) — считать мёртвым кодом, подлежит удалению (см. `Tasks/TASKS_start.md`, Блок 1.2).
+Mobile / desktop shell — **без** phone mockup 390×844 и без серого `#e8eaed`: full-bleed на `100dvh` (`overflow: hidden`), фон — бело-оранжевый градиент (`#f0f4ff` → `#fdf9f5` → `#fff7ed`) в `AuthPage` и `AppShell`. Desktop: `useIsDesktop()` (breakpoint **1024px**) → collapsible sidebar 64↔240px; `HomePage.tsx` содержит встроенный `DesktopHomePage` (широкая таблица, панель итогов, inline edit). Orphan `src/pages/HomePcPage.tsx` — мёртвый код, подлежит удалению (см. `Tasks/TASKS_start.md`, Блок 1.2).
 
 ## Статус экранов (по коду, не по спеке)
 
@@ -61,7 +61,7 @@ Mobile — phone mockup 390×844 только в `AppShell` (после вход
 - **История**: mock-смены, фильтр по периоду/участникам, expandable карточки, итоги. Не читает данные из Главной. На desktop нет отдельной вёрстки — использует mobile UI внутри sidebar-раскладки; завязана на `#phone-portal`, которого нет в desktop-ветке `AppShell` (баг).
 - **Профиль**: mock-пользователь и статистика, переключатель периода, статус синка и язык — только UI-заглушки (`setTimeout`); logout — просто `navigate("/")`, без очистки сессии. Та же проблема с `#phone-portal` на desktop.
 - **Навигация**: bottom glass-пилюля + отдельный FAB «+» (mobile) / sidebar (desktop) — соответствует спеке.
-- **Авторизация**: форма есть; stub-сессия через `session.ts` (`remember` → localStorage/sessionStorage); без PocketBase-проверки логина/пароля. Mobile: full-bleed `100dvh`, `overflow: hidden`, фон бело-оранжевый градиент (без серого `#e8eaed` и без phone mockup 390×844).
+- **Авторизация**: форма есть; stub-сессия через `session.ts` (`remember` → localStorage/sessionStorage); без PocketBase-проверки логина/пароля. Full-bleed как у остальных экранов (см. layout выше).
 - **Умный ввод**: bottom sheet с textarea → regex-парсер → превью → подтверждение — рабочий путь без fuzzy match и без справочника.
 
 ## Известные баги десктопа и роутинга (см. `Tasks/TASKS_start.md`, Блок 1)
@@ -71,7 +71,7 @@ Mobile — phone mockup 390×844 только в `AppShell` (после вход
 - `#phone-portal` отсутствует в desktop-ветке `AppShell.tsx` → падают/не рендерятся `FilterSheet`, `MiniCalendar`, sheets в `HistoryPage.tsx`/`ProfilePage.tsx`.
 - `HomePcPage.tsx` — мёртвый код, дублирует логику, не в роутере.
 - `syncStatus` независимо продублирован в `AppShell.tsx` и `HomePage.tsx`.
-- `MiniCalendar` в `HistoryPage.tsx` считает позицию от хардкода `390px` — ломается вне phone mockup.
+- ~~`MiniCalendar` хардкод `390px`~~ — позиция считается от `#app-portal` (актуально для full-bleed).
 - `react`/`react-dom` в `package.json` — только `peerDependencies` (optional), нет lock-файла, `tsconfig`, `eslint`, `.gitignore`, `public/`.
 
 ## Дизайн-токены (как есть, не менять без причины)
@@ -95,7 +95,7 @@ Mobile — phone mockup 390×844 только в `AppShell` (после вход
 - Только логин + пароль (выдаёт модератор).
 - Регистрации **нет**.
 - «Запомнить меня» **по умолчанию** (сессия локально).
-- UI (`AuthPage`): на мобильном — без скролла (`height/maxHeight: 100dvh`, `overflow: hidden`); фон страницы = бело-оранжевый градиент формы, серый фон и phone-рамка убраны.
+- UI: full-bleed `100dvh` / `overflow: hidden` на `AuthPage` и mobile/desktop `AppShell`; фон — бело-оранжевый градиент; серый `#e8eaed` и phone-рамка 390×844 убраны со всех экранов.
 
 ## Навигация
 
@@ -179,7 +179,7 @@ Mobile — phone mockup 390×844 только в `AppShell` (после вход
 
 ## Дизайн
 
-- Frame: Mobile 390×844 (iPhone), 412×915 (Android); Desktop 1440×900.
+- Frame (дизайн-референс Figma): Mobile 390×844 / Android 412×915; Desktop 1440×900. В рантайме — full-bleed viewport, не фиксированная рамка.
 - Крупные тач-цели (≥48px), высокий контраст (работа на объекте).
 - Акцент: оранжевый `#FF6B00` (или согласованный бренд).
 - Общие компоненты mobile/desktop, разная раскладка.

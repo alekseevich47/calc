@@ -483,7 +483,7 @@ export default function AppShell() {
   if (isDesktop) {
     return (
       <div style={{
-        minHeight: "100vh", display: "flex",
+        height: "100dvh", maxHeight: "100dvh", overflow: "hidden", display: "flex",
         background: "linear-gradient(160deg,#f0f4ff 0%,#fdf9f5 55%,#fff7ed 100%)",
         fontFamily: "Inter, sans-serif",
         position: "relative",
@@ -526,35 +526,28 @@ export default function AppShell() {
 
   // ── Mobile layout ───────────────────────────────────────────────────────────
   return (
-    <div style={{
-      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "#e8eaed", fontFamily: "Inter, sans-serif", padding: 24,
+    <div ref={phoneRef} style={{
+      height: "100dvh", maxHeight: "100dvh", overflow: "hidden",
+      background: "linear-gradient(160deg, #f0f4ff 0%, #fdf9f5 55%, #fff7ed 100%)",
+      fontFamily: "Inter, sans-serif",
+      position: "relative",
+      display: "flex", flexDirection: "column",
     }}>
       <GlobalStyles />
+      <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "radial-gradient(circle, rgba(255,154,0,0.11) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
 
-      <div ref={phoneRef} style={{
-        width: 390, height: 844,
-        background: "linear-gradient(160deg, #f0f4ff 0%, #fdf9f5 55%, #fff7ed 100%)",
-        borderRadius: 44, border: "1px solid rgba(0,0,0,0.06)",
-        boxShadow: "0 32px 80px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.08)",
-        position: "relative", overflow: "hidden",
-        display: "flex", flexDirection: "column",
-      }}>
-        <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "radial-gradient(circle, rgba(255,154,0,0.11) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <Outlet context={context} />
 
-        <Outlet context={context} />
+      <div id="app-portal" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 90 }} />
 
-        <div id="app-portal" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 90 }} />
+      <BottomNav onFabClick={() => setShowQuickInput(true)} />
 
-        <BottomNav onFabClick={() => setShowQuickInput(true)} />
-
-        {showQuickInput && (
-          <QuickInputSheet
-            onClose={() => setShowQuickInput(false)}
-            onAdd={handleQuickAdd}
-          />
-        )}
-      </div>
+      {showQuickInput && (
+        <QuickInputSheet
+          onClose={() => setShowQuickInput(false)}
+          onAdd={handleQuickAdd}
+        />
+      )}
     </div>
   );
 }

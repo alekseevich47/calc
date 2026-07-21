@@ -97,11 +97,12 @@ function AddTeammateSheet({ onClose, onCreated }: {
           Фамилия и имя
         </label>
         <input
-          autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); }}
           placeholder="Иванов Иван"
+          enterKeyHint="done"
+          autoComplete="off"
           style={{
             width: "100%", height: 48, borderRadius: 12, border: "1.5px solid rgba(0,0,0,0.10)",
             padding: "0 14px", fontSize: 15, fontFamily: "Inter, sans-serif", outline: "none",

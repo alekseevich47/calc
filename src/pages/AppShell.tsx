@@ -550,10 +550,12 @@ export default function AppShell() {
         }}
       >
         <Outlet context={context} />
-        <div id="app-portal" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 90 }} />
       </div>
 
       <BottomNav onFabClick={() => setShowQuickInput(true)} />
+
+      {/* Вне скролла и выше BottomNav: иначе на iOS fixed-nav рисуется поверх sheet'ов */}
+      <div id="app-portal" style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 50 }} />
 
       {showQuickInput && (
         <QuickInputSheet

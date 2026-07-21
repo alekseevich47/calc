@@ -46,7 +46,7 @@ src/
 ├── pages/
 │   ├── AuthPage.tsx          # PB authWithPassword / stub; ссылка на регистрацию; без скролла
 │   ├── RegisterPage.tsx      # регистрация: email (@), пароль ≥6, surname, name; валидация полей → PB create + login
-│   ├── AppShell.tsx          # outlet + fixed BottomNav + FAB + QuickInput + parseQuickText
+│   ├── AppShell.tsx          # outlet + BottomNav (absolute) + #app-portal поверх nav + FAB + QuickInput + parseQuickText
 │   ├── HomePage.tsx          # смена: PB-справочники; участники = себя + teammates
 │   ├── HistoryPage.tsx       # история из кэша смен
 │   └── ProfilePage.tsx       # профиль + logout clearSession
@@ -56,7 +56,7 @@ src/
 
 Mobile / desktop shell — **без** phone mockup 390×844 и без серого `#e8eaed`: full-bleed на `100dvh`, фон — бело-оранжевый градиент (`#f0f4ff` → `#fdf9f5` → `#fff7ed`) в `AuthPage` / `RegisterPage` и `AppShell`.
 - **Auth / Register**: `overflow: hidden` (форма регистрации может скроллиться внутри), без скролла страницы.
-- **AppShell mobile**: контент скроллится (`overflowY: auto` в `phoneRef`), `BottomNav` — `position: fixed` снизу (не уезжает при pull-to-refresh / overscroll); `overscroll-behavior: none/contain`.
+- **AppShell mobile**: контент скроллится (`overflowY: auto` в `phoneRef`); `#app-portal` — **sibling вне скролла** (`position: absolute`, `zIndex: 50`), выше `BottomNav` (`zIndex: 40`, `position: absolute` в shell). Не класть portal внутрь `phoneRef`: на iOS fixed/отдельный слой nav рисуется поверх sheet'ов в портале. `overscroll-behavior: none/contain`.
 - Desktop: `useIsDesktop()` (breakpoint **1024px**) → collapsible sidebar 64↔240px; `HomePage.tsx` содержит встроенный `DesktopHomePage`. Orphan `HomePcPage.tsx` — мёртвый код (см. `Tasks/TASKS_start.md`, Блок 1.2).
 
 ## Статус экранов (по коду, не по спеке)
@@ -64,7 +64,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Главная**: справочники из PB (`locations`, `marking_numbers`, `marking_types`, `materials` → IDB); участники — себя + `teammates`. Если видны моки мест/материалов — нет валидной PB-сессии или pull не прошёл (см. alert по тапу на бейдж). `Не синхр.` = очередь не ушла на сервер. Логин только email+пароль PB; после входа — `syncNow`. URL: `VITE_POCKETBASE_URL` или fallback `origin/calc`.
 - **История**: смены из кэша/`useShifts` — **только свои** (`author` = текущий user); фильтр по периоду/участникам, expandable карточки, итоги. Свайп влево → «Удалить» (все 4 угла скруглены) → soft-delete с плейсхолдером «Восстановить» (пока на экране; `removeShift` при уходе со страницы / `pagehide`); long-press / ПКМ → меню текстом «Редактировать / Удалить» (без иконок; `pointerEvents: auto` на портале; закрытие при скролле shell и клике вне); редактирование — bottom sheet. Скролл страницы в shell.
 - **Профиль**: имя из `getCurrentUserFullName()` (PB `surname` + `name`); статистика ЗП/объёма **только по своим сменам** (кэш автора); logout → `clearSession` (+ очистка user-scoped IDB) + navigate.
-- **Навигация**: bottom glass-пилюля `position: fixed` + FAB «+» (mobile) / sidebar (desktop).
+- **Навигация**: bottom glass-пилюля `position: absolute` в shell + FAB «+» (mobile) / sidebar (desktop). Sheet'ы (участник, история, quick input) → `#app-portal` поверх nav.
 - **Авторизация**: при наличии PB URL — `authWithPassword` (email); stub только если URL не задан. Full-bleed, без скролла. Под кнопкой «Войти» — ссылка на `/register`.
 - **Регистрация**: `RegisterPage` — почта, пароль (≥6), фамилия, имя; без email-подтверждения; `create` + сразу вход. При сабмите невалидные поля подсвечиваются красным + подсказка: почта без `@`, пароль короче 6, пустые фамилия/имя.
 - **Умный ввод**: bottom sheet → regex-парсер → превью → подтверждение — без fuzzy match.
@@ -111,7 +111,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 
 ## Навигация
 
-**Mobile:** `BottomNav` — `position: fixed` у низа экрана (safe-area), не внутри скролла контента.
+**Mobile:** `BottomNav` — `position: absolute` у низа shell (safe-area), не внутри скролла контента; `#app-portal` поверх (`zIndex` выше nav).
 - 3 вкладки: Главная | История | Профиль; активная растягивается.
 - FAB «+» справа — быстрый текстовый ввод.
 - Контент страниц скроллится в `AppShell` (`phoneRef`); auth — без скролла.
@@ -139,7 +139,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Участники смены:
   - в списке только **текущий пользователь** + **свои** записи из коллекции `teammates` (другие зарегистрированные `users` **не** показываются);
   - по умолчанию выбран **только текущий**; можно снять всех (тогда confirm disabled);
-  - справа от заголовка «Участники смены» — кнопка **«+»** → sheet «Фамилия и имя» (один текст) → `createTeammate` (IDB + очередь `create_teammate` → PB);
+  - справа от заголовка «Участники смены» — кнопка **«+»** → sheet «Фамилия и имя» (один текст) → `createTeammate` (IDB + очередь `create_teammate` → PB); **без autoFocus** — клавиатура только по тапу в поле;
   - созданные teammates снова появляются в выпадающем списке.
 - PB `shifts.participants` — **JSON** массив строк-имён (`["Фамилия Имя", …]`), required; `author` (relation → `users`) — **владелец записи**, единственный, кто видит/правит смену.
 - Коллекция `teammates`: `owner` (relation→users), `full_name` (text); правила — только свои записи (`owner = @request.auth.id`).

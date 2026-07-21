@@ -15,7 +15,8 @@ export function BottomNav({ onFabClick }: { onFabClick?: () => void }) {
 
   return (
     <div style={{
-      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40,
+      /* absolute в shell (не fixed): один stacking context с #app-portal — иначе iOS рисует nav поверх sheet */}
+      position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 40,
       padding: "0 16px calc(16px + env(safe-area-inset-bottom, 0px))",
       display: "flex", alignItems: "center", gap: 10,
       pointerEvents: "none",

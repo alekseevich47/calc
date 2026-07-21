@@ -44,7 +44,7 @@ src/
 │       ├── ui/               # shadcn kit (~40 файлов), не используется страницами
 │       └── figma/ImageWithFallback.tsx  # не используется
 ├── pages/
-│   ├── AuthPage.tsx          # логин/пароль, submit — setTimeout, без API/сессии
+│   ├── AuthPage.tsx          # логин/пароль; stub-сессия (`session.ts`); без PocketBase API
 │   ├── AppShell.tsx          # outlet + BottomNav + FAB «+» + QuickInputSheet + parseQuickText
 │   ├── HomePage.tsx          # главная / таблица работ — наиболее проработан
 │   ├── HistoryPage.tsx       # история, mock-данные, не связана с HomePage
@@ -53,7 +53,7 @@ src/
 └── styles/                   # index.css, tailwind.css, theme.css (shadcn, не brand), fonts.css (Inter)
 ```
 
-Mobile — фиксированный phone mockup 390×844 (`AppShell`/`AuthPage`). Desktop-раскладка (sidebar) **частично реализована**: `AppShell.tsx` рендерит `useIsDesktop()` (breakpoint **1024px**) → collapsible sidebar 64↔240px вместо phone mockup; `HomePage.tsx` содержит встроенный `DesktopHomePage` (широкая таблица, панель итогов, inline edit) — это и есть актуальная «ПК версия». Есть orphan-файл `src/pages/HomePcPage.tsx` (standalone desktop-прототип, НЕ подключён к роутеру, ссылается на несуществующий `/home-pc`) — считать мёртвым кодом, подлежит удалению (см. `Tasks/TASKS_start.md`, Блок 1.2).
+Mobile — phone mockup 390×844 только в `AppShell` (после входа). `AuthPage` — full-bleed на `100dvh` без скролла и без серого фона/рамки; фон — бело-оранжевый градиент (`#f0f4ff` → `#fdf9f5` → `#fff7ed`). Desktop-раскладка (sidebar) **частично реализована**: `AppShell.tsx` рендерит `useIsDesktop()` (breakpoint **1024px**) → collapsible sidebar 64↔240px вместо phone mockup; `HomePage.tsx` содержит встроенный `DesktopHomePage` (широкая таблица, панель итогов, inline edit) — это и есть актуальная «ПК версия». Есть orphan-файл `src/pages/HomePcPage.tsx` (standalone desktop-прототип, НЕ подключён к роутеру, ссылается на несуществующий `/home-pc`) — считать мёртвым кодом, подлежит удалению (см. `Tasks/TASKS_start.md`, Блок 1.2).
 
 ## Статус экранов (по коду, не по спеке)
 
@@ -61,7 +61,7 @@ Mobile — фиксированный phone mockup 390×844 (`AppShell`/`AuthPag
 - **История**: mock-смены, фильтр по периоду/участникам, expandable карточки, итоги. Не читает данные из Главной. На desktop нет отдельной вёрстки — использует mobile UI внутри sidebar-раскладки; завязана на `#phone-portal`, которого нет в desktop-ветке `AppShell` (баг).
 - **Профиль**: mock-пользователь и статистика, переключатель периода, статус синка и язык — только UI-заглушки (`setTimeout`); logout — просто `navigate("/")`, без очистки сессии. Та же проблема с `#phone-portal` на desktop.
 - **Навигация**: bottom glass-пилюля + отдельный FAB «+» (mobile) / sidebar (desktop) — соответствует спеке.
-- **Авторизация**: форма есть, реальной проверки/сессии/валидации нет; всегда phone mockup (нет desktop-адаптации); `remember` не сохраняется.
+- **Авторизация**: форма есть; stub-сессия через `session.ts` (`remember` → localStorage/sessionStorage); без PocketBase-проверки логина/пароля. Mobile: full-bleed `100dvh`, `overflow: hidden`, фон бело-оранжевый градиент (без серого `#e8eaed` и без phone mockup 390×844).
 - **Умный ввод**: bottom sheet с textarea → regex-парсер → превью → подтверждение — рабочий путь без fuzzy match и без справочника.
 
 ## Известные баги десктопа и роутинга (см. `Tasks/TASKS_start.md`, Блок 1)
@@ -95,6 +95,7 @@ Mobile — фиксированный phone mockup 390×844 (`AppShell`/`AuthPag
 - Только логин + пароль (выдаёт модератор).
 - Регистрации **нет**.
 - «Запомнить меня» **по умолчанию** (сессия локально).
+- UI (`AuthPage`): на мобильном — без скролла (`height/maxHeight: 100dvh`, `overflow: hidden`); фон страницы = бело-оранжевый градиент формы, серый фон и phone-рамка убраны.
 
 ## Навигация
 

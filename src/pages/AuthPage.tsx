@@ -31,8 +31,11 @@ export default function AuthPage() {
 
   return (
     <div style={{
-      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "#e8eaed", fontFamily: "Inter, sans-serif", padding: 24,
+      height: "100dvh", maxHeight: "100dvh", overflow: "hidden",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: "linear-gradient(160deg, #f0f4ff 0%, #fdf9f5 55%, #fff7ed 100%)",
+      fontFamily: "Inter, sans-serif", position: "relative",
+      padding: "0 24px", boxSizing: "border-box",
     }}>
       <GlobalStyles />
       <style>{`
@@ -76,76 +79,67 @@ export default function AuthPage() {
         @keyframes authFadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
-      <div style={{
-        width: 390, height: 844,
-        background: "linear-gradient(160deg, #f0f4ff 0%, #fdf9f5 55%, #fff7ed 100%)",
-        borderRadius: 44, border: "1px solid rgba(0,0,0,0.06)",
-        boxShadow: "0 32px 80px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.08)",
-        position: "relative", overflow: "hidden",
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      }}>
-        <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "radial-gradient(circle, rgba(255,154,0,0.13) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: -60, left: -80, width: 300, height: 300, background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "radial-gradient(circle, rgba(255,154,0,0.13) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: -60, left: -80, width: 300, height: 300, background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
 
-        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 330, display: "flex", flexDirection: "column", gap: 0, animation: "authFadeUp 0.4s ease forwards" }}>
-          {/* Logo */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 40, gap: 12 }}>
-            <div style={{ width: 60, height: 60, borderRadius: 18, background: "linear-gradient(135deg, #FF6B00 0%, #FF9A00 100%)", boxShadow: "0 8px 24px rgba(255,107,0,0.30)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Calculator size={28} strokeWidth={1.8} color="#fff" />
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#111827", letterSpacing: "-0.04em", lineHeight: 1.2 }}>
-                Твой калькулятор
-              </h1>
-              <p style={{ margin: "5px 0 0", fontSize: 13, color: "#9ca3af", fontWeight: 400 }}>
-                Войдите, чтобы продолжить
-              </p>
+      <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 330, display: "flex", flexDirection: "column", gap: 0, animation: "authFadeUp 0.4s ease forwards", position: "relative" }}>
+        {/* Logo */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 28, gap: 10 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "linear-gradient(135deg, #FF6B00 0%, #FF9A00 100%)", boxShadow: "0 8px 24px rgba(255,107,0,0.30)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Calculator size={26} strokeWidth={1.8} color="#fff" />
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#111827", letterSpacing: "-0.04em", lineHeight: 1.2 }}>
+              Твой калькулятор
+            </h1>
+            <p style={{ margin: "5px 0 0", fontSize: 13, color: "#9ca3af", fontWeight: 400 }}>
+              Войдите, чтобы продолжить
+            </p>
+          </div>
+        </div>
+
+        {/* Fields */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Логин</label>
+            <input className="auth-input" type="text" placeholder="Введите логин" value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" autoCapitalize="off" />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Пароль</label>
+            <div style={{ position: "relative" }}>
+              <input className="auth-input" type={showPassword ? "text" : "password"} placeholder="Введите пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" style={{ paddingRight: 48 } as React.CSSProperties} />
+              <button type="button" onClick={() => setShowPassword((v) => !v)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", color: "#9ca3af", outline: "none" }}>
+                {showPassword ? <EyeOff size={18} strokeWidth={1.8} /> : <Eye size={18} strokeWidth={1.8} />}
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Fields */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 18 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Логин</label>
-              <input className="auth-input" type="text" placeholder="Введите логин" value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" autoCapitalize="off" />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", letterSpacing: "0.01em", textTransform: "uppercase" }}>Пароль</label>
-              <div style={{ position: "relative" }}>
-                <input className="auth-input" type={showPassword ? "text" : "password"} placeholder="Введите пароль" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" style={{ paddingRight: 48 } as React.CSSProperties} />
-                <button type="button" onClick={() => setShowPassword((v) => !v)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center", color: "#9ca3af", outline: "none" }}>
-                  {showPassword ? <EyeOff size={18} strokeWidth={1.8} /> : <Eye size={18} strokeWidth={1.8} />}
-                </button>
-              </div>
-            </div>
+        {/* Remember me */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22, cursor: "pointer" }} onClick={() => setRemember((v) => !v)}>
+          <div className={`checkbox-box${remember ? " checked" : ""}`}>
+            {remember && (
+              <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                <path d="M1 4.5L4 7.5L10 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </div>
+          <span style={{ fontSize: 14, color: "#374151", fontWeight: 500, userSelect: "none" }}>Запомнить меня</span>
+        </div>
 
-          {/* Remember me */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28, cursor: "pointer" }} onClick={() => setRemember((v) => !v)}>
-            <div className={`checkbox-box${remember ? " checked" : ""}`}>
-              {remember && (
-                <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
-                  <path d="M1 4.5L4 7.5L10 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </div>
-            <span style={{ fontSize: 14, color: "#374151", fontWeight: 500, userSelect: "none" }}>Запомнить меня</span>
-          </div>
-
-          {/* Submit */}
-          <button type="submit" className="auth-btn" disabled={loading || !canSubmit}>
-            {loading ? (
-              <>
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ animation: "spin 0.9s linear infinite", flexShrink: 0 }}>
-                  <circle cx="9" cy="9" r="7" stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
-                  <path d="M9 2a7 7 0 0 1 7 7" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                Вход...
-              </>
-            ) : "Войти"}
-          </button>
-        </form>
-      </div>
+        {/* Submit */}
+        <button type="submit" className="auth-btn" disabled={loading || !canSubmit}>
+          {loading ? (
+            <>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{ animation: "spin 0.9s linear infinite", flexShrink: 0 }}>
+                <circle cx="9" cy="9" r="7" stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
+                <path d="M9 2a7 7 0 0 1 7 7" stroke="white" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Вход...
+            </>
+          ) : "Войти"}
+        </button>
+      </form>
     </div>
   );
 }

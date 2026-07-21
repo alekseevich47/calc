@@ -229,9 +229,18 @@ async function pullFromServer(): Promise<void> {
       dicts.participants = local.participants;
     }
 
-    await putDictionaries(dicts);
-  } catch {
-    /* PB недоступен / коллекции ещё не созданы — оставляем локальный кэш */
+    // Не затираем локальный кэш пустым ответом PB (справочники ещё не заполнены).
+    const hasAny =
+      dicts.locations.length > 0 ||
+      dicts.markingNumbers.length > 0 ||
+      dicts.materials.length > 0;
+    if (hasAny) {
+      await putDictionaries(dicts);
+    } else {
+      console.warn("[sync] PB dictionaries empty — keeping local cache. Fill locations/marking_numbers/marking_types/materials in admin.");
+    }
+  } catch (err) {
+    console.warn("[sync] pull dictionaries failed:", err);
   }
 
   try {

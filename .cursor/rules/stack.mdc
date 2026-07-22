@@ -132,7 +132,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Шапка: дата смены; mobile — компактный sync-бейдж.
 - Таблица работ — опции из PB-справочников (`schema.json` → sync → IndexedDB):
   1. Место — `locations.name`
-  2. № разметки — `marking_numbers.number`; в dropdown: номер слева, до 3 превью `image` справа (поле file, maxSelect 10, `protected: false`), под ними `description` (тонкий светлый текст). Кэш IDB: `MarkingNumberItem.{description,images[]}`; URL — `markingNumberImageUrl` / `pbFileUrl` (`/api/files/marking_numbers/{id}/{file}`). То же в History edit sheet.
+  2. № разметки — `marking_numbers.number`; в dropdown: **уникальный** номер (несколько PB-записей с одним `number` → одна строка; description/`image` склеиваются). Превью до 3 фото справа, под ними description. Кэш IDB хранит все записи; URL — `markingNumberImageUrl`. То же в History edit sheet.
   3. Тип — `marking_types.name` (фильтр по relation `marking_number`; у типов также `value` number). Колонка **скрыта**, пока не выбран № с привязанными типами (и пока в таблице нет таких строк). Если колонка видна, а у строки № без типов — ячейка светло-серая, некликабельна (`—`). PB `shift_rows.marking_type` — **optional** (`required: false`); sync шлёт `null`, если типа нет.
   4. Объём — ручной ввод
   5. Материал — `materials.name`

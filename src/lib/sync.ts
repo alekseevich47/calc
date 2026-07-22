@@ -11,6 +11,7 @@ import {
   listQueue,
   listShifts,
   markingTypesMap,
+  markingNumberIdByNumber,
   newId,
   putDictionaries,
   putShift,
@@ -240,7 +241,7 @@ export async function confirmShift(input: {
 
   const dicts = await getDictionaries();
   const locByName = new Map(dicts.locations.map((x) => [x.name, x.id]));
-  const numByVal = new Map(dicts.markingNumbers.map((x) => [x.number, x.id]));
+  const numByVal = markingNumberIdByNumber(dicts);
   const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));
   const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
 
@@ -324,7 +325,7 @@ async function resolveShiftWrite(input: ShiftWriteInput): Promise<{
 }> {
   const dicts = await getDictionaries();
   const locByName = new Map(dicts.locations.map((x) => [x.name, x.id]));
-  const numByVal = new Map(dicts.markingNumbers.map((x) => [x.number, x.id]));
+  const numByVal = markingNumberIdByNumber(dicts);
   const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));
   const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
 
@@ -698,7 +699,7 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
   // Перепривязка имён → актуальные PB id (на случай, если смена создана на мок-справочниках)
   const dicts = await getDictionaries();
   const locByName = new Map(dicts.locations.map((x) => [x.name, x.id]));
-  const numByVal = new Map(dicts.markingNumbers.map((x) => [x.number, x.id]));
+  const numByVal = markingNumberIdByNumber(dicts);
   const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));
   const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
 

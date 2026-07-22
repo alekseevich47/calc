@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
 import { Plus, Calendar, ChevronDown, X, Search, Check, Trash2 } from "lucide-react";
 import { StatusBadge } from "../components/shared";
-import { DEFAULT_DICTIONARIES, markingTypesMap } from "../lib/db";
+import { DEFAULT_DICTIONARIES, markingNumberDisplayMeta, markingTypesMap, uniqueMarkingNumbers } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
 import { getCurrentUserFullName, looksLikePbId, subscribeAuthStore } from "../lib/session";
 import { confirmShift, createTeammate, buildParticipantOptions, isShiftRowComplete, markingNumHasTypes, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
@@ -27,16 +27,19 @@ type DictOptions = {
 };
 
 function toDictOptions(dicts: typeof DEFAULT_DICTIONARIES): DictOptions {
+  const rawMeta = markingNumberDisplayMeta(dicts);
   const markingNumMeta: Record<string, MarkingNumMeta> = {};
-  for (const n of dicts.markingNumbers) {
-    markingNumMeta[n.number] = {
-      description: n.description,
-      imageUrls: (n.images ?? []).map((f) => markingNumberImageUrl(n.id, f)).filter(Boolean),
+  for (const [num, m] of Object.entries(rawMeta)) {
+    markingNumMeta[num] = {
+      description: m.description,
+      imageUrls: m.images
+        .map((img) => markingNumberImageUrl(img.recordId, img.filename))
+        .filter(Boolean),
     };
   }
   return {
     locations: dicts.locations.map((x) => x.name),
-    markingNums: dicts.markingNumbers.map((x) => x.number),
+    markingNums: uniqueMarkingNumbers(dicts),
     markingNumMeta,
     markingTypes: markingTypesMap(dicts),
     materials: dicts.materials.map((x) => x.name),

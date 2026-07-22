@@ -3,7 +3,7 @@ import { Calendar, SlidersHorizontal, X, Check, ChevronDown, ChevronUp, Trash2, 
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
 import type { CachedShift } from "../lib/db";
-import { markingTypesMap } from "../lib/db";
+import { markingNumberDisplayMeta, markingTypesMap, uniqueMarkingNumbers } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
 import {
   buildParticipantOptions,
@@ -597,13 +597,17 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
   const dicts = useDictionaries();
   const typeMap = useMemo(() => (dicts ? markingTypesMap(dicts) : {}), [dicts]);
   const locations = dicts?.locations.map((x) => x.name) ?? [];
-  const markingNums = dicts?.markingNumbers.map((x) => x.number) ?? [];
+  const markingNums = dicts ? uniqueMarkingNumbers(dicts) : [];
   const markingNumMeta = useMemo(() => {
     const map: Record<string, MarkingNumMeta> = {};
-    for (const n of dicts?.markingNumbers ?? []) {
-      map[n.number] = {
-        description: n.description,
-        imageUrls: (n.images ?? []).map((f) => markingNumberImageUrl(n.id, f)).filter(Boolean),
+    if (!dicts) return map;
+    const raw = markingNumberDisplayMeta(dicts);
+    for (const [num, m] of Object.entries(raw)) {
+      map[num] = {
+        description: m.description,
+        imageUrls: m.images
+          .map((img) => markingNumberImageUrl(img.recordId, img.filename))
+          .filter(Boolean),
       };
     }
     return map;

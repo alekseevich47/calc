@@ -152,7 +152,66 @@ export function markingTypesMap(dicts: Dictionaries): Record<string, string[]> {
   for (const t of dicts.markingTypes) {
     const num = byNum.get(t.markingNumberId);
     if (!num) continue;
-    (map[num] ??= []).push(t.name);
+    const list = (map[num] ??= []);
+    if (!list.includes(t.name)) list.push(t.name);
+  }
+  return map;
+}
+
+/** Уникальные номера разметки (порядок первого появления). Несколько PB-записей с одним number → один пункт. */
+export function uniqueMarkingNumbers(dicts: Dictionaries): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const n of dicts.markingNumbers) {
+    const num = String(n.number ?? "").trim();
+    if (!num || seen.has(num)) continue;
+    seen.add(num);
+    out.push(num);
+  }
+  return out;
+}
+
+/** Первый PB-id для номера (стабильный выбор при дублях `number`). */
+export function markingNumberIdByNumber(dicts: Dictionaries): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const n of dicts.markingNumbers) {
+    const num = String(n.number ?? "").trim();
+    if (!num || map.has(num)) continue;
+    map.set(num, n.id);
+  }
+  return map;
+}
+
+export type MarkingNumberDisplayMeta = {
+  description?: string;
+  /** Имена файлов с привязкой к record id — для URL. */
+  images: Array<{ recordId: string; filename: string }>;
+};
+
+/**
+ * Мета для dropdown по номеру: при нескольких PB-записях с одним `number`
+ * склеиваем уникальные description и все image.
+ */
+export function markingNumberDisplayMeta(
+  dicts: Dictionaries,
+): Record<string, MarkingNumberDisplayMeta> {
+  const map: Record<string, MarkingNumberDisplayMeta> = {};
+  for (const n of dicts.markingNumbers) {
+    const num = String(n.number ?? "").trim();
+    if (!num) continue;
+    const cur = (map[num] ??= { images: [] });
+    const desc = n.description?.trim();
+    if (desc) {
+      const prev = cur.description ? cur.description.split(" · ") : [];
+      if (!prev.includes(desc)) {
+        cur.description = prev.length ? `${cur.description} · ${desc}` : desc;
+      }
+    }
+    for (const filename of n.images ?? []) {
+      if (!filename) continue;
+      if (cur.images.some((x) => x.recordId === n.id && x.filename === filename)) continue;
+      cur.images.push({ recordId: n.id, filename });
+    }
   }
   return map;
 }

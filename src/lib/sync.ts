@@ -38,27 +38,43 @@ function isPbId(id?: string): boolean {
 }
 
 /** Строка полная: все editable-поля (место, №, тип, объём>0, материал, тариф>0). Оплата — производная. */
-export function isShiftRowComplete(r: {
-  location?: string;
-  markingNum?: string;
-  markingType?: string;
-  volume?: string | number;
-  material?: string;
-  tariff?: string | number;
-}): boolean {
+export function isShiftRowComplete(
+  r: {
+    location?: string;
+    markingNum?: string;
+    markingType?: string;
+    volume?: string | number;
+    material?: string;
+    tariff?: string | number;
+  },
+  /** Если передан — тип обязателен только когда у № есть варианты в справочнике. */
+  markingTypes?: Record<string, string[]>,
+): boolean {
   const volRaw = String(r.volume ?? "").trim();
   const tarRaw = String(r.tariff ?? "").trim();
   if (!volRaw || !tarRaw) return false;
   const vol = Number(volRaw.replace(",", "."));
   const tar = Number(tarRaw.replace(",", "."));
+  const num = String(r.markingNum ?? "").trim();
+  const typeRequired = markingTypes
+    ? (markingTypes[num] || []).length > 0
+    : true;
   return Boolean(
     String(r.location ?? "").trim() &&
-    String(r.markingNum ?? "").trim() &&
-    String(r.markingType ?? "").trim() &&
+    num &&
+    (!typeRequired || String(r.markingType ?? "").trim()) &&
     String(r.material ?? "").trim() &&
     Number.isFinite(vol) && vol > 0 &&
     Number.isFinite(tar) && tar > 0,
   );
+}
+
+/** У номера разметки есть привязанные типы в справочнике. */
+export function markingNumHasTypes(
+  markingTypes: Record<string, string[]>,
+  markingNum: string,
+): boolean {
+  return (markingTypes[String(markingNum ?? "").trim()] || []).length > 0;
 }
 
 /** Опции выбора: текущий пользователь + свои teammates (без других users). */
@@ -477,19 +493,35 @@ async function pullFromServer(): Promise<void> {
 
   const dicts: Dictionaries = {
     locations: locations.map((r) => ({ id: r.id, name: String(r.name) })),
-    markingNumbers: markingNumbers.map((r) => ({
-      id: r.id,
-      number: String(r.number ?? ""),
-    })),
-    markingTypes: markingTypes.map((r) => ({
-      id: r.id,
-      name: String(r.name),
-      markingNumberId: String(
-        typeof r.marking_number === "object" && r.marking_number
-          ? (r.marking_number as { id?: string }).id ?? r.marking_number
-          : r.marking_number,
-      ),
-    })),
+    markingNumbers: markingNumbers.map((r) => {
+      const rawImages = r.image;
+      const images = Array.isArray(rawImages)
+        ? rawImages.map((f) => String(f)).filter(Boolean)
+        : typeof rawImages === "string" && rawImages
+          ? [rawImages]
+          : [];
+      const description = String(r.description ?? "").trim();
+      return {
+        id: r.id,
+        number: String(r.number ?? ""),
+        ...(description ? { description } : {}),
+        ...(images.length ? { images } : {}),
+      };
+    }),
+    markingTypes: markingTypes.map((r) => {
+      const valueRaw = r.value;
+      const value = typeof valueRaw === "number" ? valueRaw : Number(valueRaw);
+      return {
+        id: r.id,
+        name: String(r.name),
+        markingNumberId: String(
+          typeof r.marking_number === "object" && r.marking_number
+            ? (r.marking_number as { id?: string }).id ?? r.marking_number
+            : r.marking_number,
+        ),
+        ...(Number.isFinite(value) ? { value } : {}),
+      };
+    }),
     materials: materials.map((r) => ({ id: r.id, name: String(r.name) })),
     participants: [
       ...fromServer,

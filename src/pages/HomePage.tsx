@@ -4,24 +4,40 @@ import { useOutletContext } from "react-router";
 import { Plus, Calendar, ChevronDown, X, Search, Check, Trash2 } from "lucide-react";
 import { StatusBadge } from "../components/shared";
 import { DEFAULT_DICTIONARIES, markingTypesMap } from "../lib/db";
+import { markingNumberImageUrl } from "../lib/pocketbase";
 import { getCurrentUserFullName, looksLikePbId, subscribeAuthStore } from "../lib/session";
-import { confirmShift, createTeammate, buildParticipantOptions, isShiftRowComplete, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
+import { confirmShift, createTeammate, buildParticipantOptions, isShiftRowComplete, markingNumHasTypes, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 import type { QuickRow, ShellContext } from "./AppShell";
 
 // ─── Dictionaries context (из IndexedDB / PocketBase) ─────────────────────────
 
+type MarkingNumMeta = {
+  description?: string;
+  imageUrls: string[];
+};
+
 type DictOptions = {
   locations: string[];
   markingNums: string[];
+  /** Мета по номеру разметки: описание + URL фото из PB. */
+  markingNumMeta: Record<string, MarkingNumMeta>;
   markingTypes: Record<string, string[]>;
   materials: string[];
   participants: string[];
 };
 
 function toDictOptions(dicts: typeof DEFAULT_DICTIONARIES): DictOptions {
+  const markingNumMeta: Record<string, MarkingNumMeta> = {};
+  for (const n of dicts.markingNumbers) {
+    markingNumMeta[n.number] = {
+      description: n.description,
+      imageUrls: (n.images ?? []).map((f) => markingNumberImageUrl(n.id, f)).filter(Boolean),
+    };
+  }
   return {
     locations: dicts.locations.map((x) => x.name),
     markingNums: dicts.markingNumbers.map((x) => x.number),
+    markingNumMeta,
     markingTypes: markingTypesMap(dicts),
     materials: dicts.materials.map((x) => x.name),
     participants: dicts.participants.map((x) => x.name),
@@ -242,6 +258,14 @@ const COL_DEFS: { key: ColKey | "payment"; short: string; width: number }[] = [
   { key: "payment",     short: "Оплата",         width: 76  },
 ];
 
+function visibleColDefs(showTypeCol: boolean) {
+  return showTypeCol ? COL_DEFS : COL_DEFS.filter((c) => c.key !== "markingType");
+}
+
+function tableMinWidth(showTypeCol: boolean) {
+  return 28 + visibleColDefs(showTypeCol).reduce((s, c) => s + c.width, 0);
+}
+
 function fmt(n: number) { return n.toLocaleString("ru-RU") + " ₽"; }
 
 // ─── Swipeable row ────────────────────────────────────────────────────────────
@@ -251,11 +275,12 @@ function fmt(n: number) { return n.toLocaleString("ru-RU") + " ₽"; }
 const SWIPE_SNAP = 72;
 const DIRECTION_THRESHOLD = 6; // px before we lock direction
 
-function SwipeableRow({ row, onDelete, onEdit, scrollRef }: {
+function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol }: {
   row: FilledRow;
   onDelete: () => void;
   onEdit: () => void;
   scrollRef: React.RefObject<HTMLDivElement | null>;
+  showTypeCol: boolean;
 }) {
   const [dx, setDx] = useState(0);
   const [isSnapped, setIsSnapped] = useState(false);
@@ -380,12 +405,12 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef }: {
       >
         <div style={{ width: clipW, overflow: "hidden" }}>
           <table style={{
-            borderCollapse: "collapse", tableLayout: "fixed", width: 610,
+            borderCollapse: "collapse", tableLayout: "fixed", width: tableMinWidth(showTypeCol),
             marginLeft: -scrollLeft,
           }}>
             <colgroup>
               <col style={{ width: 28 }} />
-              {COL_DEFS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+              {visibleColDefs(showTypeCol).map((c) => <col key={c.key} style={{ width: c.width }} />)}
             </colgroup>
             <tbody>
               <tr>
@@ -396,7 +421,16 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef }: {
                   {row.location}
                 </td>
                 <td style={{ padding: "10px 8px", fontSize: 12, color: "#111827", fontWeight: 600, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.markingNum}</td>
-                <td style={{ padding: "10px 8px", fontSize: 11, color: "#6b7280", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.markingType}</td>
+                {showTypeCol && (
+                  <td style={{
+                    padding: "10px 8px", fontSize: 11, fontWeight: 400, verticalAlign: "middle",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    color: row.markingType ? "#6b7280" : "#d1d5db",
+                    background: row.markingType ? undefined : "rgba(0,0,0,0.03)",
+                  }}>
+                    {row.markingType || "—"}
+                  </td>
+                )}
                 <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 500, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.volume} м²</td>
                 <td style={{ padding: "10px 8px", fontSize: 11, color: "#6b7280", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.material}</td>
                 <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.tariff} ₽</td>
@@ -412,12 +446,14 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef }: {
 
 // ─── Dropdown card ────────────────────────────────────────────────────────────
 
-function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left, width, step }: {
+function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left, width, step, optionMeta }: {
   options: string[]; value: string; onSelect: (v: string) => void; onClose: () => void;
   withSearch: boolean; top: number; left: number; width: number; step: number;
+  optionMeta?: Record<string, MarkingNumMeta>;
 }) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const rich = Boolean(optionMeta);
 
   useEffect(() => {
     // pointerdown + rAF: на iOS synthetic mousedown от тапа открытия сразу закрывал dropdown
@@ -436,7 +472,13 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
     };
   }, [onClose]);
 
-  const filtered = options.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
+  const q = query.toLowerCase();
+  const filtered = options.filter((o) => {
+    if (!q) return true;
+    if (o.toLowerCase().includes(q)) return true;
+    const desc = optionMeta?.[o]?.description;
+    return Boolean(desc && desc.toLowerCase().includes(q));
+  });
 
   return (
     <div id="dd-card" style={{
@@ -467,9 +509,49 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
           </div>
         )}
       </div>
-      <div style={{ maxHeight: 200, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ maxHeight: rich ? 280 : 200, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         {filtered.map((opt) => {
           const isSel = value === opt;
+          const meta = optionMeta?.[opt];
+          const imgs = meta?.imageUrls ?? [];
+          const desc = meta?.description?.trim();
+          if (rich) {
+            return (
+              <button
+                key={opt}
+                type="button"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => { onSelect(opt); onClose(); }}
+                style={{
+                  width: "100%", padding: "10px 14px",
+                  display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4,
+                  background: isSel ? "rgba(255,107,0,0.07)" : "transparent",
+                  border: "none", borderBottom: "1px solid rgba(0,0,0,0.04)",
+                  cursor: "pointer", outline: "none", fontFamily: "Inter, sans-serif",
+                  WebkitTapHighlightColor: "transparent", textAlign: "left",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 500, flexShrink: 0 }}>{opt}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto", flexShrink: 0 }}>
+                    {imgs.slice(0, 3).map((src) => (
+                      <img
+                        key={src}
+                        src={src}
+                        alt=""
+                        loading="lazy"
+                        style={{ width: 36, height: 28, objectFit: "contain", borderRadius: 4, background: "rgba(0,0,0,0.03)", display: "block" }}
+                      />
+                    ))}
+                    {isSel && <Check size={14} strokeWidth={2.5} color="#FF6B00" style={{ marginLeft: 2 }} />}
+                  </div>
+                </div>
+                {desc ? (
+                  <span style={{ fontSize: 11, fontWeight: 300, color: "#9ca3af", lineHeight: 1.35 }}>{desc}</span>
+                ) : null}
+              </button>
+            );
+          }
           return (
             <button
               key={opt}
@@ -497,11 +579,13 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
 
 // ─── New-row edit form ────────────────────────────────────────────────────────
 
-function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
+function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraftMarkingNum }: {
   phoneRef: React.RefObject<HTMLDivElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onAdd: (row: Omit<FilledRow, "id">) => void;
   onCancel: () => void;
+  showTypeCol: boolean;
+  onDraftMarkingNum: (num: string) => void;
 }) {
   const [row, setRow] = useState<EditRow>({ location: "", markingNum: "", markingType: "", volume: "", material: "", tariff: "" });
   const [openCol, setOpenCol] = useState<ColKey | null>(null);
@@ -519,8 +603,14 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
     return () => ro.disconnect();
   }, [scrollRef]);
 
-  const markingTypeAvailable = !!row.markingNum;
+  useEffect(() => {
+    onDraftMarkingNum(row.markingNum);
+    return () => onDraftMarkingNum("");
+  }, [row.markingNum, onDraftMarkingNum]);
+
   const typeOptions = dict.markingTypes[row.markingNum] || [];
+  const typeSelectable = markingNumHasTypes(dict.markingTypes, row.markingNum);
+  const cols = visibleColDefs(showTypeCol);
 
   function getOptions(col: ColKey): string[] {
     if (col === "location") return dict.locations;
@@ -538,7 +628,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
     }
     const pb = phoneRef.current.getBoundingClientRect();
     const tb = td.getBoundingClientRect();
-    const ddW = 240;
+    const ddW = col === "markingNum" ? Math.min(300, pb.width - 16) : 240;
     let left = tb.left - pb.left;
     if (left + ddW > pb.width - 8) left = pb.width - ddW - 8;
     if (left < 8) left = 8;
@@ -560,16 +650,16 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
   const EDITABLE_COLS: { key: ColKey; locked?: boolean }[] = [
     { key: "location" },
     { key: "markingNum" },
-    { key: "markingType", locked: !markingTypeAvailable },
+    ...(showTypeCol ? [{ key: "markingType" as ColKey, locked: !typeSelectable }] : []),
     { key: "volume" },
     { key: "material" },
     { key: "tariff" },
   ];
 
   function handleAdd() {
-    if (!isShiftRowComplete({ ...row, volume: vol, tariff: tar })) return;
+    if (!isShiftRowComplete({ ...row, volume: vol, tariff: tar }, dict.markingTypes)) return;
     onAdd({
-      location: row.location, markingNum: row.markingNum, markingType: row.markingType,
+      location: row.location, markingNum: row.markingNum, markingType: typeSelectable ? row.markingType : "",
       volume: vol, material: row.material, tariff: tar,
     });
     // Объём / материал / тариф / оплата остаются для следующей строки
@@ -584,14 +674,14 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
     setOpenCol(null);
   }
 
-  const canAdd = isShiftRowComplete(row);
+  const canAdd = isShiftRowComplete(row, dict.markingTypes);
 
   return (
     <>
-      <table style={{ borderCollapse: "collapse", minWidth: 610, tableLayout: "fixed", width: "100%", borderTop: "1.5px solid rgba(255,107,0,0.2)" }}>
+      <table style={{ borderCollapse: "collapse", minWidth: tableMinWidth(showTypeCol), tableLayout: "fixed", width: "100%", borderTop: "1.5px solid rgba(255,107,0,0.2)" }}>
         <colgroup>
           <col style={{ width: 28 }} />
-          {COL_DEFS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+          {cols.map((c) => <col key={c.key} style={{ width: c.width }} />)}
         </colgroup>
         <tbody>
           <tr>
@@ -621,15 +711,13 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
                     else openDrop(col, e.currentTarget);
                   }}
                   style={{
-                  padding: "8px 8px", verticalAlign: "middle", cursor: locked ? "not-allowed" : "pointer",
-                  background: isOpen ? "rgba(255,107,0,0.10)" : locked ? "rgba(0,0,0,0.015)" : "rgba(255,107,0,0.03)",
+                  padding: "8px 8px", verticalAlign: "middle", cursor: locked ? "default" : "pointer",
+                  background: isOpen ? "rgba(255,107,0,0.10)" : locked ? "rgba(0,0,0,0.04)" : "rgba(255,107,0,0.03)",
                   borderBottom: "1.5px solid rgba(255,107,0,0.25)",
                   outline: isOpen ? "2px solid rgba(255,107,0,0.55)" : "none", outlineOffset: -1,
                 }}>
                   {locked ? (
-                    <span style={{ fontSize: 12, color: "#d1d5db", display: "flex", alignItems: "center", gap: 4 }}>
-                      <svg width="10" height="12" viewBox="0 0 10 12" fill="none"><rect x="1" y="5" width="8" height="7" rx="1.5" stroke="#d1d5db" strokeWidth="1.3" /><path d="M3 5V3.5a2 2 0 1 1 4 0V5" stroke="#d1d5db" strokeWidth="1.3" strokeLinecap="round" /></svg>—
-                    </span>
+                    <span style={{ fontSize: 12, color: "#d1d5db", fontWeight: 400 }}>—</span>
                   ) : (
                     <span style={{ fontSize: 12, color: (row as any)[col] ? "#111827" : "#a5a5b0", fontWeight: (row as any)[col] ? 500 : 400 }}>
                       {(row as any)[col] || "Выбрать..."}
@@ -675,6 +763,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
             withSearch={openCol === "location" || openCol === "markingNum"}
             top={dropPos.top} left={dropPos.left} width={dropPos.width}
             step={(["location","markingNum","markingType","volume","material","tariff"] as ColKey[]).indexOf(openCol) + 1}
+            optionMeta={openCol === "markingNum" ? dict.markingNumMeta : undefined}
           />, portal,
         );
       })()}
@@ -685,12 +774,14 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel }: {
 // ─── Edit Row Form ────────────────────────────────────────────────────────────
 // Same layout as NewRowForm but pre-filled; saves changes to existing row.
 
-function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
+function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, onDraftMarkingNum }: {
   phoneRef: React.RefObject<HTMLDivElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   row: FilledRow;
   onSave: (updated: Omit<FilledRow, "id">) => void;
   onCancel: () => void;
+  showTypeCol: boolean;
+  onDraftMarkingNum: (num: string) => void;
 }) {
   const [editRow, setEditRow] = useState<EditRow>({
     location:    row.location,
@@ -715,9 +806,15 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
     return () => ro.disconnect();
   }, [scrollRef]);
 
-  const markingTypeAvailable = !!editRow.markingNum;
+  useEffect(() => {
+    onDraftMarkingNum(editRow.markingNum);
+    return () => onDraftMarkingNum("");
+  }, [editRow.markingNum, onDraftMarkingNum]);
+
   const typeOptions = dict.markingTypes[editRow.markingNum] || [];
-  const canSave = isShiftRowComplete(editRow);
+  const typeSelectable = markingNumHasTypes(dict.markingTypes, editRow.markingNum);
+  const canSave = isShiftRowComplete(editRow, dict.markingTypes);
+  const cols = visibleColDefs(showTypeCol);
 
   function getOptions(col: ColKey): string[] {
     if (col === "location") return dict.locations;
@@ -735,7 +832,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
     }
     const pb = phoneRef.current.getBoundingClientRect();
     const tb = td.getBoundingClientRect();
-    const ddW = 240;
+    const ddW = col === "markingNum" ? Math.min(300, pb.width - 16) : 240;
     let left = tb.left - pb.left;
     if (left + ddW > pb.width - 8) left = pb.width - ddW - 8;
     if (left < 8) left = 8;
@@ -757,7 +854,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
   const EDITABLE_COLS: { key: ColKey; locked?: boolean }[] = [
     { key: "location" },
     { key: "markingNum" },
-    { key: "markingType", locked: !markingTypeAvailable },
+    ...(showTypeCol ? [{ key: "markingType" as ColKey, locked: !typeSelectable }] : []),
     { key: "volume" },
     { key: "material" },
     { key: "tariff" },
@@ -765,10 +862,10 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
 
   return (
     <>
-      <table style={{ borderCollapse: "collapse", minWidth: 610, tableLayout: "fixed", width: "100%", borderTop: "1.5px solid rgba(99,102,241,0.25)", background: "rgba(99,102,241,0.03)" }}>
+      <table style={{ borderCollapse: "collapse", minWidth: tableMinWidth(showTypeCol), tableLayout: "fixed", width: "100%", borderTop: "1.5px solid rgba(99,102,241,0.25)", background: "rgba(99,102,241,0.03)" }}>
         <colgroup>
           <col style={{ width: 28 }} />
-          {COL_DEFS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+          {cols.map((c) => <col key={c.key} style={{ width: c.width }} />)}
         </colgroup>
         <tbody>
           <tr>
@@ -798,15 +895,13 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
                     else openDrop(col, e.currentTarget);
                   }}
                   style={{
-                  padding: "8px 8px", verticalAlign: "middle", cursor: locked ? "not-allowed" : "pointer",
-                  background: isOpen ? "rgba(99,102,241,0.10)" : locked ? "rgba(0,0,0,0.015)" : "rgba(99,102,241,0.04)",
+                  padding: "8px 8px", verticalAlign: "middle", cursor: locked ? "default" : "pointer",
+                  background: isOpen ? "rgba(99,102,241,0.10)" : locked ? "rgba(0,0,0,0.04)" : "rgba(99,102,241,0.04)",
                   borderBottom: "1.5px solid rgba(99,102,241,0.20)",
                   outline: isOpen ? "2px solid rgba(99,102,241,0.45)" : "none", outlineOffset: -1,
                 }}>
                   {locked ? (
-                    <span style={{ fontSize: 12, color: "#d1d5db", display: "flex", alignItems: "center", gap: 4 }}>
-                      <svg width="10" height="12" viewBox="0 0 10 12" fill="none"><rect x="1" y="5" width="8" height="7" rx="1.5" stroke="#d1d5db" strokeWidth="1.3"/><path d="M3 5V3.5a2 2 0 1 1 4 0V5" stroke="#d1d5db" strokeWidth="1.3" strokeLinecap="round"/></svg>—
-                    </span>
+                    <span style={{ fontSize: 12, color: "#d1d5db", fontWeight: 400 }}>—</span>
                   ) : (
                     <span style={{ fontSize: 12, color: (editRow as any)[col] ? "#111827" : "#a5a5b0", fontWeight: (editRow as any)[col] ? 500 : 400 }}>
                       {(editRow as any)[col] || "Выбрать..."}
@@ -835,7 +930,11 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
           disabled={!canSave}
           onClick={() => {
             if (!canSave) return;
-            onSave({ location: editRow.location, markingNum: editRow.markingNum, markingType: editRow.markingType, volume: vol, material: editRow.material, tariff: tar });
+            onSave({
+              location: editRow.location, markingNum: editRow.markingNum,
+              markingType: typeSelectable ? editRow.markingType : "",
+              volume: vol, material: editRow.material, tariff: tar,
+            });
           }}
           style={{ fontSize: 12, fontWeight: 600, color: canSave ? "#6366f1" : "#d1d5db", background: "none", border: "none", cursor: canSave ? "pointer" : "default", padding: 0, fontFamily: "Inter, sans-serif", outline: "none" }}
         >
@@ -854,6 +953,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel }: {
             withSearch={openCol === "location" || openCol === "markingNum"}
             top={dropPos.top} left={dropPos.left} width={dropPos.width}
             step={(["location","markingNum","markingType","volume","material","tariff"] as ColKey[]).indexOf(openCol) + 1}
+            optionMeta={openCol === "markingNum" ? dict.markingNumMeta : undefined}
           />, portal,
         );
       })()}
@@ -870,7 +970,14 @@ function WorkTable({ rows, setRows, phoneRef }: {
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [formMarkingNum, setFormMarkingNum] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dict = useDict();
+  const onDraftMarkingNum = useMemo(() => (num: string) => setFormMarkingNum(num), []);
+
+  const showTypeCol =
+    rows.some((r) => markingNumHasTypes(dict.markingTypes, r.markingNum)) ||
+    markingNumHasTypes(dict.markingTypes, formMarkingNum);
 
   function addRow(data: Omit<FilledRow, "id">) {
     setRows((p) => [...p, { ...data, id: Date.now() }]);
@@ -885,15 +992,15 @@ function WorkTable({ rows, setRows, phoneRef }: {
   return (
     <div>
       <div ref={scrollRef} style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={{ borderCollapse: "collapse", minWidth: 610, tableLayout: "fixed", width: "100%" }}>
+        <table style={{ borderCollapse: "collapse", minWidth: tableMinWidth(showTypeCol), tableLayout: "fixed", width: "100%" }}>
           <colgroup>
             <col style={{ width: 28 }} />
-            {COL_DEFS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+            {visibleColDefs(showTypeCol).map((c) => <col key={c.key} style={{ width: c.width }} />)}
           </colgroup>
           <thead>
             <tr>
               <th style={{ width: 28 }} />
-              {COL_DEFS.map((c) => (
+              {visibleColDefs(showTypeCol).map((c) => (
                 <th key={c.key} style={{ padding: "7px 8px", fontSize: 10, fontWeight: 600, color: "#9ca3af", textAlign: "left", letterSpacing: "0.03em", textTransform: "uppercase", whiteSpace: "nowrap", borderBottom: "1.5px solid rgba(0,0,0,0.08)" }}>
                   {c.short}
                 </th>
@@ -909,6 +1016,8 @@ function WorkTable({ rows, setRows, phoneRef }: {
               phoneRef={phoneRef}
               scrollRef={scrollRef}
               row={row}
+              showTypeCol={showTypeCol}
+              onDraftMarkingNum={onDraftMarkingNum}
               onSave={(data) => saveRow(row.id, data)}
               onCancel={() => setEditingId(null)}
             />
@@ -917,13 +1026,23 @@ function WorkTable({ rows, setRows, phoneRef }: {
               key={row.id}
               row={row}
               scrollRef={scrollRef}
+              showTypeCol={showTypeCol}
               onDelete={() => setRows((p) => p.filter((r) => r.id !== row.id))}
               onEdit={() => { setAdding(false); setEditingId(row.id); }}
             />
           )
         )}
 
-        {adding && <NewRowForm phoneRef={phoneRef} scrollRef={scrollRef} onAdd={addRow} onCancel={() => setAdding(false)} />}
+        {adding && (
+          <NewRowForm
+            phoneRef={phoneRef}
+            scrollRef={scrollRef}
+            showTypeCol={showTypeCol}
+            onDraftMarkingNum={onDraftMarkingNum}
+            onAdd={addRow}
+            onCancel={() => setAdding(false)}
+          />
+        )}
 
         {!adding && !editingId && (
           <div onClick={() => setAdding(true)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 10px", cursor: "pointer", borderTop: "1px dashed #e5e7eb", position: "sticky", left: 0, width: "max(100%, 0px)" }}>
@@ -1037,7 +1156,7 @@ function ConfirmSheet({ rows, participants, date, onClose, onSave }: {
                 {[
                   { label: "Н.п. / трасса", value: row.location },
                   { label: "№ разметки",    value: row.markingNum },
-                  { label: "Тип",           value: row.markingType },
+                  ...(row.markingType ? [{ label: "Тип", value: row.markingType }] : []),
                   { label: "Материал",      value: row.material },
                   { label: "Объём",         value: `${row.volume} м²` },
                   { label: "Тариф",         value: `${row.tariff} ₽/м²` },
@@ -1310,42 +1429,79 @@ function DesktopDatePicker({ value, onChange, anchor, onClose }: {
 
 // ─── Desktop: fixed-position dropdown ────────────────────────────────────────
 
-function DesktopDropdown({ options, value, onSelect, onClose, anchor }: {
+function DesktopDropdown({ options, value, onSelect, onClose, anchor, optionMeta }: {
   options: string[];
   value: string;
   onSelect: (v: string) => void;
   onClose: () => void;
   anchor: { top: number; left: number; width: number };
+  optionMeta?: Record<string, MarkingNumMeta>;
 }) {
+  const rich = Boolean(optionMeta);
   return createPortal(
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 2000 }} />
       <div style={{
         position: "fixed", top: anchor.top, left: anchor.left,
-        minWidth: anchor.width, zIndex: 2001,
+        minWidth: rich ? Math.max(anchor.width, 280) : anchor.width,
+        width: rich ? Math.max(anchor.width, 280) : undefined,
+        zIndex: 2001,
         background: "#fff", borderRadius: 12,
         boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
         border: "1px solid rgba(0,0,0,0.08)", overflow: "hidden",
         animation: "fadeUp 0.14s ease forwards",
         fontFamily: "Inter, sans-serif",
+        maxHeight: rich ? 320 : undefined,
+        overflowY: rich ? "auto" : undefined,
       }}>
-        {options.map(o => (
-          <button key={o} onClick={() => { onSelect(o); onClose(); }} style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            width: "100%", padding: "10px 14px", border: "none",
-            background: o === value ? "rgba(255,107,0,0.06)" : "none",
-            cursor: "pointer", fontFamily: "Inter, sans-serif",
-            fontSize: 13, color: o === value ? "#c2500a" : "#111827",
-            fontWeight: o === value ? 600 : 400, textAlign: "left",
-            borderBottom: "1px solid rgba(0,0,0,0.04)",
-          }}
-            onMouseEnter={e => { if (o !== value) (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"; }}
-            onMouseLeave={e => { if (o !== value) (e.currentTarget as HTMLElement).style.background = "none"; }}
-          >
-            {o}
-            {o === value && <Check size={13} strokeWidth={2.5} color="#FF6B00" />}
-          </button>
-        ))}
+        {options.map(o => {
+          const isSel = o === value;
+          const meta = optionMeta?.[o];
+          const imgs = meta?.imageUrls ?? [];
+          const desc = meta?.description?.trim();
+          if (rich) {
+            return (
+              <button key={o} onClick={() => { onSelect(o); onClose(); }} style={{
+                display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4,
+                width: "100%", padding: "10px 14px", border: "none",
+                background: isSel ? "rgba(255,107,0,0.06)" : "none",
+                cursor: "pointer", fontFamily: "Inter, sans-serif", textAlign: "left",
+                borderBottom: "1px solid rgba(0,0,0,0.04)",
+              }}
+                onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"; }}
+                onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "none"; }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 500 }}>{o}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto", flexShrink: 0 }}>
+                    {imgs.slice(0, 3).map((src) => (
+                      <img key={src} src={src} alt="" loading="lazy" style={{ width: 40, height: 30, objectFit: "contain", borderRadius: 4, background: "rgba(0,0,0,0.03)", display: "block" }} />
+                    ))}
+                    {isSel && <Check size={13} strokeWidth={2.5} color="#FF6B00" />}
+                  </div>
+                </div>
+                {desc ? <span style={{ fontSize: 11, fontWeight: 300, color: "#9ca3af", lineHeight: 1.35 }}>{desc}</span> : null}
+              </button>
+            );
+          }
+          return (
+            <button key={o} onClick={() => { onSelect(o); onClose(); }} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              width: "100%", padding: "10px 14px", border: "none",
+              background: isSel ? "rgba(255,107,0,0.06)" : "none",
+              cursor: "pointer", fontFamily: "Inter, sans-serif",
+              fontSize: 13, color: isSel ? "#c2500a" : "#111827",
+              fontWeight: isSel ? 600 : 400, textAlign: "left",
+              borderBottom: "1px solid rgba(0,0,0,0.04)",
+            }}
+              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"; }}
+              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "none"; }}
+            >
+              {o}
+              {isSel && <Check size={13} strokeWidth={2.5} color="#FF6B00" />}
+            </button>
+          );
+        })}
       </div>
     </>,
     document.body,
@@ -1369,19 +1525,30 @@ const DESKTOP_COLS = [
   { key: "payment",     label: "Оплата",         flex: 1.0 },
 ] as const;
 
-function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
+function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraftMarkingNum }: {
   initial: DesktopRowDraft;
   onSave: (d: DesktopRowDraft) => void;
   onCancel: () => void;
   isNew: boolean;
+  showTypeCol: boolean;
+  onDraftMarkingNum: (num: string) => void;
 }) {
   const [draft, setDraft] = useState<DesktopRowDraft>(initial);
   const [openCol, setOpenCol] = useState<string | null>(null);
   const [anchor, setAnchor] = useState({ top: 0, left: 0, width: 160 });
   const dict = useDict();
 
+  useEffect(() => {
+    onDraftMarkingNum(draft.markingNum);
+    return () => onDraftMarkingNum("");
+  }, [draft.markingNum, onDraftMarkingNum]);
+
   const typeOptions = dict.markingTypes[draft.markingNum] || [];
+  const typeSelectable = markingNumHasTypes(dict.markingTypes, draft.markingNum);
   const payment = (parseFloat(draft.volume) || 0) * (parseFloat(draft.tariff) || 0);
+  const visibleCols = showTypeCol
+    ? DESKTOP_COLS
+    : DESKTOP_COLS.filter((c) => c.key !== "markingType");
 
   function openDrop(col: string, td: HTMLTableCellElement) {
     if (openCol === col) {
@@ -1399,12 +1566,12 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
 
   const accent = isNew ? "rgba(255,107,0,0.04)" : "rgba(99,102,241,0.04)";
   const accentBorder = isNew ? "rgba(255,107,0,0.20)" : "rgba(99,102,241,0.20)";
-  const canSave = isShiftRowComplete(draft);
+  const canSave = isShiftRowComplete(draft, dict.markingTypes);
 
   return (
     <>
       <tr>
-        {DESKTOP_COLS.slice(0, -1).map(({ key: col }) => {
+        {visibleCols.slice(0, -1).map(({ key: col }) => {
           const isNumeric = col === "volume" || col === "tariff";
           const isOpen = openCol === col;
           const options =
@@ -1412,7 +1579,7 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
             col === "markingNum"  ? dict.markingNums :
             col === "markingType" ? typeOptions :
             col === "material"    ? dict.materials : null;
-          const locked = col === "markingType" && !draft.markingNum;
+          const locked = col === "markingType" && !typeSelectable;
 
           return (
             <td key={col}
@@ -1424,7 +1591,7 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
               }}
               style={{
                 padding: isNumeric ? "0 8px" : "0 12px", height: 46, verticalAlign: "middle",
-                background: isOpen ? "rgba(255,107,0,0.08)" : accent,
+                background: isOpen ? "rgba(255,107,0,0.08)" : locked ? "rgba(0,0,0,0.04)" : accent,
                 borderBottom: `1.5px solid ${accentBorder}`,
                 cursor: locked ? "default" : options ? "pointer" : "text",
                 outline: isOpen ? `2px solid ${isNew ? "rgba(255,107,0,0.40)" : "rgba(99,102,241,0.40)"}` : "none",
@@ -1444,11 +1611,12 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
                   {(draft as any)[col] || "Выбрать..."}
                 </span>
               )}
-              {options && openCol === col && (
+              {options && !locked && openCol === col && (
                 <DesktopDropdown
                   options={options} value={(draft as any)[col]}
                   onSelect={v => set(col, v)} onClose={() => setOpenCol(null)}
                   anchor={anchor}
+                  optionMeta={col === "markingNum" ? dict.markingNumMeta : undefined}
                 />
               )}
             </td>
@@ -1466,7 +1634,10 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew }: {
                 disabled={!canSave}
                 onClick={() => {
                 if (!canSave) return;
-                onSave(draft);
+                onSave({
+                  ...draft,
+                  markingType: typeSelectable ? draft.markingType : "",
+                });
                 if (isNew) {
                   setDraft((p) => ({
                     location: "",
@@ -1515,15 +1686,25 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [formMarkingNum, setFormMarkingNum] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateAnchor, setDateAnchor] = useState({ top: 0, left: 0 });
   const [showAddTeammate, setShowAddTeammate] = useState(false);
   const dateBtnRef = useRef<HTMLButtonElement>(null);
+  const onDraftMarkingNum = useMemo(() => (num: string) => setFormMarkingNum(num), []);
+
+  const showTypeCol =
+    rows.some((r) => markingNumHasTypes(dict.markingTypes, r.markingNum)) ||
+    markingNumHasTypes(dict.markingTypes, formMarkingNum);
+  const desktopCols = showTypeCol
+    ? DESKTOP_COLS
+    : DESKTOP_COLS.filter((c) => c.key !== "markingType");
+  const desktopFlexSum = desktopCols.reduce((s, x) => s + x.flex, 0);
 
   const totalVol = rows.reduce((s, r) => s + r.volume, 0);
   const totalPay = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
   const pp = participants.length > 0 ? Math.round(totalPay / participants.length) : 0;
-  const canConfirm = rows.some(isShiftRowComplete) && participants.length > 0;
+  const canConfirm = rows.some((r) => isShiftRowComplete(r, dict.markingTypes)) && participants.length > 0;
 
   const dateStr = selectedDate.toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" });
 
@@ -1606,12 +1787,12 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
         <div style={{ flex: 1, minWidth: 0, background: "rgba(255,255,255,0.80)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.65)", boxShadow: "0 4px 24px rgba(0,0,0,0.07)", overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
             <colgroup>
-              {DESKTOP_COLS.map(c => <col key={c.key} style={{ width: `${c.flex / DESKTOP_COLS.reduce((s, x) => s + x.flex, 0) * 100}%` }} />)}
+              {desktopCols.map(c => <col key={c.key} style={{ width: `${c.flex / desktopFlexSum * 100}%` }} />)}
               <col style={{ width: 36 }} />
             </colgroup>
             <thead>
               <tr style={{ borderBottom: "1.5px solid rgba(0,0,0,0.07)" }}>
-                {DESKTOP_COLS.map(c => (
+                {desktopCols.map(c => (
                   <th key={c.key} style={{ padding: "14px 12px", fontSize: 11, fontWeight: 600, color: "#9ca3af", textAlign: "left", letterSpacing: "0.04em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
                     {c.label}
                   </th>
@@ -1624,12 +1805,31 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
                 if (editingId === row.id) {
                   return (
                     <DesktopEditRow key={row.id} isNew={false}
+                      showTypeCol={showTypeCol}
+                      onDraftMarkingNum={onDraftMarkingNum}
                       initial={{ location: row.location, markingNum: row.markingNum, markingType: row.markingType, volume: String(row.volume), material: row.material, tariff: String(row.tariff) }}
                       onSave={d => saveRow(row.id, d)} onCancel={() => setEditingId(null)}
                     />
                   );
                 }
                 const hov = hoveredId === row.id;
+                const rowHasType = markingNumHasTypes(dict.markingTypes, row.markingNum);
+                const cells = showTypeCol
+                  ? [
+                      { val: row.location, muted: false },
+                      { val: row.markingNum, muted: false },
+                      { val: row.markingType || "—", muted: !rowHasType },
+                      { val: row.volume + " м²", muted: false },
+                      { val: row.material, muted: false },
+                      { val: row.tariff + " ₽", muted: false },
+                    ]
+                  : [
+                      { val: row.location, muted: false },
+                      { val: row.markingNum, muted: false },
+                      { val: row.volume + " м²", muted: false },
+                      { val: row.material, muted: false },
+                      { val: row.tariff + " ₽", muted: false },
+                    ];
                 return (
                   <tr key={row.id}
                     onClick={() => { setAdding(false); setEditingId(row.id); }}
@@ -1637,8 +1837,14 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
                     onMouseLeave={() => setHoveredId(null)}
                     style={{ cursor: "pointer", background: hov ? "rgba(0,0,0,0.025)" : "transparent", transition: "background 0.1s" }}
                   >
-                    {[row.location, row.markingNum, row.markingType, row.volume + " м²", row.material, row.tariff + " ₽"].map((val, i) => (
-                      <td key={i} style={{ padding: "0 12px", height: 48, verticalAlign: "middle", borderBottom: "1px solid rgba(0,0,0,0.05)", fontSize: 13, color: "#111827", fontWeight: i === 0 ? 500 : 400 }}>
+                    {cells.map(({ val, muted }, i) => (
+                      <td key={i} style={{
+                        padding: "0 12px", height: 48, verticalAlign: "middle",
+                        borderBottom: "1px solid rgba(0,0,0,0.05)", fontSize: 13,
+                        color: muted ? "#d1d5db" : "#111827",
+                        fontWeight: i === 0 ? 500 : 400,
+                        background: muted ? "rgba(0,0,0,0.03)" : undefined,
+                      }}>
                         {val}
                       </td>
                     ))}
@@ -1659,6 +1865,8 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
 
               {adding && (
                 <DesktopEditRow isNew={true}
+                  showTypeCol={showTypeCol}
+                  onDraftMarkingNum={onDraftMarkingNum}
                   initial={{ location: "", markingNum: "", markingType: "", volume: "", material: "", tariff: "" }}
                   onSave={addRow} onCancel={() => setAdding(false)}
                 />
@@ -1669,7 +1877,7 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.02)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                 >
-                  <td colSpan={DESKTOP_COLS.length + 1} style={{ padding: "0 12px", height: 44, verticalAlign: "middle", borderTop: "1px dashed rgba(0,0,0,0.10)" }}>
+                  <td colSpan={desktopCols.length + 1} style={{ padding: "0 12px", height: 44, verticalAlign: "middle", borderTop: "1px dashed rgba(0,0,0,0.10)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 20, height: 20, borderRadius: 6, border: "1.5px dashed #d1d5db", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Plus size={11} strokeWidth={2.5} color="#d1d5db" />
@@ -1837,7 +2045,7 @@ export default function HomePage() {
   }, [dictOptions.locations, registerAddRow]);
 
   async function handleConfirmSave() {
-    const complete = rows.filter(isShiftRowComplete);
+    const complete = rows.filter((r) => isShiftRowComplete(r, dictOptions.markingTypes));
     if (saving || complete.length === 0 || participants.length === 0) return;
     setSaving(true);
     try {
@@ -1856,7 +2064,7 @@ export default function HomePage() {
   }
 
   const total = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
-  const completeCount = rows.filter(isShiftRowComplete).length;
+  const completeCount = rows.filter((r) => isShiftRowComplete(r, dictOptions.markingTypes)).length;
   const canConfirm = completeCount > 0 && participants.length > 0;
 
   const body = isDesktop ? (

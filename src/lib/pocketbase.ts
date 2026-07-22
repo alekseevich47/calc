@@ -32,3 +32,14 @@ export function isPocketBaseConfigured(): boolean {
 export function getPocketBaseUrl(): string {
   return resolvePocketBaseUrl();
 }
+
+/** Публичный URL файла записи (поле `image` и т.п.; protected=false). */
+export function pbFileUrl(collection: string, recordId: string, filename: string): string {
+  const base = resolvePocketBaseUrl();
+  if (!base || !recordId || !filename) return "";
+  return `${base}/api/files/${collection}/${recordId}/${encodeURIComponent(filename)}`;
+}
+
+export function markingNumberImageUrl(recordId: string, filename: string): string {
+  return pbFileUrl("marking_numbers", recordId, filename);
+}

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
 import type { CachedShift } from "../lib/db";
 import { markingTypesMap } from "../lib/db";
+import { markingNumberImageUrl } from "../lib/pocketbase";
 import {
   buildParticipantOptions,
   formatRuDate,
@@ -16,6 +17,11 @@ import {
 } from "../lib/sync";
 import { getCurrentUserFullName } from "../lib/session";
 import type { ShellContext } from "./AppShell";
+
+type MarkingNumMeta = {
+  description?: string;
+  imageUrls: string[];
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -400,7 +406,7 @@ function withCurrentOption(options: string[], current: string): string[] {
 }
 
 function EditFieldSelect({
-  label, value, options, disabled, withSearch, onChange,
+  label, value, options, disabled, withSearch, onChange, optionMeta,
 }: {
   label: string;
   value: string;
@@ -408,14 +414,22 @@ function EditFieldSelect({
   disabled?: boolean;
   withSearch?: boolean;
   onChange: (v: string) => void;
+  optionMeta?: Record<string, MarkingNumMeta>;
 }) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 240 });
   const [query, setQuery] = useState("");
+  const rich = Boolean(optionMeta);
 
   const opts = withCurrentOption(options, value);
-  const filtered = opts.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
+  const q = query.toLowerCase();
+  const filtered = opts.filter((o) => {
+    if (!q) return true;
+    if (o.toLowerCase().includes(q)) return true;
+    const desc = optionMeta?.[o]?.description;
+    return Boolean(desc && desc.toLowerCase().includes(q));
+  });
 
   function openMenu() {
     if (disabled || !btnRef.current) return;
@@ -423,12 +437,13 @@ function EditFieldSelect({
     if (!portal) return;
     const pb = portal.getBoundingClientRect();
     const tb = btnRef.current.getBoundingClientRect();
-    const width = Math.max(tb.width, 220);
+    const width = Math.max(tb.width, rich ? 280 : 220);
     let left = tb.left - pb.left;
     if (left + width > pb.width - 8) left = pb.width - width - 8;
     if (left < 8) left = 8;
+    const listH = rich ? 280 : 220;
     let top = tb.bottom - pb.top + 4;
-    if (top + 220 > pb.height - 8) top = Math.max(8, tb.top - pb.top - 220);
+    if (top + listH > pb.height - 8) top = Math.max(8, tb.top - pb.top - listH);
     setPos({ top, left, width });
     setQuery("");
     setOpen(true);
@@ -506,9 +521,41 @@ function EditFieldSelect({
               </div>
             </div>
           )}
-          <div style={{ maxHeight: 200, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ maxHeight: rich ? 280 : 200, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
             {filtered.map((opt) => {
               const sel = opt === value;
+              const meta = optionMeta?.[opt];
+              const imgs = meta?.imageUrls ?? [];
+              const desc = meta?.description?.trim();
+              if (rich) {
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => { onChange(opt); setOpen(false); }}
+                    style={{
+                      width: "100%", padding: "10px 14px",
+                      display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4,
+                      background: sel ? "rgba(99,102,241,0.08)" : "transparent",
+                      border: "none", borderBottom: "1px solid rgba(0,0,0,0.04)",
+                      cursor: "pointer", outline: "none", fontFamily: "Inter, sans-serif",
+                      WebkitTapHighlightColor: "transparent", textAlign: "left",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      <span style={{ fontSize: 13, color: sel ? "#4f46e5" : "#111827", fontWeight: sel ? 600 : 500 }}>{opt}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto", flexShrink: 0 }}>
+                        {imgs.slice(0, 3).map((src) => (
+                          <img key={src} src={src} alt="" loading="lazy" style={{ width: 36, height: 28, objectFit: "contain", borderRadius: 4, background: "rgba(0,0,0,0.03)", display: "block" }} />
+                        ))}
+                        {sel && <Check size={14} strokeWidth={2.5} color="#6366f1" />}
+                      </div>
+                    </div>
+                    {desc ? <span style={{ fontSize: 11, fontWeight: 300, color: "#9ca3af", lineHeight: 1.35 }}>{desc}</span> : null}
+                  </button>
+                );
+              }
               return (
                 <button
                   key={opt}
@@ -551,6 +598,16 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
   const typeMap = useMemo(() => (dicts ? markingTypesMap(dicts) : {}), [dicts]);
   const locations = dicts?.locations.map((x) => x.name) ?? [];
   const markingNums = dicts?.markingNumbers.map((x) => x.number) ?? [];
+  const markingNumMeta = useMemo(() => {
+    const map: Record<string, MarkingNumMeta> = {};
+    for (const n of dicts?.markingNumbers ?? []) {
+      map[n.number] = {
+        description: n.description,
+        imageUrls: (n.images ?? []).map((f) => markingNumberImageUrl(n.id, f)).filter(Boolean),
+      };
+    }
+    return map;
+  }, [dicts]);
   const materials = dicts?.materials.map((x) => x.name) ?? [];
 
   // Черновик = снимок смены при открытии; в PB/кэш пишем только по «Сохранить»
@@ -601,7 +658,7 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
     !saving &&
     participants.length > 0 &&
     rows.length > 0 &&
-    rows.every(isShiftRowComplete);
+    rows.every((r) => isShiftRowComplete(r, typeMap));
 
   async function handleSave() {
     if (!canSave) return;
@@ -718,15 +775,27 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
                       value={r.markingNum}
                       options={markingNums}
                       withSearch
+                      optionMeta={markingNumMeta}
                       onChange={(v) => updateRow(i, { markingNum: v })}
                     />
-                    <EditFieldSelect
-                      label="Тип"
-                      value={r.markingType}
-                      options={types}
-                      disabled={!r.markingNum}
-                      onChange={(v) => updateRow(i, { markingType: v })}
-                    />
+                    {types.length > 0 ? (
+                      <EditFieldSelect
+                        label="Тип"
+                        value={r.markingType}
+                        options={types}
+                        onChange={(v) => updateRow(i, { markingType: v })}
+                      />
+                    ) : r.markingNum ? (
+                      <div style={{
+                        ...fieldStyle,
+                        color: "#d1d5db",
+                        background: "rgba(0,0,0,0.04)",
+                        cursor: "default",
+                        pointerEvents: "none",
+                      }}>
+                        —
+                      </div>
+                    ) : null}
                     <EditFieldSelect
                       label="Материал"
                       value={r.material}
@@ -805,7 +874,7 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
   const pp = perPerson(shift);
   const totalVol = shift.rows.reduce((s, r) => s + r.volume, 0);
   const preview = shift.rows
-    .map(r => `${r.markingNum} — ${r.markingType} · ${fmtVol(r.volume)}`)
+    .map(r => `${r.markingNum}${r.markingType ? ` — ${r.markingType}` : ""} · ${fmtVol(r.volume)}`)
     .join("  ·  ");
 
   useEffect(() => {
@@ -1030,7 +1099,7 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
                 <div key={i} style={{ background: "rgba(0,0,0,0.025)", borderRadius: 10, padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", letterSpacing: "-0.02em", marginBottom: 2 }}>
-                      {r.markingNum} — {r.markingType}
+                      {r.markingNum}{r.markingType ? ` — ${r.markingType}` : ""}
                     </div>
                     <div style={{ fontSize: 11, color: "#9ca3af" }}>
                       {r.location ? `${r.location} · ` : ""}{r.material} · тариф {r.tariff} ₽/м²

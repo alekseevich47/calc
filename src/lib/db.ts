@@ -10,12 +10,18 @@ export interface DictItem {
 export interface MarkingNumberItem {
   id: string;
   number: string;
+  /** PB `marking_numbers.description` */
+  description?: string;
+  /** Имена файлов PB `marking_numbers.image` (до 10). URL — через `markingNumberImageUrl`. */
+  images?: string[];
 }
 
 export interface MarkingTypeItem {
   id: string;
   name: string;
   markingNumberId: string;
+  /** PB `marking_types.value` (числовой код/значение). */
+  value?: number;
 }
 
 export interface Dictionaries {

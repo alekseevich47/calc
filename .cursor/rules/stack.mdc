@@ -68,7 +68,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Авторизация**: при наличии PB URL — `authWithPassword` (email); stub только если URL не задан. Full-bleed, без скролла. Под кнопкой «Войти» — ссылка на `/register`. После первого успешного входа — офлайн-доступ по локальной сессии (`hasLocalPbSession`); сеть нужна только для первичного логина / refresh JWT при синке.
 - **Регистрация**: `RegisterPage` — почта, пароль (≥6), фамилия, имя; без email-подтверждения; `create` + сразу вход. При сабмите невалидные поля подсвечиваются красным + подсказка: почта без `@`, пароль короче 6, пустые фамилия/имя.
 - **Умный ввод**: bottom sheet → regex-парсер → превью → подтверждение — без fuzzy match.
-- **Главная (ввод строк)**: после «Добавить» форма остаётся; место/№/тип сбрасываются, **объём / материал / тариф / оплата сохраняются**. «Добавить»/«Сохранить» — только при **всех** заполненных столбцах (место, №, тип, объём>0, материал, тариф>0; оплата считается). Повторный тап по открытому dropdown закрывает его. Swipe-delete строки клипит к видимой ширине скролла (не тянет всю minWidth-таблицу), «Удалить» появляется плавно.
+- **Главная (ввод строк)**: после «Добавить» форма остаётся; место/№/тип сбрасываются, **объём / материал / тариф / оплата сохраняются**. «Добавить»/«Сохранить» — при заполненных месте, №, объём>0, материал, тариф>0; **тип обязателен только если у выбранного № есть типы в справочнике**. Колонка «Тип» скрыта, пока ни у одной строки (и черновика) нет № с привязанными типами; при смешанных строках у № без типов ячейка светло-серая и недоступна. Повторный тап по открытому dropdown закрывает его. Swipe-delete строки клипит к видимой ширине скролла (не тянет всю minWidth-таблицу), «Удалить» появляется плавно.
 ## Известные баги десктопа и роутинга (см. `Tasks/TASKS_start.md`, Блок 1)
 
 - Confirm-модалка в `DesktopHomePage` подключена через `showConfirm` (проверить регрессии).
@@ -100,7 +100,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Вход: логин (email) + пароль. «Запомнить меня» **по умолчанию**: PB `authStore` (localStorage); без галочки — sessionStorage + `restoreSession()`.
 - **Офлайн после первого входа:** `isAuthenticated` = `hasLocalPbSession` (token + user id в `authStore`), **не** только `authStore.isValid`. Просроченный JWT не выкидывает из PWA офлайн; локальный кэш/очередь работают. Первичный логин/регистрация без сети — нельзя (UI: «Нет сети…»).
 - При появлении сети: `ensureServerSession` / `ensureAuthProfile` → `authRefresh`; 401/403 → `clearSession`; иначе `syncNow` (очередь + pull). `RequireAuth` подписан на `authStore`.
-- JWT `users.authToken.duration` в `schema.json` — **2592000 с (30 суток)**; на проде применить в админке PB, если ещё 5 суток.
+- JWT `users.authToken.duration` в `schema.json` — **94670856 с (~3 года)**; на проде применить в админке PB, если ещё короткий TTL.
 - Регистрация: `/register` — почта (обязателен `@`), пароль ≥6 символов, фамилия, имя; без подтверждения почты; `users.create` + `authWithPassword`. В PB нужен `createRule: ""` на `users`. Клиентская валидация на сабмите: красная рамка + текст-подсказка под полем.
 - UI: `AuthPage` / `RegisterPage` — full-bleed `100dvh`; фон бело-оранжевый градиент.
 - `session.ts`: `loginWithPassword`, `registerWithPassword`, `hasLocalPbSession`, `ensureServerSession`, `formatUserName` / `getCurrentUserFullName` (`surname` + `name`, без fallback на id), `ensureAuthProfile`, `subscribeAuthStore`, `clearSession` чистит PB + stub + user-scoped IDB (`shifts_cache` / очередь / teammates).
@@ -132,13 +132,13 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Шапка: дата смены; mobile — компактный sync-бейдж.
 - Таблица работ — опции из PB-справочников (`schema.json` → sync → IndexedDB):
   1. Место — `locations.name`
-  2. № разметки — `marking_numbers.number`
-  3. Тип — `marking_types.name` (фильтр по relation `marking_number`)
+  2. № разметки — `marking_numbers.number`; в dropdown: номер слева, до 3 превью `image` справа (поле file, maxSelect 10, `protected: false`), под ними `description` (тонкий светлый текст). Кэш IDB: `MarkingNumberItem.{description,images[]}`; URL — `markingNumberImageUrl` / `pbFileUrl` (`/api/files/marking_numbers/{id}/{file}`). То же в History edit sheet.
+  3. Тип — `marking_types.name` (фильтр по relation `marking_number`; у типов также `value` number). Колонка **скрыта**, пока не выбран № с привязанными типами (и пока в таблице нет таких строк). Если колонка видна, а у строки № без типов — ячейка светло-серая, некликабельна (`—`). PB `shift_rows.marking_type` — **optional** (`required: false`); sync шлёт `null`, если типа нет.
   4. Объём — ручной ввод
   5. Материал — `materials.name`
   6. Тариф — ручной ввод
   7. Оплата — read-only, `объём × тариф`
-- Mobile: при редактировании строки — кнопка «Добавить» (disabled, пока не заполнены все столбцы: место, №, тип, объём, материал, тариф); бар «Заполните поля»/«Отмена» sticky по горизонтали (не уезжает со скроллом таблицы); dropdown select — без автооткрытия клавиатуры, клавиатура только по тапу в «Поиск»; повторный тап по открытому полю закрывает dropdown; outside-close через `pointerdown`+rAF (iOS-safe).
+- Mobile: при редактировании строки — кнопка «Добавить» (disabled, пока не заполнены обязательные поля: место, №, объём, материал, тариф; тип — только если есть варианты); бар «Заполните поля»/«Отмена» sticky по горизонтали (не уезжает со скроллом таблицы); dropdown select — без автооткрытия клавиатуры, клавиатура только по тапу в «Поиск»; повторный тап по открытому полю закрывает dropdown; outside-close через `pointerdown`+rAF (iOS-safe).
 - После «Добавить» форма не закрывается: место/№/тип очищаются, объём/материал/тариф (и оплата) остаются.
 - Swipe-delete строки: клип к видимой ширине горизонтального скролла, плавное появление «Удалить».
 - «Подтвердить» → модалка → `confirmShift`; **disabled**, если нет **полностью заполненных** строк **или** нет участников; одной полной строки достаточно.
@@ -161,7 +161,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Зарплата делится **поровну** на число участников смены (расчёт для UI автора; на чужие аккаунты не влияет).
 - Свайп влево по карточке → плавное появление «Удалить» (border-radius 18 со всех сторон) → soft-delete: на месте карточки «Восстановить»; реальный `removeShift` (+ очередь `delete_shift`) — при смене экрана или закрытии приложения (`pagehide` / unmount History).
 - Long-press (и ПКМ) → меню только текстом «Редактировать / Удалить» (без иконок); закрытие при скролле контента shell и при клике/тапе вне меню.
-- Редактирование: sheet открывается с **текущими** полями смены (черновик); запись в кэш/очередь только по «Сохранить», «Отменить» — без записи. Поля место/№/тип/материал — **кастомный** dropdown (как на главной), не нативный `<select>` (иначе Safari сбрасывает value вне options). Текущее значение всегда в списке опций. Тип при смене № очищается только если не подходит к новому номеру.
+- Редактирование: sheet открывается с **текущими** полями смены (черновик); запись в кэш/очередь только по «Сохранить», «Отменить» — без записи. Поля место/№/тип/материал — **кастомный** dropdown (как на главной), не нативный `<select>` (иначе Safari сбрасывает value вне options). № разметки — с фото/`description` как на главной. Тип показывается только если у № есть типы; иначе серая недоступная ячейка. Текущее значение всегда в списке опций. Тип при смене № очищается только если не подходит к новому номеру.
 
 ### 3. Профиль
 
@@ -186,7 +186,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 
 ## Backend и деплой (решено, план — `Tasks/TASKS_start.md`)
 
-- **Backend/БД**: PocketBase — единый бинарник, поднимается на том же VPS, что и статика фронтенда. Коллекции: встроенная auth `users` (`email`, `surname`, `name`) + `locations`, `marking_numbers`, `marking_types`, `materials` (справочники, read всем авторизованным) + `teammates` (свои: `owner`) + `shifts` / `shift_rows` (**только author**; см. «Изоляция данных»). Регистрация через клиент (`createRule: ""` на `users`); админка PB — для модерации. После смены правил в `schema.json` — применить Access Rules на проде (админка или import).
+- **Backend/БД**: PocketBase — единый бинарник, поднимается на том же VPS, что и статика фронтенда. Коллекции: встроенная auth `users` (`email`, `surname`, `name`) + `locations`, `marking_numbers` (`number`, `description`, `image` file×10), `marking_types` (`name`, relation `marking_number`, `value` number), `materials` (справочники, read всем авторизованным) + `teammates` (свои: `owner`) + `shifts` / `shift_rows` (**только author**; `marking_type` optional; см. «Изоляция данных»). Регистрация через клиент (`createRule: ""` на `users`); админка PB — для модерации. После смены правил в `schema.json` — применить Access Rules / новые поля на проде (админка или import).
 - **Клиент**: официальный JS SDK `pocketbase` (npm), singleton-клиент `src/lib/pocketbase.ts`, сессия — через встроенный `authStore` (persist в `localStorage`).
 - **Офлайн-кэш**: IndexedDB через `idb`, слой `src/lib/db.ts` + `src/lib/sync.ts` (очередь: `create_shift` / `update_shift` / `delete_shift` / `create_teammate`; синк при онлайне; `confirmShift` / `updateShift` / `removeShift` / `createTeammate`; единый источник `syncStatus`; user-scope: `ensureUserDataScope` / `clearUserScopedData`).
 - **Деплой**: git-based — сервер (один VPS, SSH) + Nginx + Let's Encrypt. Автодеплой — GitHub Actions по push в `main` (сборка в CI, доставка `dist/` на сервер по SSH) — **ещё не заведён** (нет `.github/workflows/`).

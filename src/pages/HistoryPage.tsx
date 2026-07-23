@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
 import type { CachedShift } from "../lib/db";
 import { markingTypesByNumberId, markingTypesMap, sortedMarkingNumbers } from "../lib/db";
+import { draftRowMetrics, quantityForEdit } from "../lib/markingValue";
 import { markingNumberImageUrl } from "../lib/pocketbase";
 import {
   buildParticipantOptions,
@@ -31,9 +32,13 @@ interface WorkRow {
   markingNum: string;
   markingNumberId?: string;
   markingType: string;
+  /** Количество (м/шт), если сохранено локально. */
+  quantity?: number;
+  /** Объём м² (= quantity × V). */
   volume: number;
   material: string;
   tariff: number;
+  amount?: number;
 }
 
 interface Shift {
@@ -68,9 +73,11 @@ function cachedToShift(s: CachedShift): Shift {
       markingNum: r.markingNum,
       markingNumberId: r.markingNumberId,
       markingType: r.markingType,
+      quantity: r.quantity,
       volume: r.volume,
       material: r.material,
       tariff: r.tariff,
+      amount: r.amount,
     })),
     pendingSync: s.pendingSync,
   };
@@ -91,8 +98,13 @@ function fmtVol(n: number) {
   return n.toLocaleString("ru-RU") + " м²";
 }
 
+function rowPay(r: WorkRow) {
+  if (typeof r.amount === "number" && Number.isFinite(r.amount)) return r.amount;
+  return r.volume * r.tariff;
+}
+
 function shiftTotal(shift: Shift) {
-  return shift.rows.reduce((s, r) => s + r.volume * r.tariff, 0);
+  return shift.rows.reduce((s, r) => s + rowPay(r), 0);
 }
 
 function perPerson(shift: Shift) {
@@ -633,7 +645,18 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
       markingNum: r.markingNum,
       markingNumberId: r.markingNumberId ?? "",
       markingType: r.markingType,
-      volume: String(r.volume),
+      volume: String(
+        dicts
+          ? quantityForEdit(dicts, {
+              location: r.location,
+              markingNum: r.markingNum,
+              markingNumberId: r.markingNumberId,
+              markingType: r.markingType,
+              volume: r.volume,
+              quantity: r.quantity,
+            })
+          : (r.quantity ?? r.volume),
+      ),
       material: r.material,
       tariff: String(r.tariff),
     })),
@@ -782,7 +805,16 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {rows.map((r, i) => {
               const types = typesForRow(r);
-              const pay = (parseFloat(r.volume) || 0) * (parseFloat(r.tariff) || 0);
+              const pay = dicts
+                ? draftRowMetrics(dicts, {
+                    location: r.location,
+                    markingNum: r.markingNum,
+                    markingNumberId: r.markingNumberId || undefined,
+                    markingType: r.markingType,
+                    quantity: parseFloat(r.volume) || 0,
+                    tariff: parseFloat(r.tariff) || 0,
+                  }).amount
+                : (parseFloat(r.volume) || 0) * (parseFloat(r.tariff) || 0);
               return (
                 <div key={i} style={{
                   background: "rgba(255,255,255,0.85)", borderRadius: 14,
@@ -840,7 +872,7 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
                       options={materials}
                       onChange={(v) => updateRow(i, { material: v })}
                     />
-                    <input type="number" min="0" inputMode="decimal" placeholder="Объём" value={r.volume} onChange={(e) => updateRow(i, { volume: e.target.value })} style={fieldStyle} />
+                    <input type="number" min="0" inputMode="decimal" placeholder="Кол-во" value={r.volume} onChange={(e) => updateRow(i, { volume: e.target.value })} style={fieldStyle} />
                     <input type="number" min="0" inputMode="decimal" placeholder="Тариф" value={r.tariff} onChange={(e) => updateRow(i, { tariff: e.target.value })} style={fieldStyle} />
                   </div>
                   <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: pay > 0 ? "#059669" : "#c4c9d4" }}>
@@ -1145,7 +1177,7 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
                   </div>
                   <div style={{ flexShrink: 0, textAlign: "right" }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>{fmtVol(r.volume)}</div>
-                    <div style={{ fontSize: 12, color: "#059669", fontWeight: 600 }}>{fmt(r.volume * r.tariff)}</div>
+                    <div style={{ fontSize: 12, color: "#059669", fontWeight: 600 }}>{fmt(rowPay(r))}</div>
                   </div>
                 </div>
               ))}

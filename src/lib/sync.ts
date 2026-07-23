@@ -24,6 +24,9 @@ import {
 } from "./db";
 import { isPocketBaseConfigured, pb } from "./pocketbase";
 import {
+  draftRowMetrics,
+} from "./markingValue";
+import {
   ensureServerSession,
   formatUserName,
   getCurrentUserFullName,
@@ -291,7 +294,7 @@ export async function confirmShift(input: {
     tariff: number;
   }>;
 }): Promise<CachedShift> {
-  const completeRows = input.rows.filter(isShiftRowComplete);
+  const completeRows = input.rows.filter((r) => isShiftRowComplete(r));
   if (completeRows.length === 0) {
     throw new Error("Заполните все поля строки (место, №, тип, объём, материал, тариф)");
   }
@@ -309,14 +312,24 @@ export async function confirmShift(input: {
     const markingTypeId = markingNumberId
       ? dicts.markingTypes.find((t) => t.markingNumberId === markingNumberId && t.name === r.markingType)?.id
       : undefined;
+    const quantity = r.volume;
+    const { volumeM2, amount } = draftRowMetrics(dicts, {
+      location: r.location,
+      markingNum: r.markingNum,
+      markingNumberId,
+      markingType: r.markingType,
+      quantity,
+      tariff: r.tariff,
+    });
     return {
       location: r.location,
       markingNum: r.markingNum,
       markingType: r.markingType,
-      volume: r.volume,
+      quantity,
+      volume: volumeM2,
       material: r.material,
       tariff: r.tariff,
-      amount: r.volume * r.tariff,
+      amount,
       locationId: locByName.get(r.location),
       markingNumberId,
       markingTypeId,
@@ -396,14 +409,24 @@ async function resolveShiftWrite(input: ShiftWriteInput): Promise<{
     const markingTypeId = markingNumberId
       ? dicts.markingTypes.find((t) => t.markingNumberId === markingNumberId && t.name === r.markingType)?.id
       : undefined;
+    const quantity = r.volume;
+    const { volumeM2, amount } = draftRowMetrics(dicts, {
+      location: r.location,
+      markingNum: r.markingNum,
+      markingNumberId,
+      markingType: r.markingType,
+      quantity,
+      tariff: r.tariff,
+    });
     return {
       location: r.location,
       markingNum: r.markingNum,
       markingType: r.markingType,
-      volume: r.volume,
+      quantity,
+      volume: volumeM2,
       material: r.material,
       tariff: r.tariff,
-      amount: r.volume * r.tariff,
+      amount,
       locationId: locByName.get(r.location),
       markingNumberId,
       markingTypeId,
@@ -564,21 +587,30 @@ async function pullFromServer(): Promise<{ authorId: string; dicts: Dictionaries
           ? [rawImages]
           : [];
       const description = String(r.description ?? "").trim();
+      const valueNpRaw = r.value_np;
+      const valueRoadRaw = r.value_road;
+      const value_np = typeof valueNpRaw === "number" ? valueNpRaw : Number(valueNpRaw);
+      const value_road = typeof valueRoadRaw === "number" ? valueRoadRaw : Number(valueRoadRaw);
       return {
         id: r.id,
         number: String(r.number ?? ""),
         ...(description ? { description } : {}),
         ...(images.length ? { images } : {}),
+        ...(Number.isFinite(value_np) ? { value_np } : {}),
+        ...(Number.isFinite(value_road) ? { value_road } : {}),
       };
     }),
     markingTypes: markingTypes.map((r) => {
-      const valueRaw = r.value;
-      const value = typeof valueRaw === "number" ? valueRaw : Number(valueRaw);
+      const valueNpRaw = r.value_np;
+      const valueRoadRaw = r.value_road;
+      const value_np = typeof valueNpRaw === "number" ? valueNpRaw : Number(valueNpRaw);
+      const value_road = typeof valueRoadRaw === "number" ? valueRoadRaw : Number(valueRoadRaw);
       return {
         id: r.id,
         name: String(r.name),
         markingNumberId: relationId(r.marking_number),
-        ...(Number.isFinite(value) ? { value } : {}),
+        ...(Number.isFinite(value_np) ? { value_np } : {}),
+        ...(Number.isFinite(value_road) ? { value_road } : {}),
       };
     }),
     materials: materials.map((r) => ({ id: r.id, name: String(r.name) })),
@@ -698,7 +730,14 @@ async function pullShiftsFromServer(authorId: string, dicts: Dictionaries): Prom
             markingNumberId: r.markingNumberId || prev.markingNumberId,
             markingTypeId: r.markingTypeId || prev.markingTypeId,
             materialId: r.materialId || prev.materialId,
+            quantity: prev.quantity,
           };
+        });
+      } else if (rows.length > 0 && existing?.rows?.length) {
+        rows = rows.map((r, i) => {
+          const prev = existing.rows[i];
+          if (!prev?.quantity) return r;
+          return { ...r, quantity: prev.quantity };
         });
       }
 

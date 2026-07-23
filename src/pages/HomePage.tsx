@@ -3,8 +3,9 @@ import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
 import { Plus, Calendar, ChevronDown, X, Search, Check, Trash2 } from "lucide-react";
 import { StatusBadge } from "../components/shared";
-import { DEFAULT_DICTIONARIES, markingTypesByNumberId, markingTypesMap, sortedMarkingNumbers } from "../lib/db";
+import { DEFAULT_DICTIONARIES, markingTypesByNumberId, markingTypesMap, sortedMarkingNumbers, type Dictionaries } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
+import { draftRowMetrics } from "../lib/markingValue";
 import { getCurrentUserFullName, looksLikePbId, subscribeAuthStore } from "../lib/session";
 import { confirmShift, createTeammate, buildParticipantOptions, isShiftRowComplete, markingNumHasTypes, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 import type { QuickRow, ShellContext } from "./AppShell";
@@ -19,6 +20,7 @@ type MarkingNumMeta = {
 };
 
 type DictOptions = {
+  dicts: Dictionaries;
   locations: string[];
   /** PB-id записей marking_numbers — значения опций dropdown. */
   markingNumIds: string[];
@@ -32,7 +34,7 @@ type DictOptions = {
   participants: string[];
 };
 
-function toDictOptions(dicts: typeof DEFAULT_DICTIONARIES): DictOptions {
+function toDictOptions(dicts: Dictionaries): DictOptions {
   const markingNumMeta: Record<string, MarkingNumMeta> = {};
   const markingNumIds: string[] = [];
   for (const n of sortedMarkingNumbers(dicts)) {
@@ -44,6 +46,7 @@ function toDictOptions(dicts: typeof DEFAULT_DICTIONARIES): DictOptions {
     };
   }
   return {
+    dicts,
     locations: dicts.locations.map((x) => x.name),
     markingNumIds,
     markingNumMeta,
@@ -67,6 +70,28 @@ function typesForMarking(dict: DictOptions, markingNum: string, markingNumberId?
   const id = resolveMarkingNumberId(dict, markingNum, markingNumberId);
   if (id && dict.markingTypesById[id]?.length) return dict.markingTypesById[id];
   return dict.markingTypes[markingNum] || [];
+}
+
+/** Черновик строки: поле volume = количество (м/шт); оплата = qty × V × тариф. */
+function draftMetricsFor(
+  dict: DictOptions,
+  row: {
+    location: string;
+    markingNum: string;
+    markingNumberId?: string;
+    markingType?: string;
+    volume: number | string;
+    tariff: number | string;
+  },
+) {
+  return draftRowMetrics(dict.dicts, {
+    location: row.location,
+    markingNum: row.markingNum,
+    markingNumberId: row.markingNumberId,
+    markingType: row.markingType,
+    quantity: typeof row.volume === "number" ? row.volume : parseFloat(row.volume) || 0,
+    tariff: typeof row.tariff === "number" ? row.tariff : parseFloat(row.tariff) || 0,
+  });
 }
 
 const DictContext = createContext<DictOptions>(toDictOptions(DEFAULT_DICTIONARIES));
@@ -287,7 +312,7 @@ const COL_DEFS: { key: ColKey | "payment"; short: string; width: number }[] = [
   { key: "location",    short: "Н.п. / трасса", width: 110 },
   { key: "markingNum",  short: "№ разм.",        width: 82  },
   { key: "markingType", short: "Тип",            width: 110 },
-  { key: "volume",      short: "Объём",          width: 65  },
+  { key: "volume",      short: "Кол-во",         width: 65  },
   { key: "material",    short: "Матер.",         width: 92  },
   { key: "tariff",      short: "Тариф",          width: 68  },
   { key: "payment",     short: "Оплата",         width: 76  },
@@ -326,7 +351,8 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol }: {
   const directionLocked = useRef<"horizontal" | "vertical" | null>(null);
   const activePointerId = useRef<number | null>(null);
   const dxRef = useRef(0);
-  const payment = fmt(row.volume * row.tariff);
+  const dict = useDict();
+  const payment = fmt(draftMetricsFor(dict, row).amount);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -466,7 +492,7 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol }: {
                     {row.markingType || "—"}
                   </td>
                 )}
-                <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 500, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.volume} м²</td>
+                <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 500, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.volume}</td>
                 <td style={{ padding: "10px 8px", fontSize: 11, color: "#6b7280", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{row.material}</td>
                 <td style={{ padding: "10px 8px", fontSize: 12, color: "#374151", fontWeight: 400, verticalAlign: "middle", whiteSpace: "nowrap" }}>{row.tariff} ₽</td>
                 <td style={{ padding: "10px 8px", fontSize: 12, color: "#059669", fontWeight: 700, verticalAlign: "middle", whiteSpace: "nowrap" }}>{payment}</td>
@@ -691,7 +717,8 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
 
   const vol = parseFloat(row.volume) || 0;
   const tar = parseFloat(row.tariff) || 0;
-  const payment = vol * tar > 0 ? fmt(vol * tar) : "0 ₽";
+  const { amount: payNum } = draftMetricsFor(dict, row);
+  const payment = payNum > 0 ? fmt(payNum) : "0 ₽";
 
   const isDropdownCol = (c: ColKey | null): c is ColKey =>
     c !== null && ["location", "markingNum", "markingType", "material"].includes(c);
@@ -918,7 +945,8 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
 
   const vol = parseFloat(editRow.volume) || 0;
   const tar = parseFloat(editRow.tariff) || 0;
-  const payment = vol * tar > 0 ? fmt(vol * tar) : "0 ₽";
+  const { amount: payNum } = draftMetricsFor(dict, editRow);
+  const payment = payNum > 0 ? fmt(payNum) : "0 ₽";
 
   const isDropdownCol = (c: ColKey | null): c is ColKey =>
     c !== null && ["location", "markingNum", "markingType", "material"].includes(c);
@@ -1148,8 +1176,9 @@ function ConfirmSheet({ rows, participants, date, onClose, onSave }: {
   onClose: () => void;
   onSave: () => void;
 }) {
-  const totalPayment = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
-  const totalVolume  = rows.reduce((s, r) => s + r.volume, 0);
+  const dict = useDict();
+  const totalPayment = rows.reduce((s, r) => s + draftMetricsFor(dict, r).amount, 0);
+  const totalVolume  = rows.reduce((s, r) => s + draftMetricsFor(dict, r).volumeM2, 0);
   const perPerson    = participants.length > 0 ? Math.round(totalPayment / participants.length) : 0;
 
   const dd = String(date.getDate()).padStart(2, "0");
@@ -1221,7 +1250,9 @@ function ConfirmSheet({ rows, participants, date, onClose, onSave }: {
         <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
 
           {/* Work cards */}
-          {rows.map((row, i) => (
+          {rows.map((row, i) => {
+            const m = draftMetricsFor(dict, row);
+            return (
             <div key={row.id} style={{
               background: "#fff", borderRadius: 14,
               border: "1px solid rgba(0,0,0,0.07)",
@@ -1231,7 +1262,7 @@ function ConfirmSheet({ rows, participants, date, onClose, onSave }: {
               {/* Card header */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", letterSpacing: "0.04em", textTransform: "uppercase" }}>Строка {i + 1}</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#059669", letterSpacing: "-0.02em" }}>{fmt(row.volume * row.tariff)}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#059669", letterSpacing: "-0.02em" }}>{fmt(m.amount)}</span>
               </div>
               {/* Fields grid */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px" }}>
@@ -1240,7 +1271,8 @@ function ConfirmSheet({ rows, participants, date, onClose, onSave }: {
                   { label: "№ разметки",    value: row.markingNum },
                   ...(row.markingType ? [{ label: "Тип", value: row.markingType }] : []),
                   { label: "Материал",      value: row.material },
-                  { label: "Объём",         value: `${row.volume} м²` },
+                  { label: "Кол-во",        value: String(row.volume) },
+                  { label: "Объём",         value: `${Number(m.volumeM2.toFixed(4))} м²` },
                   { label: "Тариф",         value: `${row.tariff} ₽/м²` },
                 ].map(({ label, value }) => (
                   <div key={label}>
@@ -1250,7 +1282,8 @@ function ConfirmSheet({ rows, participants, date, onClose, onSave }: {
                 ))}
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {/* Summary block */}
           <div style={{
@@ -1415,7 +1448,8 @@ function DateChip({ selected, setSelected, portalTarget }: { selected: Date; set
 // ─── Total bar ────────────────────────────────────────────────────────────────
 
 function TotalBar({ rows }: { rows: FilledRow[] }) {
-  const total = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
+  const dict = useDict();
+  const total = rows.reduce((s, r) => s + draftMetricsFor(dict, r).amount, 0);
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderTop: "1.5px solid rgba(0,0,0,0.06)", background: "rgba(255,255,255,0.50)" }}>
       <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", letterSpacing: "0.02em" }}>Итого</span>
@@ -1601,7 +1635,7 @@ const DESKTOP_COLS = [
   { key: "location",    label: "Место",         flex: 1.4 },
   { key: "markingNum",  label: "№ разметки",    flex: 0.9 },
   { key: "markingType", label: "Тип разметки",  flex: 1.6 },
-  { key: "volume",      label: "Объём, м²",     flex: 0.8 },
+  { key: "volume",      label: "Кол-во",        flex: 0.8 },
   { key: "material",    label: "Материал",       flex: 1.2 },
   { key: "tariff",      label: "Тариф, ₽/м²",  flex: 0.8 },
   { key: "payment",     label: "Оплата",         flex: 1.0 },
@@ -1632,7 +1666,7 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
 
   const typeOptions = typesForMarking(dict, draft.markingNum, draft.markingNumberId);
   const typeSelectable = typeOptions.length > 0;
-  const payment = (parseFloat(draft.volume) || 0) * (parseFloat(draft.tariff) || 0);
+  const payment = draftMetricsFor(dict, draft).amount;
   const visibleCols = showTypeCol
     ? DESKTOP_COLS
     : DESKTOP_COLS.filter((c) => c.key !== "markingType");
@@ -1803,8 +1837,8 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
     : DESKTOP_COLS.filter((c) => c.key !== "markingType");
   const desktopFlexSum = desktopCols.reduce((s, x) => s + x.flex, 0);
 
-  const totalVol = rows.reduce((s, r) => s + r.volume, 0);
-  const totalPay = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
+  const totalVol = rows.reduce((s, r) => s + draftMetricsFor(dict, r).volumeM2, 0);
+  const totalPay = rows.reduce((s, r) => s + draftMetricsFor(dict, r).amount, 0);
   const pp = participants.length > 0 ? Math.round(totalPay / participants.length) : 0;
   const canConfirm = rows.some((r) => isShiftRowComplete(r, { ...dict.markingTypes, ...dict.markingTypesById })) && participants.length > 0;
 
@@ -1929,14 +1963,14 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
                       { val: row.location, muted: false },
                       { val: row.markingNum, muted: false },
                       { val: row.markingType || "—", muted: !rowHasType },
-                      { val: row.volume + " м²", muted: false },
+                      { val: String(row.volume), muted: false },
                       { val: row.material, muted: false },
                       { val: row.tariff + " ₽", muted: false },
                     ]
                   : [
                       { val: row.location, muted: false },
                       { val: row.markingNum, muted: false },
-                      { val: row.volume + " м²", muted: false },
+                      { val: String(row.volume), muted: false },
                       { val: row.material, muted: false },
                       { val: row.tariff + " ₽", muted: false },
                     ];
@@ -1960,7 +1994,7 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
                     ))}
                     <td style={{ padding: "0 12px", height: 48, verticalAlign: "middle", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#059669" }}>{fmt(row.volume * row.tariff)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#059669" }}>{fmt(draftMetricsFor(dict, row).amount)}</span>
                         {hov && (
                           <button onClick={e => { e.stopPropagation(); setRows(p => p.filter(r => r.id !== row.id)); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", display: "flex", padding: 4, borderRadius: 6, outline: "none" }}>
                             <Trash2 size={14} strokeWidth={2} />
@@ -2173,7 +2207,7 @@ export default function HomePage() {
     }
   }
 
-  const total = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
+  const total = rows.reduce((s, r) => s + draftMetricsFor(dictOptions, r).amount, 0);
   const completeCount = rows.filter((r) => isShiftRowComplete(r, { ...dictOptions.markingTypes, ...dictOptions.markingTypesById })).length;
   const canConfirm = completeCount > 0 && participants.length > 0;
 

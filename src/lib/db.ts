@@ -14,14 +14,20 @@ export interface MarkingNumberItem {
   description?: string;
   /** Имена файлов PB `marking_numbers.image` (до 10). URL — через `markingNumberImageUrl`. */
   images?: string[];
+  /** Коэффициент для населённого пункта (qty × V → м²). */
+  value_np?: number;
+  /** Коэффициент для трассы. */
+  value_road?: number;
 }
 
 export interface MarkingTypeItem {
   id: string;
   name: string;
   markingNumberId: string;
-  /** PB `marking_types.value` (числовой код/значение). */
-  value?: number;
+  /** Коэффициент для населённого пункта. */
+  value_np?: number;
+  /** Коэффициент для трассы. */
+  value_road?: number;
 }
 
 export interface Dictionaries {
@@ -37,6 +43,9 @@ export interface ShiftRowData {
   location: string;
   markingNum: string;
   markingType: string;
+  /** Ввод: метры или штуки (до умножения на V). */
+  quantity?: number;
+  /** Объём работы в м² = quantity × V. */
   volume: number;
   material: string;
   tariff: number;
@@ -120,22 +129,22 @@ export const DEFAULT_DICTIONARIES: Dictionaries = {
     { id: "loc_tr", name: "Трасса" },
   ],
   markingNumbers: [
-    { id: "mn_1_1", number: "1.1" },
-    { id: "mn_1_2", number: "1.2" },
-    { id: "mn_1_5", number: "1.5" },
-    { id: "mn_1_6", number: "1.6" },
-    { id: "mn_stop", number: "Стоп-линия" },
+    { id: "mn_1_1", number: "1.1", value_np: 1, value_road: 1 },
+    { id: "mn_1_2", number: "1.2", value_np: 1, value_road: 1 },
+    { id: "mn_1_5", number: "1.5", value_np: 1, value_road: 1 },
+    { id: "mn_1_6", number: "1.6", value_np: 1, value_road: 1 },
+    { id: "mn_stop", number: "Стоп-линия", value_np: 1, value_road: 1 },
   ],
   markingTypes: [
-    { id: "mt_1_1_a", name: "Сплошная", markingNumberId: "mn_1_1" },
-    { id: "mt_1_1_b", name: "Двойная сплошная", markingNumberId: "mn_1_1" },
-    { id: "mt_1_2_a", name: "Краевая сплошная", markingNumberId: "mn_1_2" },
-    { id: "mt_1_2_b", name: "Разделительная", markingNumberId: "mn_1_2" },
-    { id: "mt_1_5_a", name: "Осевая прерывистая", markingNumberId: "mn_1_5" },
-    { id: "mt_1_5_b", name: "Краевая", markingNumberId: "mn_1_5" },
-    { id: "mt_1_6_a", name: "Предупреждающая", markingNumberId: "mn_1_6" },
-    { id: "mt_stop_a", name: "Стандартная 40 см", markingNumberId: "mn_stop" },
-    { id: "mt_stop_b", name: "Широкая 60 см", markingNumberId: "mn_stop" },
+    { id: "mt_1_1_a", name: "Сплошная", markingNumberId: "mn_1_1", value_np: 1, value_road: 1 },
+    { id: "mt_1_1_b", name: "Двойная сплошная", markingNumberId: "mn_1_1", value_np: 1, value_road: 1 },
+    { id: "mt_1_2_a", name: "Краевая сплошная", markingNumberId: "mn_1_2", value_np: 1, value_road: 1 },
+    { id: "mt_1_2_b", name: "Разделительная", markingNumberId: "mn_1_2", value_np: 1, value_road: 1 },
+    { id: "mt_1_5_a", name: "Осевая прерывистая", markingNumberId: "mn_1_5", value_np: 1, value_road: 1 },
+    { id: "mt_1_5_b", name: "Краевая", markingNumberId: "mn_1_5", value_np: 1, value_road: 1 },
+    { id: "mt_1_6_a", name: "Предупреждающая", markingNumberId: "mn_1_6", value_np: 1, value_road: 1 },
+    { id: "mt_stop_a", name: "Стандартная 40 см", markingNumberId: "mn_stop", value_np: 1, value_road: 1 },
+    { id: "mt_stop_b", name: "Широкая 60 см", markingNumberId: "mn_stop", value_np: 1, value_road: 1 },
   ],
   materials: [
     { id: "mat_paint", name: "Краска" },

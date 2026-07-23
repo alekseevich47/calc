@@ -27,7 +27,7 @@ alwaysApply: true
 | Иконки | `lucide-react` |
 | Tailwind / shadcn-ui (`src/app/components/ui/*`) | подключены как инфраструктура, но страницы их **не используют** — не подключать к новым экранам без явного решения, не удалять пока не мешает |
 | Неиспользуемое в deps | `motion`, MUI, Emotion, recharts, react-dnd, sonner, vaul, cmdk, react-hook-form — артефакты Figma Make, не использовать без причины |
-| PWA / офлайн / IndexedDB / API | частично: `vite-plugin-pwa`, `src/lib/{pocketbase,db,sync,session}.ts`, deps `pocketbase`+`idb`; прод-сборка/SW под `/calc/` ещё ломаются (см. «Прод и Nginx») |
+| PWA / офлайн / IndexedDB / API | `vite-plugin-pwa` (`registerType: 'autoUpdate'`), `registerSW` в `main.tsx`, `src/lib/{pocketbase,db,sync,session}.ts`, deps `pocketbase`+`idb`; обновление shell — см. «PWA: обновление версии» |
 | Умный ввод | Парсер regex в `AppShell.tsx` (`parseQuickText`) — без fuzzy match по справочнику |
 
 **Правило работы с этим кодом:** это Figma Make прототип — все стили/анимации/иконки/переходы уже сделаны и **сохраняются как есть**; добираем реальную логику (state/persist/PWA/API) вокруг существующей вёрстки, не переписывая визуал.
@@ -36,7 +36,7 @@ alwaysApply: true
 
 ```
 src/
-├── main.tsx                # createRoot → App
+├── main.tsx                # registerSW (PWA update) + createRoot → App
 ├── app/
 │   ├── App.tsx              # RouterProvider
 │   ├── routes.ts             # маршруты (⚠ два route на path "/" — auth и AppShell, нет guard'а)
@@ -93,6 +93,14 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Зум отключён** на всех страницах: `index.html` viewport `maximum-scale=1, user-scalable=no` + `touch-action: manipulation` на `html, body` (pinch / double-tap).
 - **iOS dropdown / outside-close**: не `mousedown` сразу после open — `pointerdown` + `requestAnimationFrame`, на option `onPointerDown preventDefault` (иначе Safari закрывает меню до `click`, строка уходит пустой → ошибка синка «Нет PB-id для строки « / »»).
 - **Имя на iOS/PWA**: в `authStore` иногда нет `surname`/`name` → раньше `formatUserName` показывал PB id; теперь без id-fallback + `ensureAuthProfile()` при старте/логине.
+
+## PWA: обновление версии
+
+- Проблема: SW отдаёт precache shell **раньше** сети → после деплоя часто открывается старый билд, даже «В сети».
+- **Онлайн → свежий shell:** `workbox.runtimeCaching` navigate = `NetworkFirst` (`html-shell`, timeout 3s); `html` **не** в `globPatterns` (иначе precache CacheFirst перебивает NetworkFirst). JS/CSS с хэшами — precache OK. `cleanupOutdatedCaches: true`. `navigateFallback: '/calc/index.html'` — SPA/офлайн.
+- **Детект нового SW:** `registerType: 'autoUpdate'` + `injectRegister: false`; в `main.tsx` — `registerSW({ immediate: true })` и `registration.update()` на `online`, `visibilitychange` (visible), раз в 60с. `autoUpdate` сам skipWaiting + reload при активации нового SW.
+- **Nginx:** `index.html`, `sw.js`, `registerSW.js`, `workbox-*.js`, `manifest.webmanifest` — `Cache-Control: no-cache` (см. `deploy/nginx.conf.example`); иначе браузер долго не видит новый SW.
+- Данные смен/справочников — IndexedDB, к версии UI/SW не привязаны.
 
 ## Авторизация
 
@@ -186,7 +194,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Push строк смены: сначала `create` новых `shift_rows`, потом `delete` старых (без окна с пустым списком строк).
 - Индикатор несинхронизированных данных **обязателен** (`Офлайн` / `Не синхр.` / …).
 - `navigator.storage.persist()` при старте приложения.
-- На iOS надёжный offline shell — после «На экран Домой» (SW кэш статики).
+- На iOS надёжный offline shell — после «На экран Домой» (SW кэш статики; navigate NetworkFirst → кэш при отсутствии сети).
 
 ## Backend и деплой (решено, план — `Tasks/TASKS_start.md`)
 
@@ -194,7 +202,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Клиент**: официальный JS SDK `pocketbase` (npm), singleton-клиент `src/lib/pocketbase.ts`, сессия — через встроенный `authStore` (persist в `localStorage`).
 - **Офлайн-кэш**: IndexedDB через `idb`, слой `src/lib/db.ts` + `src/lib/sync.ts` + расчёт объёма `src/lib/markingValue.ts` (очередь: `create_shift` / `update_shift` / `delete_shift` / `create_teammate`; синк при онлайне; `confirmShift` / `updateShift` / `removeShift` / `createTeammate`; единый источник `syncStatus`; user-scope: `ensureUserDataScope` / `clearUserScopedData`).
 - **Деплой**: git-based — сервер (один VPS, SSH) + Nginx + Let's Encrypt. Автодеплой — GitHub Actions по push в `main` (сборка в CI, доставка `dist/` на сервер по SSH) — **ещё не заведён** (нет `.github/workflows/`).
-- **PWA-обвязка**: `vite-plugin-pwa` для manifest/SW интеграции со сборкой (вместо ручного SW).
+- **PWA-обвязка**: `vite-plugin-pwa` (`autoUpdate`, NetworkFirst navigate, `cleanupOutdatedCaches`); регистрация SW в `main.tsx` (`virtual:pwa-register`); см. «PWA: обновление версии».
 
 ## Прод и Nginx (факт, urban42.online) — не ломать чужие location
 
@@ -211,7 +219,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Обязательная сборка под подпуть** (иначе чёрный экран):
   - Vite `base: '/calc/'`
   - `createBrowserRouter(..., { basename: '/calc' })`
-  - PWA: `start_url`/`scope`/иконки с префиксом `/calc/`, `navigateFallback: '/calc/index.html'` (сейчас в билде fallback на `/index.html` — ломает SW)
+  - PWA: `start_url`/`scope`/иконки с префиксом `/calc/`, `navigateFallback: '/calc/index.html'`; SW/HTML без долгого HTTP-кэша (см. «PWA: обновление версии»)
 - **`/calc` без слэша:** сейчас **404** (есть только `location /calc/`). Нужен точечный редирект: `location = /calc { return 301 /calc/; }` — больше ничего в общем конфиге не менять.
 - Перед правками Nginx: бэкап файла, `nginx -t`, затем `systemctl reload nginx`.
 
@@ -240,5 +248,6 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Desktop-раскладка (sidebar) **частично реализована** (`AppShell.tsx` + `DesktopHomePage` в `HomePage.tsx`).
 - **Прод:** домен `urban42.online`, приложение под `/calc/`, PocketBase calc на `:8095` через `/calc/api/` — инфраструктура на VPS есть; сайт сейчас отдаёт HTML, но UI пустой из‑за base/SW/basename (см. «Прод и Nginx»).
 - **Блок 3 (деплой):** 3.1–3.2 на VPS готовы; Nginx: `/calc`→`/calc/`, статика + `/calc/api/` + `/calc/_/`; сборка с `base/basename '/calc/'`; референс `deploy/nginx.conf.example`; CI `.github/workflows/deploy.yml` (нужны секреты `SSH_HOST`/`SSH_USER`/`SSH_KEY`).
-- Не закрыто относительно спеки: стабильный прод под `/calc/`, CI-деплой, онбординг «На экран Домой», полная связь UI↔sync, fuzzy match в парсере.
+- Не закрыто относительно спеки: стабильный прод под `/calc/`, CI-деплой, онбординг «На экран Домой», fuzzy match в парсере.
+- PWA shell update: NetworkFirst navigate + `registerSW`/`registration.update()` при online/focus (см. «PWA: обновление версии»).
 - Технический долг Figma Make: неиспользуемые deps (motion, MUI, shadcn kit и др.) — не трогать без причины.

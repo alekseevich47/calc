@@ -30,7 +30,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      // Регистрация вручную в main.tsx (online/visibility → update)
+      injectRegister: false,
       includeAssets: [
         'favicon.ico',
         'robots.txt',
@@ -77,8 +78,21 @@ export default defineConfig({
       },
       workbox: {
         // App shell only — data cache lives in IndexedDB (Block 2)
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2}'],
+        // html не в globPatterns: иначе precache CacheFirst перебивает NetworkFirst
+        cleanupOutdatedCaches: true,
+        globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest,woff2}'],
         navigateFallback: `${BASE}index.html`,
+        runtimeCaching: [
+          {
+            // Онлайн → свежий shell; офлайн → кэш (timeout 3s)
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-shell',
+              networkTimeoutSeconds: 3,
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false,

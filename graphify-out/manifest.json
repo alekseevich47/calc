@@ -15,7 +15,7 @@
     "semantic_hash": "512ddfe3175b0d294ec1e4789f27885f"
   },
   "schema.json": {
-    "mtime": 1784807852.8876107,
+    "mtime": 1784811427.293682,
     "ast_hash": "15a99e409899511646e3048631cda1fa",
     "semantic_hash": ""
   },
@@ -305,9 +305,9 @@
     "semantic_hash": ""
   },
   "src/main.tsx": {
-    "mtime": 1784656993.3795738,
-    "ast_hash": "dfacb1e2c1455020260b36c9aa56a458",
-    "semantic_hash": "dfacb1e2c1455020260b36c9aa56a458"
+    "mtime": 1784811935.8410425,
+    "ast_hash": "8fb1184c169c934f89a4a1328987e999",
+    "semantic_hash": ""
   },
   "src/pages/AppShell.tsx": {
     "mtime": 1784655505.0827608,
@@ -355,9 +355,9 @@
     "semantic_hash": "b84a00cad3da1546ce9db508961f650b"
   },
   "vite.config.ts": {
-    "mtime": 1784647473.8506267,
-    "ast_hash": "7e80a8f9af83be66a1c34eb0d85a8768",
-    "semantic_hash": "7e80a8f9af83be66a1c34eb0d85a8768"
+    "mtime": 1784811935.768626,
+    "ast_hash": "7da9272b1e410f5e6ccbcc2762987225",
+    "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
     "mtime": 1784647859.2024279,

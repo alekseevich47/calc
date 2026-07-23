@@ -15,9 +15,9 @@
     "semantic_hash": "512ddfe3175b0d294ec1e4789f27885f"
   },
   "schema.json": {
-    "mtime": 1784697324.5364823,
-    "ast_hash": "3f1465bddc9431277dcd7ae81d61d656",
-    "semantic_hash": "3f1465bddc9431277dcd7ae81d61d656"
+    "mtime": 1784807852.8876107,
+    "ast_hash": "15a99e409899511646e3048631cda1fa",
+    "semantic_hash": ""
   },
   "src/app/App.tsx": {
     "mtime": 1784570656.9410536,
@@ -285,9 +285,9 @@
     "semantic_hash": "0d9b06a54e039b4ea140888ac8ad104a"
   },
   "src/lib/db.ts": {
-    "mtime": 1784797767.6998694,
-    "ast_hash": "1953e6ac904e4185eb694fddd972be58",
-    "semantic_hash": "1953e6ac904e4185eb694fddd972be58"
+    "mtime": 1784808124.8252711,
+    "ast_hash": "dc8ac7ebf5044b6d01ef45f024be8440",
+    "semantic_hash": ""
   },
   "src/lib/pocketbase.ts": {
     "mtime": 1784696928.319027,
@@ -300,9 +300,9 @@
     "semantic_hash": "7ccd30a0d205c524f3f4e91f6bbddd41"
   },
   "src/lib/sync.ts": {
-    "mtime": 1784797799.043414,
-    "ast_hash": "6b9d19b8cd44a6d2c8746981aa18839a",
-    "semantic_hash": "6b9d19b8cd44a6d2c8746981aa18839a"
+    "mtime": 1784808322.9747765,
+    "ast_hash": "a545d67f718d21a3bdf7a7c3af34822c",
+    "semantic_hash": ""
   },
   "src/main.tsx": {
     "mtime": 1784656993.3795738,
@@ -320,14 +320,14 @@
     "semantic_hash": "0b9a203b30e58cc22cad9fb69da2e498"
   },
   "src/pages/HistoryPage.tsx": {
-    "mtime": 1784798565.6343853,
-    "ast_hash": "ffe4fff45ba7b4580ffdfece122267fa",
-    "semantic_hash": "ffe4fff45ba7b4580ffdfece122267fa"
+    "mtime": 1784808282.8589027,
+    "ast_hash": "fe22a1dda7ef8f189de40aad5c14a288",
+    "semantic_hash": ""
   },
   "src/pages/HomePage.tsx": {
-    "mtime": 1784799583.897339,
-    "ast_hash": "3970d9f2d3fd9ebdc5445510c3e307f2",
-    "semantic_hash": "3970d9f2d3fd9ebdc5445510c3e307f2"
+    "mtime": 1784808247.2590451,
+    "ast_hash": "a52f15b40de5e068ac4809d5c02773ae",
+    "semantic_hash": ""
   },
   "src/pages/ProfilePage.tsx": {
     "mtime": 1784657134.7018833,
@@ -423,5 +423,15 @@
     "mtime": 1784647555.6852882,
     "ast_hash": "e8dd4392ef60ada4121802cbfbdde574",
     "semantic_hash": "e8dd4392ef60ada4121802cbfbdde574"
+  },
+  "src/lib/markingValue.ts": {
+    "mtime": 1784808106.6039605,
+    "ast_hash": "db4f6e6d70a3e7d9ee3894ec4ca76ed9",
+    "semantic_hash": ""
+  },
+  "calc.txt": {
+    "mtime": 1784805743.89565,
+    "ast_hash": "b57f6dadefed558cad95c606c57a3698",
+    "semantic_hash": ""
   }
 }

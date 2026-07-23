@@ -10,6 +10,7 @@ import {
   getShift,
   listQueue,
   listShifts,
+  markingTypesByNumberId,
   markingTypesMap,
   markingNumberIdByNumber,
   newId,
@@ -92,7 +93,18 @@ function rowHasLabels(r: ShiftRowData): boolean {
   );
 }
 
-/** Строка полная: все editable-поля (место, №, тип, объём>0, материал, тариф>0). Оплата — производная. */
+/** Материал + тариф заданы на уровне смены (не в строке таблицы). */
+export function hasShiftMaterialTariff(
+  material?: string,
+  tariff?: string | number,
+): boolean {
+  const tarRaw = String(tariff ?? "").trim();
+  if (!String(material ?? "").trim() || !tarRaw) return false;
+  const tar = Number(tarRaw.replace(",", "."));
+  return Number.isFinite(tar) && tar > 0;
+}
+
+/** Строка работ полная: место, №, тип (если есть у №), кол-во>0. Материал/тариф — на смене. */
 export function isShiftRowComplete(
   r: {
     location?: string;
@@ -100,8 +112,6 @@ export function isShiftRowComplete(
     markingNumberId?: string;
     markingType?: string;
     volume?: string | number;
-    material?: string;
-    tariff?: string | number;
   },
   /**
    * Карта типов: ключ = markingNumberId или number.
@@ -110,10 +120,8 @@ export function isShiftRowComplete(
   markingTypes?: Record<string, string[]>,
 ): boolean {
   const volRaw = String(r.volume ?? "").trim();
-  const tarRaw = String(r.tariff ?? "").trim();
-  if (!volRaw || !tarRaw) return false;
+  if (!volRaw) return false;
   const vol = Number(volRaw.replace(",", "."));
-  const tar = Number(tarRaw.replace(",", "."));
   const num = String(r.markingNum ?? "").trim();
   const typeKey = String(r.markingNumberId ?? "").trim() || num;
   const typeRequired = markingTypes
@@ -123,9 +131,7 @@ export function isShiftRowComplete(
     String(r.location ?? "").trim() &&
     num &&
     (!typeRequired || String(r.markingType ?? "").trim()) &&
-    String(r.material ?? "").trim() &&
-    Number.isFinite(vol) && vol > 0 &&
-    Number.isFinite(tar) && tar > 0,
+    Number.isFinite(vol) && vol > 0,
   );
 }
 
@@ -294,12 +300,15 @@ export async function confirmShift(input: {
     tariff: number;
   }>;
 }): Promise<CachedShift> {
-  const completeRows = input.rows.filter((r) => isShiftRowComplete(r));
+  const dicts = await getDictionaries();
+  const typeMap = { ...markingTypesMap(dicts), ...markingTypesByNumberId(dicts) };
+  const completeRows = input.rows.filter(
+    (r) => isShiftRowComplete(r, typeMap) && hasShiftMaterialTariff(r.material, r.tariff),
+  );
   if (completeRows.length === 0) {
-    throw new Error("Заполните все поля строки (место, №, тип, объём, материал, тариф)");
+    throw new Error("Заполните строки и материал/тариф смены");
   }
 
-  const dicts = await getDictionaries();
   const locByName = new Map(dicts.locations.map((x) => [x.name, x.id]));
   const numByVal = markingNumberIdByNumber(dicts);
   const matByName = new Map(dicts.materials.map((x) => [x.name, x.id]));

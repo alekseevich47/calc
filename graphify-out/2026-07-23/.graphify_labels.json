@@ -69,5 +69,6 @@
   "67": "ESLint Config File",
   "68": "Guidelines Placeholder",
   "69": "PostCSS Config",
-  "70": "@radix-ui/react-alert-dialog"
+  "70": "@radix-ui/react-alert-dialog",
+  "71": "idb"
 }

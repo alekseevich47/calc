@@ -77,25 +77,16 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // App shell only — data cache lives in IndexedDB (Block 2)
-        // navigateFallback (NavigationRoute) в generateSW регистрируется РАНЬШЕ
-        // runtimeCaching → NetworkFirst не срабатывал. Offline SPA: NetworkFirst
-        // кэширует ответ navigate в html-shell (start_url после первого онлайна).
+        // App shell: precache HTML+ассеты + navigateFallback → офлайн SPA.
+        // Свежая версия онлайн: nginx no-cache на sw.js + registerType autoUpdate
+        // + registration.update() в main.tsx (не NetworkFirst navigate — он ломал
+        // offline и конфликтовал с NavigationRoute в generateSW).
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest,woff2}'],
-        runtimeCaching: [
-          {
-            // Онлайн → свежий shell; офлайн → кэш (timeout 3s)
-            urlPattern: ({ request }) => request.mode === 'navigate',
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'html-shell',
-              networkTimeoutSeconds: 3,
-            },
-          },
-        ],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2}'],
+        navigateFallback: `${BASE}index.html`,
+        navigateFallbackDenylist: [/^\/calc\/api\//, /^\/calc\/_\//],
       },
       devOptions: {
         enabled: false,

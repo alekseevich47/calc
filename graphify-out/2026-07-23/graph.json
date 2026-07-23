@@ -53,6 +53,36 @@
   },
   "nodes": [
     {
+      "label": "fix-nginx-sw-cache.sh",
+      "file_type": "code",
+      "source_file": "deploy/fix-nginx-sw-cache.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "deploy_fix_nginx_sw_cache",
+      "community": 33,
+      "community_name": "date-fns Library",
+      "norm_label": "fix-nginx-sw-cache.sh"
+    },
+    {
+      "label": "fix-nginx-sw-cache.sh script",
+      "file_type": "code",
+      "source_file": "deploy/fix-nginx-sw-cache.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "deploy_fix_nginx_sw_cache_sh__entry",
+      "community": 33,
+      "community_name": "date-fns Library",
+      "norm_label": "fix-nginx-sw-cache.sh script"
+    },
+    {
       "label": "eslint.config.js",
       "file_type": "code",
       "source_file": "eslint.config.js",
@@ -818,8 +848,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "package_dependencies_date_fns",
-      "community": 33,
-      "community_name": "date-fns Library",
+      "community": 19,
+      "community_name": "Radix Switch Tabs",
       "norm_label": "date-fns"
     },
     {
@@ -829,8 +859,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "date_fns",
-      "community": 33,
-      "community_name": "date-fns Library",
+      "community": 19,
+      "community_name": "Radix Switch Tabs",
       "norm_label": "date-fns"
     },
     {
@@ -840,8 +870,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "package_dependencies_idb",
-      "community": 19,
-      "community_name": "Radix Switch Tabs",
+      "community": 71,
+      "community_name": "idb",
       "norm_label": "idb"
     },
     {
@@ -851,8 +881,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "idb",
-      "community": 19,
-      "community_name": "Radix Switch Tabs",
+      "community": 71,
+      "community_name": "idb",
       "norm_label": "idb"
     },
     {
@@ -1346,8 +1376,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_app",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "app.tsx"
     },
     {
@@ -1357,8 +1387,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_app_app_app",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "app()"
     },
     {
@@ -1368,8 +1398,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_requireauth",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "requireauth.tsx"
     },
     {
@@ -1379,8 +1409,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_app_requireauth_requireauth",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "requireauth()"
     },
     {
@@ -1412,8 +1442,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordion.tsx"
     },
     {
@@ -1423,8 +1453,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion_accordion",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordion()"
     },
     {
@@ -1434,8 +1464,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion_accordionitem",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordionitem()"
     },
     {
@@ -1445,8 +1475,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion_accordiontrigger",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordiontrigger()"
     },
     {
@@ -1456,8 +1486,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion_accordioncontent",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordioncontent()"
     },
     {
@@ -1984,8 +2014,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carousel.tsx"
     },
     {
@@ -1995,8 +2025,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselapi",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselapi"
     },
     {
@@ -2006,8 +2036,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_usecarouselparameters",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "usecarouselparameters"
     },
     {
@@ -2017,8 +2047,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouseloptions",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouseloptions"
     },
     {
@@ -2028,8 +2058,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselplugin",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselplugin"
     },
     {
@@ -2039,8 +2069,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselprops",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselprops"
     },
     {
@@ -2050,8 +2080,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontextprops",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselcontextprops"
     },
     {
@@ -2061,8 +2091,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontext",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselcontext"
     },
     {
@@ -2072,8 +2102,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_usecarousel",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "usecarousel()"
     },
     {
@@ -2083,8 +2113,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carousel",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carousel()"
     },
     {
@@ -2094,8 +2124,8 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontent",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselcontent()"
     },
     {
@@ -2105,8 +2135,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselitem",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselitem()"
     },
     {
@@ -2116,8 +2146,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselprevious",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselprevious()"
     },
     {
@@ -2127,8 +2157,8 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselnext",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "carouselnext()"
     },
     {
@@ -3029,8 +3059,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_form",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "form.tsx"
     },
     {
@@ -3040,8 +3070,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formfieldcontextvalue",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formfieldcontextvalue"
     },
     {
@@ -3051,8 +3081,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formfieldcontext",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formfieldcontext"
     },
     {
@@ -3062,8 +3092,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formfield",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formfield()"
     },
     {
@@ -3073,8 +3103,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_app_components_ui_form_useformfield",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "useformfield()"
     },
     {
@@ -3084,8 +3114,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formitemcontextvalue",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formitemcontextvalue"
     },
     {
@@ -3095,8 +3125,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formitemcontext",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formitemcontext"
     },
     {
@@ -3117,8 +3147,8 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formlabel",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formlabel()"
     },
     {
@@ -3128,8 +3158,8 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formcontrol",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formcontrol()"
     },
     {
@@ -3139,8 +3169,8 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formdescription",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formdescription()"
     },
     {
@@ -3150,8 +3180,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formmessage",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "formmessage()"
     },
     {
@@ -3205,8 +3235,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "input-otp.tsx"
     },
     {
@@ -3216,8 +3246,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp_inputotp",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "inputotp()"
     },
     {
@@ -3227,8 +3257,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp_inputotpgroup",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "inputotpgroup()"
     },
     {
@@ -3238,8 +3268,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp_inputotpslot",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "inputotpslot()"
     },
     {
@@ -3249,8 +3279,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp_inputotpseparator",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "inputotpseparator()"
     },
     {
@@ -3282,8 +3312,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_label",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "label.tsx"
     },
     {
@@ -3293,8 +3323,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_label_label",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "label()"
     },
     {
@@ -3700,8 +3730,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_popover",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popover.tsx"
     },
     {
@@ -3711,8 +3741,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_popover_popover",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popover()"
     },
     {
@@ -3722,8 +3752,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_app_components_ui_popover_popovertrigger",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popovertrigger()"
     },
     {
@@ -3733,8 +3763,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_app_components_ui_popover_popovercontent",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popovercontent()"
     },
     {
@@ -3744,8 +3774,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_app_components_ui_popover_popoveranchor",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popoveranchor()"
     },
     {
@@ -4195,8 +4225,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_app_components_ui_sidebar_sidebarprovider",
-      "community": 3,
-      "community_name": "shadcn Input Sheet",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "sidebarprovider()"
     },
     {
@@ -4415,8 +4445,8 @@
       "source_location": "L602",
       "_origin": "ast",
       "id": "src_app_components_ui_sidebar_sidebarmenuskeleton",
-      "community": 3,
-      "community_name": "shadcn Input Sheet",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "sidebarmenuskeleton()"
     },
     {
@@ -4481,8 +4511,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_slider",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "slider.tsx"
     },
     {
@@ -4492,8 +4522,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_slider_slider",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "slider()"
     },
     {
@@ -4723,8 +4753,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_group",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "toggle-group.tsx"
     },
     {
@@ -4734,8 +4764,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_group_togglegroupcontext",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "togglegroupcontext"
     },
     {
@@ -4745,8 +4775,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_group_togglegroup",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "togglegroup()"
     },
     {
@@ -4756,8 +4786,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_group_togglegroupitem",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "togglegroupitem()"
     },
     {
@@ -4767,8 +4797,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "toggle.tsx"
     },
     {
@@ -4778,8 +4808,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_togglevariants",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "togglevariants"
     },
     {
@@ -4789,8 +4819,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_toggle",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "toggle()"
     },
     {
@@ -4855,8 +4885,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_use_mobile",
-      "community": 3,
-      "community_name": "shadcn Input Sheet",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "use-mobile.ts"
     },
     {
@@ -4866,8 +4896,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_app_components_ui_use_mobile_useismobile",
-      "community": 3,
-      "community_name": "shadcn Input Sheet",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "useismobile()"
     },
     {
@@ -4899,8 +4929,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_routes",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "routes.ts"
     },
     {
@@ -4910,8 +4940,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_app_routes_router",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "router"
     },
     {
@@ -4987,8 +5017,8 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_components_shared_globalstyles",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "globalstyles()"
     },
     {
@@ -5020,8 +5050,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_lib_db_markingnumberitem",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "markingnumberitem"
     },
     {
@@ -5031,8 +5061,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_db_markingtypeitem",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "markingtypeitem"
     },
     {
@@ -5240,8 +5270,8 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "src_lib_db_clearuserscopeddata",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "clearuserscopeddata()"
     },
     {
@@ -5251,8 +5281,8 @@
       "source_location": "L264",
       "_origin": "ast",
       "id": "src_lib_db_ensureuserdatascope",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "ensureuserdatascope()"
     },
     {
@@ -5361,8 +5391,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_markingvalue",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "markingvalue.ts"
     },
     {
@@ -5372,8 +5402,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_lib_markingvalue_locationzone",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "locationzone"
     },
     {
@@ -5383,8 +5413,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_lib_markingvalue_markingcoeffinput",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "markingcoeffinput"
     },
     {
@@ -5394,8 +5424,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_lib_markingvalue_finitepositive",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "finitepositive()"
     },
     {
@@ -5405,8 +5435,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_lib_markingvalue_pickzonevalue",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "pickzonevalue()"
     },
     {
@@ -5416,8 +5446,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_lib_markingvalue_resolvenumberitem",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "resolvenumberitem()"
     },
     {
@@ -5427,8 +5457,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_lib_markingvalue_resolvetypeitem",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "resolvetypeitem()"
     },
     {
@@ -5438,8 +5468,8 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_lib_markingvalue_resolvemarkingcoeff",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "resolvemarkingcoeff()"
     },
     {
@@ -5449,8 +5479,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "src_lib_markingvalue_workvolumem2",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "workvolumem2()"
     },
     {
@@ -5460,8 +5490,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_lib_markingvalue_rowamount",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "rowamount()"
     },
     {
@@ -5471,8 +5501,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_lib_markingvalue_draftrowmetrics",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "draftrowmetrics()"
     },
     {
@@ -5482,8 +5512,8 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "src_lib_markingvalue_quantityforedit",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "quantityforedit()"
     },
     {
@@ -5526,8 +5556,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_pocketbase_pb",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "pb"
     },
     {
@@ -5537,8 +5567,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_lib_pocketbase_ispocketbaseconfigured",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "ispocketbaseconfigured()"
     },
     {
@@ -5581,8 +5611,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_session",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "session.ts"
     },
     {
@@ -5592,8 +5622,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_session_usernamefields",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "usernamefields"
     },
     {
@@ -5603,8 +5633,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_lib_session_formatusername",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "formatusername()"
     },
     {
@@ -5625,8 +5655,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_lib_session_haslocalpbsession",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "haslocalpbsession()"
     },
     {
@@ -5636,8 +5666,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_lib_session_statusof",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "statusof()"
     },
     {
@@ -5647,8 +5677,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_lib_session_isauthrejected",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "isauthrejected()"
     },
     {
@@ -5658,8 +5688,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_lib_session_isnetworkerror",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "isnetworkerror()"
     },
     {
@@ -5669,8 +5699,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_lib_session_authfailuremessage",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "authfailuremessage()"
     },
     {
@@ -5680,8 +5710,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_lib_session_restoresession",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "restoresession()"
     },
     {
@@ -5691,8 +5721,8 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_lib_session_isauthenticated",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "isauthenticated()"
     },
     {
@@ -5702,8 +5732,8 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_lib_session_setsession",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "setsession()"
     },
     {
@@ -5713,8 +5743,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_lib_session_clearstubsession",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "clearstubsession()"
     },
     {
@@ -5724,8 +5754,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "src_lib_session_clearsession",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "clearsession()"
     },
     {
@@ -5735,8 +5765,8 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "src_lib_session_scopeafterauth",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "scopeafterauth()"
     },
     {
@@ -5746,8 +5776,8 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "src_lib_session_ensureserversession",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "ensureserversession()"
     },
     {
@@ -5757,8 +5787,8 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "src_lib_session_ensureauthprofile",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "ensureauthprofile()"
     },
     {
@@ -5768,8 +5798,8 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "src_lib_session_getcurrentuserfullname",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "getcurrentuserfullname()"
     },
     {
@@ -5779,8 +5809,8 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "src_lib_session_subscribeauthstore",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "subscribeauthstore()"
     },
     {
@@ -5790,8 +5820,8 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "src_lib_session_persistremember",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "persistremember()"
     },
     {
@@ -5801,8 +5831,8 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_lib_session_loginwithpassword",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "loginwithpassword()"
     },
     {
@@ -5812,8 +5842,8 @@
       "source_location": "L229",
       "_origin": "ast",
       "id": "src_lib_session_registerwithpassword",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "registerwithpassword()"
     },
     {
@@ -6043,8 +6073,8 @@
       "source_location": "L218",
       "_origin": "ast",
       "id": "src_lib_sync_usesyncstatus",
-      "community": 1,
-      "community_name": "PocketBase Sync Layer",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "usesyncstatus()"
     },
     {
@@ -6065,8 +6095,8 @@
       "source_location": "L227",
       "_origin": "ast",
       "id": "src_lib_sync_peeksyncsnapshot",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 1,
+      "community_name": "PocketBase Sync Layer",
       "norm_label": "peeksyncsnapshot()"
     },
     {
@@ -6263,8 +6293,8 @@
       "source_location": "L1052",
       "_origin": "ast",
       "id": "src_lib_sync_statsperiod",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "statsperiod"
     },
     {
@@ -6285,8 +6315,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "main.tsx"
     },
     {
@@ -6296,8 +6326,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_main_onregisteredsw",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "onregisteredsw()"
     },
     {
@@ -6450,8 +6480,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_authpage",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "authpage.tsx"
     },
     {
@@ -6461,8 +6491,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_pages_authpage_authpage",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "authpage()"
     },
     {
@@ -7121,8 +7151,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_profilepage",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "profilepage.tsx"
     },
     {
@@ -7132,8 +7162,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pages_profilepage_period",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "period"
     },
     {
@@ -7143,8 +7173,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_profilepage_period_labels",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "period_labels"
     },
     {
@@ -7154,8 +7184,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_pages_profilepage_lang_options",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "lang_options"
     },
     {
@@ -7165,8 +7195,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_pages_profilepage_fmt",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "fmt()"
     },
     {
@@ -7176,8 +7206,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_pages_profilepage_fmtvol",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "fmtvol()"
     },
     {
@@ -7187,8 +7217,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_pages_profilepage_sync_cfg",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "sync_cfg"
     },
     {
@@ -7198,8 +7228,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_pages_profilepage_langsheet",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "langsheet()"
     },
     {
@@ -7209,8 +7239,8 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_pages_profilepage_aboutsheet",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "aboutsheet()"
     },
     {
@@ -7220,8 +7250,8 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "src_pages_profilepage_profilepage",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "profilepage()"
     },
     {
@@ -7231,8 +7261,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_registerpage",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "registerpage.tsx"
     },
     {
@@ -7242,8 +7272,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_pages_registerpage_fielderrors",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "fielderrors"
     },
     {
@@ -7253,8 +7283,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_registerpage_validatefields",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "validatefields()"
     },
     {
@@ -7264,8 +7294,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_pages_registerpage_registerpage",
-      "community": 2,
-      "community_name": "App Shell Routing",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "registerpage()"
     },
     {
@@ -8732,6 +8762,17 @@
     }
   ],
   "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy/fix-nginx-sw-cache.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "deploy_fix_nginx_sw_cache",
+      "target": "deploy_fix_nginx_sw_cache_sh__entry",
+      "confidence_score": 1.0
+    },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
@@ -25860,5 +25901,5 @@
       "source_file": "Tasks/TASKS_start.md"
     }
   ],
-  "built_at_commit": "a73e7c5a6559bde2d9f1f07f50ee2ce261212749"
+  "built_at_commit": "20445e18cd5f53f65310c94fa41a63348af7c8f0"
 }

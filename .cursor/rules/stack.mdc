@@ -27,7 +27,7 @@ alwaysApply: true
 | Иконки | `lucide-react` |
 | Tailwind / shadcn-ui (`src/app/components/ui/*`) | подключены как инфраструктура, но страницы их **не используют** — не подключать к новым экранам без явного решения, не удалять пока не мешает |
 | Неиспользуемое в deps | `motion`, MUI, Emotion, recharts, react-dnd, sonner, vaul, cmdk, react-hook-form — артефакты Figma Make, не использовать без причины |
-| PWA / офлайн / IndexedDB / API | `vite-plugin-pwa` (`registerType: 'autoUpdate'`), `registerSW` в `main.tsx`, `src/lib/{pocketbase,db,sync,session}.ts`, deps `pocketbase`+`idb`; обновление shell — см. «PWA: обновление версии» |
+| PWA / офлайн / IndexedDB / API | `vite-plugin-pwa` (`autoUpdate`, precache+`navigateFallback`), `registerSW` в `main.tsx`, `src/lib/{pocketbase,db,sync,session}.ts`; офлайн shell + обновление — см. «PWA: офлайн shell и обновление версии» |
 | Умный ввод | Парсер regex в `AppShell.tsx` (`parseQuickText`) — без fuzzy match по справочнику |
 
 **Правило работы с этим кодом:** это Figma Make прототип — все стили/анимации/иконки/переходы уже сделаны и **сохраняются как есть**; добираем реальную логику (state/persist/PWA/API) вокруг существующей вёрстки, не переписывая визуал.
@@ -68,7 +68,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Авторизация**: при наличии PB URL — `authWithPassword` (email); stub только если URL не задан. Full-bleed, без скролла. Под кнопкой «Войти» — ссылка на `/register`. После первого успешного входа — офлайн-доступ по локальной сессии (`hasLocalPbSession`); сеть нужна только для первичного логина / refresh JWT при синке.
 - **Регистрация**: `RegisterPage` — почта, пароль (≥6), фамилия, имя; без email-подтверждения; `create` + сразу вход. При сабмите невалидные поля подсвечиваются красным + подсказка: почта без `@`, пароль короче 6, пустые фамилия/имя.
 - **Умный ввод**: bottom sheet → regex-парсер → превью → подтверждение — без fuzzy match.
-- **Главная (ввод строк)**: после «Добавить» форма остаётся; **все поля следующей строки пустые** (место/№/тип/кол-во/материал/тариф). «Добавить»/«Сохранить» — при заполненных месте, №, кол-во>0, материал, тариф>0; **тип обязателен только если у выбранного № есть типы в справочнике**. Колонка «Тип» скрыта, пока ни у одной строки (и черновика) нет № с привязанными типами; при смешанных строках у № без типов ячейка светло-серая и недоступна. Повторный тап по открытому dropdown (по полю) закрывает его (`onPointerDown` stopPropagation на ячейке, иначе outside-close + click снова открывают). Swipe-delete строки клипит к видимой ширине скролла (не тянет всю minWidth-таблицу), «Удалить» появляется плавно. Оплата в UI: `кол-во × V(место) × тариф` (`markingValue.ts`).
+- **Главная (ввод строк)**: после «Добавить» форма остаётся; **все поля следующей строки пустые** (место/№/тип/кол-во). «Добавить»/«Сохранить» строку — при заполненных месте, №, кол-во>0; **тип обязателен только если у выбранного № есть типы в справочнике**. **Материал и тариф — общие на всю смену** (карточка/поля вне таблицы; на PB пишутся в каждую `shift_rows` при confirm). Колонка «Тип» скрыта, пока ни у одной строки (и черновика) нет № с привязанными типами; при смешанных строках у № без типов ячейка светло-серая и недоступна. После «Кол-во» — read-only **«Объём, м²»** (`кол-во × V`, стиль как у «Оплата»). Повторный тап по открытому dropdown (по полю) закрывает его (`onPointerDown` stopPropagation на ячейке, иначе outside-close + click снова открывают). Swipe-delete строки клипит к видимой ширине скролла (не тянет всю minWidth-таблицу), «Удалить» появляется плавно. Оплата в UI: `кол-во × V(место) × тариф_смены` (`markingValue.ts`). `confirmShift` валидирует строки с картой типов из справочников; ошибки сохранения → `alert`.
 ## Известные баги десктопа и роутинга (см. `Tasks/TASKS_start.md`, Блок 1)
 
 - Confirm-модалка в `DesktopHomePage` подключена через `showConfirm` (проверить регрессии).
@@ -94,13 +94,14 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **iOS dropdown / outside-close**: не `mousedown` сразу после open — `pointerdown` + `requestAnimationFrame`, на option `onPointerDown preventDefault` (иначе Safari закрывает меню до `click`, строка уходит пустой → ошибка синка «Нет PB-id для строки « / »»).
 - **Имя на iOS/PWA**: в `authStore` иногда нет `surname`/`name` → раньше `formatUserName` показывал PB id; теперь без id-fallback + `ensureAuthProfile()` при старте/логине.
 
-## PWA: обновление версии
+## PWA: офлайн shell и обновление версии
 
-- Проблема: SW отдаёт precache shell **раньше** сети → после деплоя часто открывается старый билд, даже «В сети».
-- **Онлайн → свежий shell:** navigate = `NetworkFirst` (`html-shell`, timeout 3s); **без** `navigateFallback` (иначе NavigationRoute регистрируется раньше и убивает NetworkFirst). JS/CSS с хэшами — precache; `clientsClaim` + `skipWaiting` + `cleanupOutdatedCaches`.
-- **Детект нового SW:** `registerType: 'autoUpdate'` + `injectRegister: false`; в `main.tsx` — `registerSW({ immediate: true })` и `registration.update()` на `online`, `visibilitychange` (visible), раз в 60с. `autoUpdate` сам skipWaiting + reload при активации нового SW.
-- **Nginx (критично):** `sw.js` / `index.html` / `workbox-*.js` / `manifest` — отдельные `location` с `Cache-Control: no-cache` **до** правила `expires 1y` на `*.js` (см. `deploy/nginx.conf.example`, скрипт `deploy/fix-nginx-sw-cache.sh`). **Прод urban42.online (2026-07-23):** применено в `/etc/nginx/sites-available/urban`, бэкап `~/urban.bak.swcache.*` на VPS; `curl -sI …/calc/sw.js` → `Cache-Control: no-cache` (раньше было `max-age=31536000`). Телефон со старым PWA всё равно один раз: удалить данные сайта + иконку «На экран Домой» и открыть снова.
-- Данные смен/справочников — IndexedDB, к версии UI/SW не привязаны.
+- **Офлайн shell:** Workbox precache (`globPatterns` включая `html`) + `navigateFallback: '/calc/index.html'` + `navigateFallbackDenylist` для `/calc/api/` и `/calc/_/`. После одного онлайнового запуска SW отдаёт HTML/JS/CSS без сети. Данные — IndexedDB; сессия — `hasLocalPbSession`.
+- **Не использовать** navigate `NetworkFirst` **вместо** `navigateFallback` в generateSW: либо offline ломается (нет HTML в precache), либо NavigationRoute перебивает NetworkFirst.
+- **Онлайн → новая версия:** не через NetworkFirst HTML, а через детект нового SW: `registerType: 'autoUpdate'`, `clientsClaim` + `skipWaiting` + `cleanupOutdatedCaches`; в `main.tsx` — `registerSW({ immediate: true })` и `registration.update()` на `online` / `visibilitychange` / раз в 60с → skipWaiting + reload.
+- **Nginx (критично):** `sw.js` / `index.html` / `workbox-*.js` / `manifest` — отдельные `location` с `Cache-Control: no-cache` **до** `expires 1y` на `*.js` (`deploy/nginx.conf.example`, `deploy/fix-nginx-sw-cache.sh`). **Прод (2026-07-23):** применено; `curl -sI …/calc/sw.js` → `no-cache`. Иначе телефон год держит старый SW.
+- После смены SW/nginx на телефоне один раз: удалить данные сайта + иконку PWA → онлайн открыть → снова «На экран Домой».
+- Данные смен/справочников — IndexedDB, к версии UI/SW не привязаны. Логин/регистрация без сети — нельзя.
 
 ## Авторизация
 
@@ -144,13 +145,13 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
   2. № разметки — каждая запись PB `marking_numbers` = отдельный пункт dropdown (одинаковый `number` допускается; записи с одним номером идут подряд). У пункта: свой `description`, `image`, `value_np` / `value_road` (если у номера **нет** типов). Выбор пишет `markingNum` + `markingNumberId`. Типы фильтруются по `markingNumberId`. URL фото — `markingNumberImageUrl`. То же в History.
   3. Тип — `marking_types.name` (фильтр по relation `marking_number`; у типов — `value_np` / `value_road`). Колонка **скрыта**, пока не выбран № с привязанными типами (и пока в таблице нет таких строк). Если колонка видна, а у строки № без типов — ячейка светло-серая, некликабельна (`—`). PB `shift_rows.marking_type` — **optional** (`required: false`); sync шлёт `null`, если типа нет.
   4. Кол-во — ручной ввод (метры или штуки; UI «Кол-во», не «Объём м²»)
-  5. Материал — `materials.name`
-  6. Тариф — ручной ввод (₽/м²)
-  7. Оплата — read-only: `кол-во × V × тариф`, где V = `value_np`/`value_road` по месту; источник V — тип, если у № есть типы, иначе номер. Объём м² = `кол-во × V` (в кэше/PB `shift_rows.volume`; локально ещё `quantity`)
-- Mobile: при редактировании строки — кнопка «Добавить» (disabled, пока не заполнены обязательные поля: место, №, кол-во, материал, тариф; тип — только если есть варианты); бар «Заполните поля»/«Отмена» sticky по горизонтали (не уезжает со скроллом таблицы); dropdown select — без автооткрытия клавиатуры, клавиатура только по тапу в «Поиск»; повторный тап по открытому полю закрывает dropdown; outside-close через `pointerdown`+rAF (iOS-safe).
-- После «Добавить» форма не закрывается; **следующая строка полностью пустая** (включая кол-во/материал/тариф).
+  5. Объём, м² — read-only: `кол-во × V` (стиль как «Оплата», зелёный `#059669`)
+  6. Оплата — read-only: `кол-во × V × тариф_смены`, где V = `value_np`/`value_road` по месту; источник V — тип, если у № есть типы, иначе номер. В кэше/PB `shift_rows.volume` = объём м²; локально ещё `quantity`
+- **Материал и тариф смены** (не колонки таблицы): `materials.name` + тариф ₽/м²; общие на всю смену; при `confirmShift` / `updateShift` проставляются во все строки
+- Mobile: при редактировании строки — кнопка «Добавить» (disabled, пока не заполнены место, №, кол-во; тип — только если есть варианты); бар «Заполните поля»/«Отмена» sticky по горизонтали (не уезжает со скроллом таблицы); dropdown select — без автооткрытия клавиатуры, клавиатура только по тапу в «Поиск»; повторный тап по открытому полю закрывает dropdown; outside-close через `pointerdown`+rAF (iOS-safe).
+- После «Добавить» форма не закрывается; **следующая строка полностью пустая** (место/№/тип/кол-во).
 - Swipe-delete строки: клип к видимой ширине горизонтального скролла, плавное появление «Удалить».
-- «Подтвердить» → модалка → `confirmShift`; **disabled**, если нет **полностью заполненных** строк **или** нет участников; одной полной строки достаточно.
+- «Подтвердить» → модалка → `confirmShift`; **disabled**, если нет полных строк **или** нет участников **или** не заданы материал/тариф смены; одной полной строки достаточно.
 - Участники смены:
   - в списке только **текущий пользователь** + **свои** записи из коллекции `teammates` (другие зарегистрированные `users` **не** показываются);
   - по умолчанию выбран **только текущий**; можно снять всех (тогда confirm disabled);
@@ -170,7 +171,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Зарплата делится **поровну** на число участников смены (расчёт для UI автора; на чужие аккаунты не влияет).
 - Свайп влево по карточке → плавное появление «Удалить» (border-radius 18 со всех сторон) → soft-delete: на месте карточки «Восстановить»; реальный `removeShift` (+ очередь `delete_shift`) — при смене экрана или закрытии приложения (`pagehide` / unmount History).
 - Long-press (и ПКМ) → меню только текстом «Редактировать / Удалить» (без иконок); закрытие при скролле контента shell и при клике/тапе вне меню.
-- Редактирование: sheet открывается с **текущими** полями смены (черновик); запись в кэш/очередь только по «Сохранить», «Отменить» — без записи. Поля место/№/тип/материал — **кастомный** dropdown (как на главной), не нативный `<select>` (иначе Safari сбрасывает value вне options). № разметки — с фото/`description` как на главной. Тип показывается только если у № есть типы; иначе серая недоступная ячейка. Текущее значение всегда в списке опций. Тип при смене № очищается только если не подходит к новому номеру.
+- Редактирование: sheet открывается с **текущими** полями смены (черновик); запись в кэш/очередь только по «Сохранить», «Отменить» — без записи. **Материал и тариф** — общие на смену (префилл с первой строки); в строках — место/№/тип/кол-во + read-only объём/оплата. Поля место/№/тип/материал — **кастомный** dropdown (как на главной), не нативный `<select>` (иначе Safari сбрасывает value вне options). № разметки — с фото/`description` как на главной. Тип показывается только если у № есть типы; иначе серая недоступная ячейка. Текущее значение всегда в списке опций. Тип при смене № очищается только если не подходит к новому номеру.
 
 ### 3. Профиль
 
@@ -194,7 +195,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Push строк смены: сначала `create` новых `shift_rows`, потом `delete` старых (без окна с пустым списком строк).
 - Индикатор несинхронизированных данных **обязателен** (`Офлайн` / `Не синхр.` / …).
 - `navigator.storage.persist()` при старте приложения.
-- На iOS надёжный offline shell — после «На экран Домой» (SW кэш статики; navigate NetworkFirst → кэш при отсутствии сети).
+- На iOS надёжный offline shell — после «На экран Домой» (SW precache + `navigateFallback`; данные в IDB).
 
 ## Backend и деплой (решено, план — `Tasks/TASKS_start.md`)
 
@@ -202,7 +203,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Клиент**: официальный JS SDK `pocketbase` (npm), singleton-клиент `src/lib/pocketbase.ts`, сессия — через встроенный `authStore` (persist в `localStorage`).
 - **Офлайн-кэш**: IndexedDB через `idb`, слой `src/lib/db.ts` + `src/lib/sync.ts` + расчёт объёма `src/lib/markingValue.ts` (очередь: `create_shift` / `update_shift` / `delete_shift` / `create_teammate`; синк при онлайне; `confirmShift` / `updateShift` / `removeShift` / `createTeammate`; единый источник `syncStatus`; user-scope: `ensureUserDataScope` / `clearUserScopedData`).
 - **Деплой**: git-based — сервер (один VPS, SSH) + Nginx + Let's Encrypt. Автодеплой — GitHub Actions по push в `main` (сборка в CI, доставка `dist/` на сервер по SSH) — **ещё не заведён** (нет `.github/workflows/`).
-- **PWA-обвязка**: `vite-plugin-pwa` (`autoUpdate`, NetworkFirst navigate, `cleanupOutdatedCaches`); регистрация SW в `main.tsx` (`virtual:pwa-register`); см. «PWA: обновление версии».
+- **PWA-обвязка**: `vite-plugin-pwa` (`autoUpdate`, precache html+assets, `navigateFallback`, `cleanupOutdatedCaches`); регистрация SW в `main.tsx`; см. «PWA: офлайн shell и обновление версии».
 
 ## Прод и Nginx (факт, urban42.online) — не ломать чужие location
 
@@ -249,5 +250,5 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Прод:** домен `urban42.online`, приложение под `/calc/`, PocketBase calc на `:8095` через `/calc/api/` — инфраструктура на VPS есть; сайт сейчас отдаёт HTML, но UI пустой из‑за base/SW/basename (см. «Прод и Nginx»).
 - **Блок 3 (деплой):** 3.1–3.2 на VPS готовы; Nginx: `/calc`→`/calc/`, статика + `/calc/api/` + `/calc/_/` + **no-cache для sw.js/index.html/workbox/manifest** (2026-07-23); сборка с `base/basename '/calc/'`; референс `deploy/nginx.conf.example`; CI `.github/workflows/deploy.yml` (нужны секреты `SSH_HOST`/`SSH_USER`/`SSH_KEY`).
 - Не закрыто относительно спеки: стабильный прод под `/calc/`, CI-деплой, онбординг «На экран Домой», fuzzy match в парсере.
-- PWA shell update: NetworkFirst navigate + `registerSW`/`registration.update()` при online/focus (см. «PWA: обновление версии»).
+- PWA: офлайн shell (precache+`navigateFallback`) + обновление через SW/`registerSW` + nginx no-cache на `sw.js` (см. «PWA: офлайн shell и обновление версии»).
 - Технический долг Figma Make: неиспользуемые deps (motion, MUI, shadcn kit и др.) — не трогать без причины.

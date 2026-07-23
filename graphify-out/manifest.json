@@ -300,8 +300,8 @@
     "semantic_hash": "7ccd30a0d205c524f3f4e91f6bbddd41"
   },
   "src/lib/sync.ts": {
-    "mtime": 1784808322.9747765,
-    "ast_hash": "a545d67f718d21a3bdf7a7c3af34822c",
+    "mtime": 1784814596.7296944,
+    "ast_hash": "2c363af4af04d7259b6cbf6505046328",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -320,13 +320,13 @@
     "semantic_hash": "0b9a203b30e58cc22cad9fb69da2e498"
   },
   "src/pages/HistoryPage.tsx": {
-    "mtime": 1784808282.8589027,
-    "ast_hash": "fe22a1dda7ef8f189de40aad5c14a288",
+    "mtime": 1784815093.6177626,
+    "ast_hash": "3dd1d41ccbf1c35e367fafbcd8565692",
     "semantic_hash": ""
   },
   "src/pages/HomePage.tsx": {
-    "mtime": 1784808247.2590451,
-    "ast_hash": "a52f15b40de5e068ac4809d5c02773ae",
+    "mtime": 1784815027.8849733,
+    "ast_hash": "61a6c8028c0c20fa1be41765f85c12ee",
     "semantic_hash": ""
   },
   "src/pages/ProfilePage.tsx": {
@@ -355,8 +355,8 @@
     "semantic_hash": "b84a00cad3da1546ce9db508961f650b"
   },
   "vite.config.ts": {
-    "mtime": 1784813198.1324391,
-    "ast_hash": "32744a321ebe8a2cdb68fb59664bffe5",
+    "mtime": 1784816450.0678704,
+    "ast_hash": "e3ac80251d86eb2c8b666db0391dc09e",
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {

@@ -70,5 +70,6 @@
   "68": "Guidelines Placeholder",
   "69": "PostCSS Config",
   "70": "@radix-ui/react-alert-dialog",
-  "71": "idb"
+  "71": "idb",
+  "72": "date-fns"
 }

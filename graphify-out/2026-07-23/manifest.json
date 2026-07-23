@@ -355,8 +355,8 @@
     "semantic_hash": "b84a00cad3da1546ce9db508961f650b"
   },
   "vite.config.ts": {
-    "mtime": 1784811935.768626,
-    "ast_hash": "7da9272b1e410f5e6ccbcc2762987225",
+    "mtime": 1784813198.1324391,
+    "ast_hash": "32744a321ebe8a2cdb68fb59664bffe5",
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
@@ -432,6 +432,11 @@
   "calc.txt": {
     "mtime": 1784805743.89565,
     "ast_hash": "b57f6dadefed558cad95c606c57a3698",
+    "semantic_hash": ""
+  },
+  "deploy/fix-nginx-sw-cache.sh": {
+    "mtime": 1784813619.9199908,
+    "ast_hash": "d56c2c95438efbdb1d8162a9db486b5a",
     "semantic_hash": ""
   }
 }

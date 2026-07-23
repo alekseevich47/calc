@@ -10,6 +10,7 @@ import {
   buildParticipantOptions,
   formatRuDate,
   fromIsoDate,
+  hasShiftMaterialTariff,
   isShiftRowComplete,
   removeShift,
   updateShift,
@@ -639,6 +640,8 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
   // Черновик = снимок смены при открытии; в PB/кэш пишем только по «Сохранить»
   const [date, setDate] = useState(shift.isoDate);
   const [participants, setParticipants] = useState<string[]>(() => [...shift.participants]);
+  const [material, setMaterial] = useState(() => shift.rows[0]?.material ?? "");
+  const [tariff, setTariff] = useState(() => String(shift.rows[0]?.tariff ?? ""));
   const [rows, setRows] = useState<EditDraftRow[]>(() =>
     shift.rows.map((r) => ({
       location: r.location,
@@ -693,15 +696,14 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
   }
 
   function addRow() {
-    const last = rows[rows.length - 1];
     setRows((prev) => [...prev, {
       location: "",
       markingNum: "",
       markingNumberId: "",
       markingType: "",
-      volume: last?.volume ?? "",
-      material: last?.material ?? "",
-      tariff: last?.tariff ?? "",
+      volume: "",
+      material,
+      tariff,
     }]);
   }
 
@@ -714,11 +716,13 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
     !saving &&
     participants.length > 0 &&
     rows.length > 0 &&
+    hasShiftMaterialTariff(material, tariff) &&
     rows.every((r) => isShiftRowComplete(r, typeMapCombined));
 
   async function handleSave() {
     if (!canSave) return;
     setSaving(true);
+    const tar = parseFloat(String(tariff).replace(",", ".")) || 0;
     try {
       await updateShift(shift.id, {
         date: fromIsoDate(date),
@@ -729,8 +733,8 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
           markingNumberId: r.markingNumberId || undefined,
           markingType: r.markingType,
           volume: parseFloat(r.volume) || 0,
-          material: r.material,
-          tariff: parseFloat(r.tariff) || 0,
+          material,
+          tariff: tar,
         })),
       });
       onClose();
@@ -792,6 +796,22 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
             })}
           </div>
 
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>Материал и тариф</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 8, marginBottom: 18 }}>
+            <EditFieldSelect
+              label="Материал"
+              value={material}
+              options={materials}
+              onChange={setMaterial}
+            />
+            <input
+              type="number" min="0" inputMode="decimal" placeholder="Тариф, ₽/м²"
+              value={tariff}
+              onChange={(e) => setTariff(e.target.value)}
+              style={fieldStyle}
+            />
+          </div>
+
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em" }}>Работы</div>
             <button type="button" onClick={addRow} style={{
@@ -805,16 +825,18 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {rows.map((r, i) => {
               const types = typesForRow(r);
-              const pay = dicts
+              const tar = parseFloat(String(tariff).replace(",", ".")) || 0;
+              const metrics = dicts
                 ? draftRowMetrics(dicts, {
                     location: r.location,
                     markingNum: r.markingNum,
                     markingNumberId: r.markingNumberId || undefined,
                     markingType: r.markingType,
                     quantity: parseFloat(r.volume) || 0,
-                    tariff: parseFloat(r.tariff) || 0,
-                  }).amount
-                : (parseFloat(r.volume) || 0) * (parseFloat(r.tariff) || 0);
+                    tariff: tar,
+                  })
+                : { amount: (parseFloat(r.volume) || 0) * tar, volumeM2: parseFloat(r.volume) || 0 };
+              const pay = metrics.amount;
               return (
                 <div key={i} style={{
                   background: "rgba(255,255,255,0.85)", borderRadius: 14,
@@ -866,17 +888,15 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
                         —
                       </div>
                     ) : null}
-                    <EditFieldSelect
-                      label="Материал"
-                      value={r.material}
-                      options={materials}
-                      onChange={(v) => updateRow(i, { material: v })}
-                    />
                     <input type="number" min="0" inputMode="decimal" placeholder="Кол-во" value={r.volume} onChange={(e) => updateRow(i, { volume: e.target.value })} style={fieldStyle} />
-                    <input type="number" min="0" inputMode="decimal" placeholder="Тариф" value={r.tariff} onChange={(e) => updateRow(i, { tariff: e.target.value })} style={fieldStyle} />
                   </div>
-                  <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: pay > 0 ? "#059669" : "#c4c9d4" }}>
-                    Оплата: {pay > 0 ? fmt(pay) : "—"}
+                  <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 12 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: metrics.volumeM2 > 0 ? "#059669" : "#c4c9d4" }}>
+                      Объём: {metrics.volumeM2 > 0 ? fmtVol(metrics.volumeM2) : "—"}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: pay > 0 ? "#059669" : "#c4c9d4" }}>
+                      Оплата: {pay > 0 ? fmt(pay) : "—"}
+                    </span>
                   </div>
                 </div>
               );

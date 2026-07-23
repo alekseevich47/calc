@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router";
 import { Eye, EyeOff, Calculator } from "lucide-react";
-import { GlobalStyles } from "../components/shared";
 import { authFailureMessage, isAuthenticated, loginWithPassword } from "../lib/session";
 import { syncNow } from "../lib/sync";
 
@@ -44,7 +43,6 @@ export default function AuthPage() {
       fontFamily: "Inter, sans-serif", position: "relative",
       padding: "0 24px", boxSizing: "border-box",
     }}>
-      <GlobalStyles />
       <style>{`
         .auth-input {
           width: 100%; height: 48px;
@@ -88,7 +86,6 @@ export default function AuthPage() {
           background: linear-gradient(135deg, #FF6B00 0%, #FF9A00 100%);
           border-color: transparent;
         }
-        @keyframes authFadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
       <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "radial-gradient(circle, rgba(255,154,0,0.13) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />

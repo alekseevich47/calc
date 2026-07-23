@@ -1,0 +1,18 @@
+/* Global base + @keyframes (once). Was duplicated via <style> in GlobalStyles / pages. */
+
+html, body, #root { height: 100%; overscroll-behavior: none; }
+* { box-sizing: border-box; }
+
+@keyframes navFadeIn { from { opacity:0; transform:translateX(-4px); } to { opacity:1; transform:translateX(0); } }
+@keyframes fadeUp    { from { opacity:0; transform:translateY(8px);  } to { opacity:1; transform:translateY(0); } }
+@keyframes spin      { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+@keyframes sheetUp   { from { transform:translateY(100%); } to { transform:translateY(0); } }
+@keyframes fadeInBd  { from { opacity:0; } to { opacity:1; } }
+@keyframes slideUp   { from { transform:translateY(100%); } to { transform:translateY(0); } }
+@keyframes authFadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+::-webkit-scrollbar { height: 3px; width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 99px; }
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }

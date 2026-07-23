@@ -6,6 +6,8 @@ dist
 .env
 .env.*
 !.env.example
+backup_db
+backup_design
 .vscode
 .idea
 *.log

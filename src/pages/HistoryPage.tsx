@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, type CSSProperties } from "react";
 import { Calendar, SlidersHorizontal, X, Check, ChevronDown, ChevronUp, Trash2, Plus, Search } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { CachedShift } from "../lib/db";
 import { markingTypesByNumberId, markingTypesMap, sortedMarkingNumbers } from "../lib/db";
 import { draftRowMetrics, quantityForEdit } from "../lib/markingValue";
@@ -52,6 +53,13 @@ interface Shift {
   pendingSync?: boolean;
 }
 
+type HistoryListItem =
+  | { type: "card"; shift: Shift }
+  | { type: "restore"; shift: Shift };
+
+/** Примерная высота свёрнутой ShiftCard + gap 10. */
+const HISTORY_CARD_ESTIMATE = 110;
+
 type EditDraftRow = {
   location: string;
   markingNum: string;
@@ -96,7 +104,8 @@ function fmt(n: number) {
 }
 
 function fmtVol(n: number) {
-  return n.toLocaleString("ru-RU") + " м²";
+  if (!Number.isFinite(n) || n <= 0) return "0 м²";
+  return `${Number(n.toFixed(3)).toLocaleString("ru-RU")} м²`;
 }
 
 function rowPay(r: WorkRow) {
@@ -258,7 +267,6 @@ function FilterSheet({ selected, onChange, onClose, options }: {
         fontFamily: "Inter, sans-serif",
         animation: "sheetUp 0.28s cubic-bezier(0.22,1,0.36,1) forwards",
       }}>
-        <style>{`@keyframes sheetUp { from { transform:translateY(100%); } to { transform:translateY(0); } }`}</style>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
           <div style={{ width: 36, height: 4, borderRadius: 99, background: "rgba(0,0,0,0.12)" }} />
         </div>
@@ -764,7 +772,6 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
         fontFamily: "Inter, sans-serif",
         animation: "sheetUp 0.28s cubic-bezier(0.22,1,0.36,1) forwards",
       }}>
-        <style>{`@keyframes sheetUp { from { transform:translateY(100%); } to { transform:translateY(0); } }`}</style>
         <div style={{ padding: "14px 20px 10px", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
             <div style={{ width: 36, height: 4, borderRadius: 99, background: "rgba(0,0,0,0.12)" }} />
@@ -1047,6 +1054,7 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
       directionLocked.current = absDx > absDy ? "horizontal" : "vertical";
       clearLongPress();
       if (directionLocked.current === "horizontal") setDragging(true);
+      if (directionLocked.current === "vertical") skipToggle.current = true;
     }
 
     if (directionLocked.current !== "horizontal") return;
@@ -1066,6 +1074,10 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
     if (el && e.pointerId != null && el.hasPointerCapture(e.pointerId)) {
       try { el.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
     }
+    // pan-y: скролл идёт у shell — move на карточке может не прийти; не toggle после скролла
+    const scrolled =
+      Math.abs((phoneRef.current?.scrollTop ?? 0) - scrollTopAtStart.current) > 2;
+
     if (longPressFired.current) {
       // меню уже открыто
     } else if (directionLocked.current === "horizontal") {
@@ -1073,7 +1085,7 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
       setIsSnapped(committed);
       setDx(0);
       dxRef.current = 0;
-    } else if (directionLocked.current === null && !skipToggle.current) {
+    } else if (directionLocked.current === null && !skipToggle.current && !scrolled) {
       if (isSnapped) setIsSnapped(false);
       else setOpen((o) => !o);
     }
@@ -1182,8 +1194,6 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
 
         {open && (
           <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", padding: "12px 16px 16px", animation: "fadeUp 0.18s ease forwards" }}>
-            <style>{`@keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }`}</style>
-
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
               {shift.rows.map((r, i) => (
                 <div key={i} style={{ background: "rgba(0,0,0,0.025)", borderRadius: 10, padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -1248,6 +1258,7 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function HistoryPage() {
+  const { phoneRef } = useOutletContext<ShellContext>();
   const cached = useShifts();
   const dicts = useDictionaries();
   const shifts = useMemo(() => cached.map(cachedToShift), [cached]);
@@ -1263,6 +1274,8 @@ export default function HistoryPage() {
   const [showCal, setShowCal] = useState(false);
   const [calPos, setCalPos] = useState({ top: 0, left: 0 });
   const calBtnRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
 
   const [showFilter, setShowFilter] = useState(false);
   const [filterParticipants, setFilterParticipants] = useState<string[]>([]);
@@ -1286,21 +1299,66 @@ export default function HistoryPage() {
     };
   }, []);
 
-  const filtered = shifts.filter(s => {
+  const filtered = useMemo(() => shifts.filter((s) => {
     const inRange =
       (!dateRange.from || s.dateObj >= dateRange.from) &&
       (!dateRange.to || s.dateObj <= dateRange.to);
     const matchParticipants =
       filterParticipants.length === 0 ||
-      filterParticipants.every(p => s.participants.includes(p));
+      filterParticipants.every((p) => s.participants.includes(p));
     return inRange && matchParticipants;
+  }), [shifts, dateRange.from, dateRange.to, filterParticipants]);
+
+  const listItems = useMemo<HistoryListItem[]>(
+    () =>
+      filtered.map((shift) =>
+        pendingDeletes[shift.id]
+          ? { type: "restore", shift }
+          : { type: "card", shift },
+      ),
+    [filtered, pendingDeletes],
+  );
+
+  const activeFiltered = useMemo(
+    () => filtered.filter((s) => !pendingDeletes[s.id]),
+    [filtered, pendingDeletes],
+  );
+
+  const { totalVol, totalPay, totalPerPerson } = useMemo(() => {
+    let vol = 0;
+    let pay = 0;
+    let per = 0;
+    for (const sh of activeFiltered) {
+      vol += sh.rows.reduce((a, r) => a + r.volume, 0);
+      pay += shiftTotal(sh);
+      per += perPerson(sh);
+    }
+    return { totalVol: vol, totalPay: pay, totalPerPerson: per };
+  }, [activeFiltered]);
+
+  const virtualizer = useVirtualizer({
+    count: listItems.length,
+    getScrollElement: () => phoneRef.current,
+    estimateSize: () => HISTORY_CARD_ESTIMATE,
+    overscan: 5,
+    scrollMargin,
+    getItemKey: (index) => listItems[index]?.shift.id ?? index,
   });
 
-  const activeFiltered = filtered.filter((s) => !pendingDeletes[s.id]);
-
-  const totalVol = activeFiltered.reduce((s, sh) => s + sh.rows.reduce((a, r) => a + r.volume, 0), 0);
-  const totalPay = activeFiltered.reduce((s, sh) => s + shiftTotal(sh), 0);
-  const totalPerPerson = activeFiltered.reduce((s, sh) => s + perPerson(sh), 0);
+  useLayoutEffect(() => {
+    const listEl = listRef.current;
+    const scrollEl = phoneRef.current;
+    if (!listEl || !scrollEl) return;
+    const update = () => {
+      const listTop = listEl.getBoundingClientRect().top;
+      const scrollTop = scrollEl.getBoundingClientRect().top;
+      setScrollMargin(listTop - scrollTop + scrollEl.scrollTop);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(scrollEl);
+    return () => ro.disconnect();
+  }, [phoneRef, listItems.length]);
 
   function formatPeriod() {
     if (!dateRange.from && !dateRange.to) return "Весь период";
@@ -1352,32 +1410,56 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      <div style={{ padding: "14px 16px 0", display: "flex", flexDirection: "column", gap: 10, paddingBottom: 110 }}>
-        {filtered.length === 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginTop: 48, opacity: 0.5 }}>
+      <div style={{ padding: "14px 16px 0", display: "flex", flexDirection: "column", paddingBottom: 110 }}>
+        {listItems.length === 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginTop: 48, marginBottom: 10, opacity: 0.5 }}>
             <Calendar size={36} strokeWidth={1.3} color="#9ca3af" />
             <p style={{ margin: 0, fontSize: 14, color: "#9ca3af", textAlign: "center" }}>Смены не найдены</p>
           </div>
         ) : (
-          filtered.map(shift => (
-            pendingDeletes[shift.id] ? (
-              <RestorePlaceholder
-                key={shift.id}
-                onRestore={() => setPendingDeletes((prev) => {
-                  const next = { ...prev };
-                  delete next[shift.id];
-                  return next;
-                })}
-              />
-            ) : (
-              <ShiftCard
-                key={shift.id}
-                shift={shift}
-                onRequestEdit={setEditing}
-                onRequestDelete={(s) => setPendingDeletes((prev) => ({ ...prev, [s.id]: true }))}
-              />
-            )
-          ))
+          <div
+            ref={listRef}
+            style={{
+              height: virtualizer.getTotalSize(),
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const item = listItems[virtualRow.index];
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+                    paddingBottom: 10,
+                  }}
+                >
+                  {item.type === "restore" ? (
+                    <RestorePlaceholder
+                      onRestore={() => setPendingDeletes((prev) => {
+                        const next = { ...prev };
+                        delete next[item.shift.id];
+                        return next;
+                      })}
+                    />
+                  ) : (
+                    <ShiftCard
+                      shift={item.shift}
+                      onRequestEdit={setEditing}
+                      onRequestDelete={(s) => setPendingDeletes((prev) => ({ ...prev, [s.id]: true }))}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
 
         <div style={{

@@ -1,15 +1,28 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { createPortal } from "react-dom";
-import { X, Check, Home, List, User, Plus, Calculator, Wifi, WifiOff, RefreshCw, CloudOff } from "lucide-react";
-import { BottomNav, GlobalStyles, type SyncStatus } from "../components/shared";
-import { peekSyncSnapshot, syncNow, useSyncStatus } from "../lib/sync";
+import { X, Check, Home, List, User, Plus, Calculator, Wifi, WifiOff, RefreshCw, CloudOff, HelpCircle } from "lucide-react";
+import { QuickInputHelpModal, QuickInputHelpSheet } from "./QuickInputHelp";
+import {
+  BottomNav, DropdownCard, DesktopDropdown,
+  type SyncStatus, type MarkingNumMeta,
+} from "../components/shared";
+import { markingTypesByNumberId, sortedMarkingNumbers } from "../lib/db";
+import { markingNumberImageUrl } from "../lib/pocketbase";
+import { MARKING_NUMBER_VARIANT_ALIASES } from "../lib/quickInputKeywords";
+import {
+  parseMaterialTariffLine,
+  parseQuickInput,
+  parseWorkLine,
+} from "../lib/quickInputParser";
+import { peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 
 // ─── Types shared with pages ──────────────────────────────────────────────────
 
 export interface QuickRow {
   location: string;
   markingNum: string;
+  markingNumberId?: string;
   markingType: string;
   volume: number;
   material: string;
@@ -18,9 +31,27 @@ export interface QuickRow {
 
 export interface ShellContext {
   phoneRef: React.RefObject<HTMLDivElement | null>;
-  registerAddRow: (fn: (row: QuickRow) => void) => void;
+  registerAddRow: (fn: (rows: QuickRow[]) => void) => void;
   isDesktop: boolean;
 }
+
+type WorkCard = {
+  location: string;
+  markingNum: string;
+  markingNumberId: string;
+  markingType: string;
+  volume: number;
+};
+
+type MaterialCard = {
+  material: string;
+  tariff: number;
+};
+
+type EditTarget =
+  | { kind: "work"; index: number; field: "location" | "markingNum" | "markingType" }
+  | { kind: "material"; field: "material" }
+  | { kind: "text"; key: string; field: "volume" | "tariff"; workIndex?: number };
 
 // ─── Responsive hook ──────────────────────────────────────────────────────────
 
@@ -34,58 +65,291 @@ function useIsDesktop() {
   return isDesktop;
 }
 
-// ─── Text parser ──────────────────────────────────────────────────────────────
+function workCardFromParsed(row: ReturnType<typeof parseWorkLine>): WorkCard {
+  return {
+    location: row.location.value,
+    markingNum: row.markingNum.value,
+    markingNumberId: row.markingNumberId.value,
+    markingType: row.markingType.value,
+    volume: row.volume.value,
+  };
+}
 
-function parseQuickText(text: string): QuickRow {
-  const t = text.toLowerCase();
-  let location = "";
-  if (t.includes("трасса")) location = "Трасса";
-  else if (t.includes("населённый") || t.includes("населенный") || /\bнп\b/.test(t)) location = "Населённый пункт";
+function materialCardFromParsed(mt: ReturnType<typeof parseMaterialTariffLine>): MaterialCard {
+  return { material: mt.material.value, tariff: mt.tariff.value };
+}
 
-  let markingNum = "";
-  const mNum = text.match(/\b(стоп-линия|стоп\s*линия|1\.[1256])\b/i);
-  if (mNum) markingNum = /стоп/i.test(mNum[1]) ? "Стоп-линия" : mNum[1];
-
-  let volume = 0;
-  const volMatch = text.match(/(\d+[\.,]?\d*)\s*м/i);
-  if (volMatch) volume = parseFloat(volMatch[1].replace(",", "."));
-
-  let material = "";
-  if (t.includes("холодный") || t.includes("пластик")) material = "Холодный пластик";
-  else if (t.includes("краска") || t.includes("краск")) material = "Краска";
-
-  let tariff = 0;
-  const tariffKw = text.match(/тариф\s*(\d+)/i);
-  if (tariffKw) {
-    tariff = parseInt(tariffKw[1]);
-  } else {
-    const nums = [...text.matchAll(/\b(\d+)\b/g)].map((m) => parseInt(m[1]));
-    const candidates = nums.filter((n) => n !== volume && n > 0 && n < 10000);
-    if (candidates.length > 0) tariff = candidates[candidates.length - 1];
+/** Собрать строку работы из карточки — для повторного прогона «Проверить». */
+function workCardToLine(card: WorkCard): string {
+  const parts: string[] = [];
+  if (card.location.trim()) parts.push(card.location.trim());
+  if (card.markingNum.trim()) parts.push(card.markingNum.trim());
+  // Вариант с одинаковым number — вернуть ключевое слово, иначе парсер снова потеряет id.
+  if (card.markingNumberId) {
+    for (const variants of Object.values(MARKING_NUMBER_VARIANT_ALIASES)) {
+      const v = variants.find((x) => x.id === card.markingNumberId);
+      if (v?.keywords[0]) {
+        parts.push(v.keywords[0]);
+        break;
+      }
+    }
   }
-  return { location, markingNum, markingType: "", volume, material, tariff };
+  if (card.markingType.trim()) parts.push(card.markingType.trim());
+  if (card.volume > 0) parts.push(String(card.volume));
+  return parts.join(", ");
+}
+
+function materialCardToLine(card: MaterialCard): string {
+  const parts: string[] = [];
+  if (card.material.trim()) parts.push(card.material.trim());
+  if (card.tariff > 0) parts.push(`тариф ${card.tariff}`);
+  return parts.join(", ");
 }
 
 // ─── Quick Input (mobile = bottom sheet, desktop = centered modal) ────────────
 
-const FIELD_LABELS: { key: keyof QuickRow; label: string }[] = [
-  { key: "location",   label: "Н.П. / Трасса" },
-  { key: "markingNum", label: "№ разметки"    },
-  { key: "volume",     label: "Объём"         },
-  { key: "material",   label: "Материал"      },
-  { key: "tariff",     label: "Тариф"         },
-];
-
-function QuickInputContent({ onClose, onAdd }: {
-  onClose: () => void;
-  onAdd: (row: QuickRow) => void;
+function FieldRow({
+  label, display, hasVal, editing, onTap, children,
+}: {
+  label: string;
+  display: string;
+  hasVal: boolean;
+  editing?: boolean;
+  onTap?: (el: HTMLElement) => void;
+  children?: React.ReactNode;
 }) {
+  return (
+    <div
+      onClick={editing || !onTap ? undefined : (e) => onTap(e.currentTarget)}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "9px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)",
+        cursor: editing || !onTap ? "default" : "pointer",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
+      <span style={{ fontSize: 13, color: "#6b7280", flexShrink: 0 }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1, justifyContent: "flex-end" }}>
+        {editing && children ? children : (
+          <>
+            <span style={{
+              fontSize: 13, fontWeight: hasVal ? 600 : 400,
+              color: hasVal ? "#111827" : "#c4c9d4",
+              textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {hasVal ? display : "не распознано"}
+            </span>
+            {hasVal
+              ? <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(5,150,105,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Check size={11} strokeWidth={2.5} color="#059669" />
+                </div>
+              : <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.05)", flexShrink: 0 }} />
+            }
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QuickInputContent({ onClose, onAdd, isDesktop }: {
+  onClose: () => void;
+  onAdd: (rows: QuickRow[]) => void;
+  isDesktop: boolean;
+}) {
+  const dicts = useDictionaries();
   const [text, setText] = useState("");
-  const [parsed, setParsed] = useState<QuickRow | null>(null);
+  const [workCards, setWorkCards] = useState<WorkCard[]>([]);
+  const [materialCard, setMaterialCard] = useState<MaterialCard | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [recognizedOnce, setRecognizedOnce] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [parseError, setParseError] = useState<string | undefined>();
+  const [edit, setEdit] = useState<EditTarget | null>(null);
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 240 });
+  const [textDraft, setTextDraft] = useState("");
+  const sheetBodyRef = useRef<HTMLDivElement>(null);
+
+  const markingMeta = useMemo(() => {
+    const meta: Record<string, MarkingNumMeta> = {};
+    const ids: string[] = [];
+    if (!dicts) return { ids, meta, typesById: {} as Record<string, string[]> };
+    for (const n of sortedMarkingNumbers(dicts)) {
+      ids.push(n.id);
+      meta[n.id] = {
+        label: n.number,
+        description: n.description,
+        imageUrls: (n.images ?? []).map((f) => markingNumberImageUrl(n.id, f)).filter(Boolean),
+      };
+    }
+    return { ids, meta, typesById: markingTypesByNumberId(dicts) };
+  }, [dicts]);
+
+  const locations = dicts?.locations.map((x) => x.name) ?? [];
+  const materials = dicts?.materials.map((x) => x.name) ?? [];
+  const hasCards = workCards.length > 0 && materialCard !== null;
+
+  function clearCards() {
+    setWorkCards([]);
+    setMaterialCard(null);
+    setDirty(false);
+    setParseError(undefined);
+    setEdit(null);
+  }
+
+  function handleRecognize() {
+    if (!dicts) {
+      setParseError("Справочники ещё не загружены");
+      return;
+    }
+    setRecognizedOnce(true);
+    const result = parseQuickInput(text, dicts);
+    if (result.error) {
+      setParseError(result.error);
+      setWorkCards([]);
+      setMaterialCard(null);
+      setDirty(false);
+      return;
+    }
+    setParseError(undefined);
+    setWorkCards(result.workRows.map(workCardFromParsed));
+    setMaterialCard(result.materialTariff ? materialCardFromParsed(result.materialTariff) : null);
+    setDirty(false);
+    setEdit(null);
+  }
+
+  function handleVerify() {
+    if (!dicts || !materialCard || workCards.length === 0) return;
+    setWorkCards((prev) =>
+      prev.map((c) => workCardFromParsed(parseWorkLine(workCardToLine(c), dicts))),
+    );
+    setMaterialCard(
+      materialCardFromParsed(parseMaterialTariffLine(materialCardToLine(materialCard), dicts)),
+    );
+    setDirty(false);
+    setEdit(null);
+  }
 
   function handleAdd() {
-    if (parsed) { onAdd(parsed); onClose(); }
+    if (!materialCard || workCards.length === 0) return;
+    const rows: QuickRow[] = workCards.map((w) => ({
+      location: w.location,
+      markingNum: w.markingNum,
+      markingNumberId: w.markingNumberId || undefined,
+      markingType: w.markingType,
+      volume: w.volume,
+      material: materialCard.material,
+      tariff: materialCard.tariff,
+    }));
+    onAdd(rows);
+    onClose();
   }
+
+  function markDirty() {
+    setDirty(true);
+  }
+
+  function openDrop(target: EditTarget, el: HTMLElement | null) {
+    if (!el) return;
+    if (edit && JSON.stringify(edit) === JSON.stringify(target)) {
+      setEdit(null);
+      return;
+    }
+    const tb = el.getBoundingClientRect();
+    if (isDesktop) {
+      const ddW = target.kind === "work" && target.field === "markingNum"
+        ? Math.min(300, window.innerWidth - 32)
+        : 240;
+      setDropPos({ top: tb.bottom + 4, left: tb.left, width: ddW });
+    } else {
+      const body = sheetBodyRef.current;
+      if (!body) return;
+      const pb = body.getBoundingClientRect();
+      const ddW = target.kind === "work" && target.field === "markingNum"
+        ? Math.min(300, pb.width - 16)
+        : 240;
+      let left = tb.left - pb.left;
+      if (left + ddW > pb.width - 8) left = pb.width - ddW - 8;
+      if (left < 8) left = 8;
+      // + scrollTop: dropdown absolute внутри scroll-контейнера
+      setDropPos({ top: tb.bottom - pb.top + body.scrollTop + 4, left, width: ddW });
+    }
+    setEdit(target);
+  }
+
+  function openTextEdit(field: "volume" | "tariff", workIndex?: number, current?: string) {
+    setTextDraft(current ?? "");
+    setEdit({ kind: "text", key: field === "tariff" ? "tariff" : `vol-${workIndex}`, field, workIndex });
+  }
+
+  function commitTextEdit() {
+    if (!edit || edit.kind !== "text") return;
+    const n = parseFloat(textDraft.replace(",", ".")) || 0;
+    if (edit.field === "tariff") {
+      setMaterialCard((prev) => prev ? { ...prev, tariff: n } : { material: "", tariff: n });
+    } else if (edit.workIndex !== undefined) {
+      setWorkCards((prev) => prev.map((c, i) => i === edit.workIndex ? { ...c, volume: n } : c));
+    }
+    markDirty();
+    setEdit(null);
+  }
+
+  function selectWorkField(index: number, field: "location" | "markingNum" | "markingType", value: string) {
+    setWorkCards((prev) => prev.map((c, i) => {
+      if (i !== index) return c;
+      if (field === "location") return { ...c, location: value };
+      if (field === "markingNum") {
+        const meta = markingMeta.meta[value];
+        const types = markingMeta.typesById[value] ?? [];
+        const nextType = c.markingType && types.includes(c.markingType) ? c.markingType : "";
+        return {
+          ...c,
+          markingNumberId: value,
+          markingNum: meta?.label ?? value,
+          markingType: nextType,
+        };
+      }
+      return { ...c, markingType: value };
+    }));
+    markDirty();
+    setEdit(null);
+  }
+
+  function selectMaterial(value: string) {
+    setMaterialCard((prev) => ({ material: value, tariff: prev?.tariff ?? 0 }));
+    markDirty();
+    setEdit(null);
+  }
+
+  const dropOptions = (() => {
+    if (!edit || edit.kind === "text") return [] as string[];
+    if (edit.kind === "material") return materials;
+    const card = workCards[edit.index];
+    if (!card) return [];
+    if (edit.field === "location") return locations;
+    if (edit.field === "markingNum") return markingMeta.ids;
+    return markingMeta.typesById[card.markingNumberId] ?? [];
+  })();
+
+  const dropValue = (() => {
+    if (!edit || edit.kind === "text") return "";
+    if (edit.kind === "material") return materialCard?.material ?? "";
+    const card = workCards[edit.index];
+    if (!card) return "";
+    if (edit.field === "location") return card.location;
+    if (edit.field === "markingNum") return card.markingNumberId || card.markingNum;
+    return card.markingType;
+  })();
+
+  const dropMeta = edit?.kind === "work" && edit.field === "markingNum" ? markingMeta.meta : undefined;
+
+  function onDropSelect(v: string) {
+    if (!edit || edit.kind === "text") return;
+    if (edit.kind === "material") selectMaterial(v);
+    else selectWorkField(edit.index, edit.field, v);
+  }
+
+  const primaryBtn = !hasCards ? null : dirty ? "verify" : "add";
 
   return (
     <>
@@ -106,95 +370,231 @@ function QuickInputContent({ onClose, onAdd }: {
           background: #fff;
         }
         .qi-textarea::placeholder { color: #b0b7c3; }
+        .qi-num-input {
+          width: 96px; height: 32px; border-radius: 8px;
+          border: 1.5px solid rgba(255,107,0,0.45);
+          background: #fff; padding: 0 10px;
+          font-size: 13px; font-weight: 600; color: #111827;
+          font-family: Inter, sans-serif; outline: none; text-align: right;
+          box-sizing: border-box;
+        }
       `}</style>
 
-      {/* Handle (mobile only styling) */}
       <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}>
         <div style={{ width: 36, height: 4, borderRadius: 99, background: "rgba(0,0,0,0.12)" }} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 20px 12px", borderBottom: "1px solid rgba(0,0,0,0.07)", flexShrink: 0 }}>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>Быстрый ввод текстом</h2>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#9ca3af", outline: "none", display: "flex" }}>
-          <X size={18} strokeWidth={2} />
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <button
+            type="button"
+            onClick={() => setShowHelp(true)}
+            aria-label="Справка по ключевым словам"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#9ca3af", outline: "none", display: "flex" }}
+          >
+            <HelpCircle size={18} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#9ca3af", outline: "none", display: "flex" }}
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div ref={sheetBodyRef} style={{ flex: 1, overflowY: "auto", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10, position: "relative" }}>
         <textarea
           className="qi-textarea"
           placeholder="Введите данные произвольно..."
           value={text}
-          onChange={(e) => { setText(e.target.value); setParsed(null); }}
-          autoFocus
-        />
-        <p style={{ margin: 0, fontSize: 11, color: "#9ca3af", lineHeight: 1.5 }}>
-          Пример: <span style={{ color: "#6b7280" }}>Трасса, 1.1, 150м., краска, тариф 80</span>
-        </p>
-        <button
-          onClick={() => setParsed(parseQuickText(text))}
-          disabled={!text.trim()}
-          style={{
-            height: 44, borderRadius: 12, border: "none",
-            background: text.trim() ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.07)",
-            color: text.trim() ? "#fff" : "#b0b7c3",
-            fontSize: 14, fontWeight: 600, fontFamily: "Inter, sans-serif",
-            cursor: text.trim() ? "pointer" : "not-allowed", outline: "none",
-            boxShadow: text.trim() ? "0 4px 14px rgba(255,107,0,0.26)" : "none",
+          onChange={(e) => {
+            setText(e.target.value);
+            setRecognizedOnce(false);
+            clearCards();
           }}
-        >
-          Разобрать
-        </button>
+        />
+        <div style={{ margin: 0, fontSize: 11, color: "#9ca3af", lineHeight: 1.55, display: "flex", flexDirection: "column", gap: 6 }}>
+          <p style={{ margin: 0 }}>
+            Шаблон:{" "}
+            <span style={{ color: "#6b7280", whiteSpace: "pre-line" }}>
+              {"Место, № разметки, тип разметки (если имеется), количество\nМатериал, тариф"}
+            </span>
+          </p>
+          <p style={{ margin: 0 }}>
+            Пример:{" "}
+            <span style={{ color: "#6b7280", whiteSpace: "pre-line" }}>
+              {"Трасса, 1.24.2 обгон, 2\nкраска, 150"}
+            </span>
+          </p>
+        </div>
+        {!recognizedOnce && (
+          <button
+            onClick={handleRecognize}
+            disabled={!text.trim()}
+            style={{
+              height: 44, borderRadius: 12, border: "none",
+              background: text.trim() ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.07)",
+              color: text.trim() ? "#fff" : "#b0b7c3",
+              fontSize: 14, fontWeight: 600, fontFamily: "Inter, sans-serif",
+              cursor: text.trim() ? "pointer" : "not-allowed", outline: "none",
+              boxShadow: text.trim() ? "0 4px 14px rgba(255,107,0,0.26)" : "none",
+            }}
+          >
+            Распознать
+          </button>
+        )}
 
-        {parsed && (
-          <div style={{ animation: "fadeUp 0.2s ease forwards" }}>
-            <div style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-              <div style={{ padding: "10px 14px 6px", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: "0.04em", textTransform: "uppercase" }}>Распознано</span>
-              </div>
-              {FIELD_LABELS.map(({ key, label }) => {
-                const raw = parsed[key];
-                const val = key === "volume" ? (raw ? `${raw} м²` : "") : key === "tariff" ? (raw ? `${raw} ₽` : "") : String(raw || "");
-                const hasVal = !!raw && raw !== 0 && raw !== "";
-                return (
-                  <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
-                    <span style={{ fontSize: 13, color: "#6b7280" }}>{label}</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: hasVal ? 600 : 400, color: hasVal ? "#111827" : "#c4c9d4" }}>
-                        {hasVal ? val : "не распознано"}
-                      </span>
-                      {hasVal
-                        ? <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(5,150,105,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <Check size={11} strokeWidth={2.5} color="#059669" />
-                          </div>
-                        : <div style={{ width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.05)", flexShrink: 0 }} />
-                      }
-                    </div>
+        {parseError && (
+          <p style={{ margin: 0, fontSize: 12, color: "#ef4444", lineHeight: 1.4 }}>{parseError}</p>
+        )}
+
+        {hasCards && (
+          <div style={{ animation: "fadeUp 0.2s ease forwards", display: "flex", flexDirection: "column", gap: 10 }}>
+            {workCards.map((card, index) => {
+              const typeOpts = markingMeta.typesById[card.markingNumberId] ?? [];
+              const showType = typeOpts.length > 0;
+              const editingVol = edit?.kind === "text" && edit.field === "volume" && edit.workIndex === index;
+              return (
+                <div key={index} style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+                  <div style={{ padding: "10px 14px 6px", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                      Строка {index + 1}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-            <button
-              onClick={handleAdd}
-              style={{
-                width: "100%", height: 46, borderRadius: 12, border: "none", marginTop: 10,
-                background: "linear-gradient(135deg,#FF6B00,#FF9A00)",
-                color: "#fff", fontSize: 14, fontWeight: 600,
-                fontFamily: "Inter, sans-serif", cursor: "pointer", outline: "none",
-                boxShadow: "0 4px 14px rgba(255,107,0,0.26)",
-              }}
-            >
-              Добавить в таблицу
-            </button>
+                  <FieldRow
+                    label="Место"
+                    display={card.location}
+                    hasVal={!!card.location}
+                    onTap={(el) => openDrop({ kind: "work", index, field: "location" }, el)}
+                  />
+                  <FieldRow
+                    label="№ разметки"
+                    display={card.markingNum}
+                    hasVal={!!card.markingNum}
+                    onTap={(el) => openDrop({ kind: "work", index, field: "markingNum" }, el)}
+                  />
+                  {showType && (
+                    <FieldRow
+                      label="Тип"
+                      display={card.markingType}
+                      hasVal={!!card.markingType}
+                      onTap={(el) => openDrop({ kind: "work", index, field: "markingType" }, el)}
+                    />
+                  )}
+                  <FieldRow
+                    label="Кол-во"
+                    display={String(card.volume)}
+                    hasVal={card.volume > 0}
+                    editing={editingVol}
+                    onTap={() => openTextEdit("volume", index, card.volume ? String(card.volume) : "")}
+                  >
+                    <input
+                      className="qi-num-input"
+                      autoFocus
+                      inputMode="decimal"
+                      value={textDraft}
+                      onChange={(e) => setTextDraft(e.target.value)}
+                      onBlur={commitTextEdit}
+                      onKeyDown={(e) => { if (e.key === "Enter") commitTextEdit(); }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </FieldRow>
+                </div>
+              );
+            })}
+
+            {materialCard && (
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+                <div style={{ padding: "10px 14px 6px", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                    Материал и тариф
+                  </span>
+                </div>
+                <FieldRow
+                  label="Материал"
+                  display={materialCard.material}
+                  hasVal={!!materialCard.material}
+                  onTap={(el) => openDrop({ kind: "material", field: "material" }, el)}
+                />
+                <FieldRow
+                  label="Тариф"
+                  display={materialCard.tariff ? `${materialCard.tariff} ₽` : ""}
+                  hasVal={materialCard.tariff > 0}
+                  editing={edit?.kind === "text" && edit.field === "tariff"}
+                  onTap={() => openTextEdit("tariff", undefined, materialCard.tariff ? String(materialCard.tariff) : "")}
+                >
+                  <input
+                    className="qi-num-input"
+                    autoFocus
+                    inputMode="decimal"
+                    value={textDraft}
+                    onChange={(e) => setTextDraft(e.target.value)}
+                    onBlur={commitTextEdit}
+                    onKeyDown={(e) => { if (e.key === "Enter") commitTextEdit(); }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </FieldRow>
+              </div>
+            )}
+
+            {primaryBtn && (
+              <button
+                onClick={primaryBtn === "add" ? handleAdd : handleVerify}
+                style={{
+                  width: "100%", height: 46, borderRadius: 12, border: "none",
+                  background: "linear-gradient(135deg,#FF6B00,#FF9A00)",
+                  color: "#fff", fontSize: 14, fontWeight: 600,
+                  fontFamily: "Inter, sans-serif", cursor: "pointer", outline: "none",
+                  boxShadow: "0 4px 14px rgba(255,107,0,0.26)",
+                }}
+              >
+                {primaryBtn === "add" ? "Добавить в таблицу" : "Проверить"}
+              </button>
+            )}
           </div>
         )}
+
+        {edit && edit.kind !== "text" && dropOptions.length > 0 && (
+          isDesktop ? (
+            <DesktopDropdown
+              options={dropOptions}
+              value={dropValue}
+              onSelect={onDropSelect}
+              onClose={() => setEdit(null)}
+              anchor={dropPos}
+              optionMeta={dropMeta}
+            />
+          ) : (
+            <DropdownCard
+              options={dropOptions}
+              value={dropValue}
+              onSelect={onDropSelect}
+              onClose={() => setEdit(null)}
+              withSearch={edit.kind === "work" && (edit.field === "markingNum" || edit.field === "location")}
+              top={dropPos.top}
+              left={dropPos.left}
+              width={dropPos.width}
+              step={edit.kind === "material" ? 5 : edit.field === "location" ? 1 : edit.field === "markingNum" ? 2 : 3}
+              optionMeta={dropMeta}
+            />
+          )
+        )}
       </div>
+
+      {showHelp && (
+        isDesktop
+          ? <QuickInputHelpModal onClose={() => setShowHelp(false)} />
+          : <QuickInputHelpSheet onClose={() => setShowHelp(false)} />
+      )}
     </>
   );
 }
 
 // Mobile bottom sheet
-function QuickInputSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (row: QuickRow) => void }) {
+function QuickInputSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (rows: QuickRow[]) => void }) {
   const portal = document.getElementById("app-portal");
   if (!portal) return null;
   return createPortal(
@@ -203,7 +603,6 @@ function QuickInputSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (row:
       background: "rgba(0,0,0,0.38)", display: "flex", alignItems: "flex-end",
       animation: "fadeInBd 0.2s ease forwards",
     }}>
-      <style>{`@keyframes fadeInBd { from { opacity:0; } to { opacity:1; } } @keyframes sheetUp { from { transform:translateY(100%); } to { transform:translateY(0); } }`}</style>
       <div style={{
         width: "100%", height: "70%",
         background: "rgba(248,249,252,0.98)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
@@ -211,8 +610,9 @@ function QuickInputSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (row:
         display: "flex", flexDirection: "column",
         animation: "sheetUp 0.32s cubic-bezier(0.22,1,0.36,1) forwards",
         fontFamily: "Inter, sans-serif", overflow: "hidden",
+        position: "relative",
       }}>
-        <QuickInputContent onClose={onClose} onAdd={onAdd} />
+        <QuickInputContent onClose={onClose} onAdd={onAdd} isDesktop={false} />
       </div>
     </div>,
     portal,
@@ -220,7 +620,7 @@ function QuickInputSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (row:
 }
 
 // Desktop centered modal
-function QuickInputModal({ onClose, onAdd }: { onClose: () => void; onAdd: (row: QuickRow) => void }) {
+function QuickInputModal({ onClose, onAdd }: { onClose: () => void; onAdd: (rows: QuickRow[]) => void }) {
   return createPortal(
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{
       position: "fixed", inset: 0, zIndex: 1000,
@@ -235,7 +635,7 @@ function QuickInputModal({ onClose, onAdd }: { onClose: () => void; onAdd: (row:
         animation: "fadeUp 0.22s ease forwards",
         overflow: "hidden",
       }}>
-        <QuickInputContent onClose={onClose} onAdd={onAdd} />
+        <QuickInputContent onClose={onClose} onAdd={onAdd} isDesktop={true} />
       </div>
     </div>,
     document.body,
@@ -465,13 +865,13 @@ function DesktopSidebar({ syncStatus, onSyncClick, onQuickInput, collapsed, onTo
 export default function AppShell() {
   const isDesktop = useIsDesktop();
   const phoneRef = useRef<HTMLDivElement>(null);
-  const addRowRef = useRef<((row: QuickRow) => void) | null>(null);
+  const addRowRef = useRef<((rows: QuickRow[]) => void) | null>(null);
   const [showQuickInput, setShowQuickInput] = useState(false);
   const syncStatus = useSyncStatus();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  function registerAddRow(fn: (row: QuickRow) => void) { addRowRef.current = fn; }
-  function handleQuickAdd(row: QuickRow) { addRowRef.current?.(row); }
+  function registerAddRow(fn: (rows: QuickRow[]) => void) { addRowRef.current = fn; }
+  function handleQuickAdd(rows: QuickRow[]) { addRowRef.current?.(rows); }
   function handleSync() {
     if (syncStatus === "synced") return;
     void (async () => {
@@ -492,18 +892,6 @@ export default function AppShell() {
         fontFamily: "Inter, sans-serif",
         position: "relative",
       }}>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-          * { box-sizing: border-box; }
-          @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-          @keyframes spin   { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-          ::-webkit-scrollbar { width: 4px; height: 4px; }
-          ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 99px; }
-          input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
-          input[type=number] { -moz-appearance: textfield; }
-        `}</style>
-
         <DesktopSidebar
           syncStatus={syncStatus}
           onSyncClick={handleSync}
@@ -538,7 +926,6 @@ export default function AppShell() {
       display: "flex", flexDirection: "column",
       overscrollBehavior: "none",
     }}>
-      <GlobalStyles />
       <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "radial-gradient(circle, rgba(255,154,0,0.11) 0%, transparent 70%)", borderRadius: "50%", pointerEvents: "none" }} />
 
       <div

@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { User, LogOut, ChevronRight, Wifi, WifiOff, RefreshCw, CloudOff, Globe, Info, X, Check } from "lucide-react";
+import { User, LogOut, ChevronRight, Wifi, WifiOff, RefreshCw, CloudOff, Globe, Info, X, Check, Zap } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { SyncStatus } from "../components/shared";
+import {
+  setGraphicsQuality,
+  useGraphicsQuality,
+  type GraphicsQuality,
+} from "../lib/graphicsPreference";
 import { clearSession, getCurrentUserFullName, subscribeAuthStore } from "../lib/session";
 import {
   computeUserStats,
@@ -22,11 +27,17 @@ const PERIOD_LABELS: { key: Period; label: string }[] = [
 
 const LANG_OPTIONS = ["Русский", "English"];
 
+const GRAPHICS_OPTIONS: { value: GraphicsQuality; label: string }[] = [
+  { value: "high", label: "Высокая" },
+  { value: "low", label: "Низкая" },
+];
+
 function fmt(n: number) {
   return n.toLocaleString("ru-RU") + " ₽";
 }
 function fmtVol(n: number) {
-  return n.toLocaleString("ru-RU") + " м²";
+  if (!Number.isFinite(n) || n <= 0) return "0 м²";
+  return `${Number(n.toFixed(3)).toLocaleString("ru-RU")} м²`;
 }
 
 const SYNC_CFG: Record<SyncStatus, { label: string; color: string; bg: string; icon: typeof Wifi }> = {
@@ -58,7 +69,6 @@ function LangSheet({ current, onChange, onClose }: {
         boxShadow: "0 -8px 40px rgba(0,0,0,0.15)", fontFamily: "Inter, sans-serif",
         animation: "sheetUp 0.28s cubic-bezier(0.22,1,0.36,1) forwards",
       }}>
-        <style>{`@keyframes sheetUp { from { transform:translateY(100%); } to { transform:translateY(0); } }`}</style>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
           <div style={{ width: 36, height: 4, borderRadius: 99, background: "rgba(0,0,0,0.12)" }} />
         </div>
@@ -77,6 +87,61 @@ function LangSheet({ current, onChange, onClose }: {
                 fontFamily: "Inter, sans-serif", outline: "none",
               }}>
                 <span style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>{lang}</span>
+                {active && (
+                  <div style={{ width: 22, height: 22, borderRadius: 7, background: "linear-gradient(135deg,#6366f1,#818cf8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Check size={13} strokeWidth={2.5} color="#fff" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>,
+    portal,
+  );
+}
+
+// ─── Graphics sheet ───────────────────────────────────────────────────────────
+
+function GraphicsSheet({ current, onChange, onClose }: {
+  current: GraphicsQuality;
+  onChange: (v: GraphicsQuality) => void;
+  onClose: () => void;
+}) {
+  const portal = document.getElementById("app-portal");
+  if (!portal) return null;
+
+  return createPortal(
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{
+      position: "absolute", inset: 0, zIndex: 200, pointerEvents: "auto",
+      background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "flex-end",
+    }}>
+      <div style={{
+        width: "100%", background: "rgba(248,249,252,0.98)",
+        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+        borderRadius: "24px 24px 0 0", padding: "16px 20px 40px",
+        boxShadow: "0 -8px 40px rgba(0,0,0,0.15)", fontFamily: "Inter, sans-serif",
+        animation: "sheetUp 0.28s cubic-bezier(0.22,1,0.36,1) forwards",
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 99, background: "rgba(0,0,0,0.12)" }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>Графика</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", outline: "none", display: "flex" }}><X size={18} /></button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {GRAPHICS_OPTIONS.map(({ value, label }) => {
+            const active = current === value;
+            return (
+              <button key={value} onClick={() => { onChange(value); onClose(); }} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "14px 16px", borderRadius: 14, border: "none", cursor: "pointer",
+                background: active ? "rgba(99,102,241,0.08)" : "rgba(0,0,0,0.04)",
+                fontFamily: "Inter, sans-serif", outline: "none",
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>{label}</span>
                 {active && (
                   <div style={{ width: 22, height: 22, borderRadius: 7, background: "linear-gradient(135deg,#6366f1,#818cf8)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Check size={13} strokeWidth={2.5} color="#fff" />
@@ -159,10 +224,12 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const syncStatus = useSyncStatus();
   const shifts = useShifts();
+  const graphics = useGraphicsQuality();
 
   const [period, setPeriod] = useState<Period>("month");
   const [language, setLanguage] = useState("Русский");
   const [showLang, setShowLang] = useState(false);
+  const [showGraphics, setShowGraphics] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [userName, setUserName] = useState(() => getCurrentUserFullName());
 
@@ -297,6 +364,25 @@ export default function ProfilePage() {
             </div>
           </button>
 
+          {/* Graphics */}
+          <button onClick={() => setShowGraphics(true)} style={{
+            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "14px 16px",
+            background: "none", border: "none", borderBottom: "1px solid rgba(0,0,0,0.05)",
+            cursor: "pointer", fontFamily: "Inter, sans-serif", outline: "none",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Zap size={15} strokeWidth={2} color="#f59e0b" />
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#111827" }}>Графика</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 13, color: "#9ca3af" }}>{graphics === "low" ? "Низкая" : "Высокая"}</span>
+              <ChevronRight size={14} strokeWidth={2} color="#c4c9d4" />
+            </div>
+          </button>
+
           {/* About */}
           <button onClick={() => setShowAbout(true)} style={{
             width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -333,6 +419,13 @@ export default function ProfilePage() {
       </div>
 
       {showLang  && <LangSheet current={language} onChange={setLanguage} onClose={() => setShowLang(false)} />}
+      {showGraphics && (
+        <GraphicsSheet
+          current={graphics}
+          onChange={setGraphicsQuality}
+          onClose={() => setShowGraphics(false)}
+        />
+      )}
       {showAbout && <AboutSheet onClose={() => setShowAbout(false)} />}
     </div>
   );

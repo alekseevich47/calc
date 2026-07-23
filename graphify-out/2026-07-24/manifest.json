@@ -300,8 +300,8 @@
     "semantic_hash": "7ccd30a0d205c524f3f4e91f6bbddd41"
   },
   "src/lib/sync.ts": {
-    "mtime": 1784828158.8384633,
-    "ast_hash": "d84b49158c4c34d0258db9aeadf46d53",
+    "mtime": 1784826905.5995982,
+    "ast_hash": "2df1f07209cdd336b0846abd1663b358",
     "semantic_hash": ""
   },
   "src/main.tsx": {

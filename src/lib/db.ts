@@ -179,9 +179,18 @@ export function markingTypesByNumberId(dicts: Dictionaries): Record<string, stri
   return map;
 }
 
-/** Записи № разметки: одинаковые number рядом (number → description). */
+const MARKING_NUM_PIN_TOP = "Шумовая полоса";
+
+function isPinnedMarkingNumber(n: MarkingNumberItem): boolean {
+  return String(n.number ?? "").trim() === MARKING_NUM_PIN_TOP;
+}
+
+/** Записи № разметки: «Шумовая полоса» сверху, остальные — number → description. */
 export function sortedMarkingNumbers(dicts: Dictionaries): MarkingNumberItem[] {
   return [...dicts.markingNumbers].sort((a, b) => {
+    const pinA = isPinnedMarkingNumber(a);
+    const pinB = isPinnedMarkingNumber(b);
+    if (pinA !== pinB) return pinA ? -1 : 1;
     const n = String(a.number).localeCompare(String(b.number), "ru", { numeric: true });
     if (n !== 0) return n;
     return String(a.description ?? "").localeCompare(String(b.description ?? ""), "ru");

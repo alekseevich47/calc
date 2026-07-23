@@ -96,14 +96,20 @@ export function resolveMarkingCoeff(
   return 1;
 }
 
-/** объём м² = количество × V */
-export function workVolumeM2(quantity: number, coeff: number): number {
-  return quantity * coeff;
+/** Округление объёма м² до тысячных (0.001). */
+export function roundVolumeM2(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 1000) / 1000;
 }
 
-/** оплата = количество × V × тариф */
+/** объём м² = количество × V (до тысячных) */
+export function workVolumeM2(quantity: number, coeff: number): number {
+  return roundVolumeM2(quantity * coeff);
+}
+
+/** оплата = объём(тыс.) × тариф */
 export function rowAmount(quantity: number, coeff: number, tariff: number): number {
-  return quantity * coeff * tariff;
+  return workVolumeM2(quantity, coeff) * tariff;
 }
 
 export function draftRowMetrics(

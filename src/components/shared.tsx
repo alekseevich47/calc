@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router";
-import { useRef } from "react";
-import { Home, List, User, Plus } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Home, List, User, Plus, X, Search, Check } from "lucide-react";
 
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
 
@@ -173,22 +174,223 @@ export function StatusBadge({ status, onClick, compact }: { status: SyncStatus; 
   );
 }
 
-// ─── Global styles injection ──────────────────────────────────────────────────
+// ─── Dropdown (marking numbers + plain lists) ─────────────────────────────────
 
-export function GlobalStyles() {
+export type MarkingNumMeta = {
+  /** Отображаемый номер (PB `number`). */
+  label: string;
+  description?: string;
+  imageUrls: string[];
+};
+
+export function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left, width, step, optionMeta }: {
+  options: string[]; value: string; onSelect: (v: string) => void; onClose: () => void;
+  withSearch: boolean; top: number; left: number; width: number; step: number;
+  optionMeta?: Record<string, MarkingNumMeta>;
+}) {
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const rich = Boolean(optionMeta);
+
+  useEffect(() => {
+    // pointerdown + rAF: на iOS synthetic mousedown от тапа открытия сразу закрывал dropdown
+    let remove: (() => void) | undefined;
+    const raf = requestAnimationFrame(() => {
+      const h = (e: PointerEvent) => {
+        const el = document.getElementById("dd-card");
+        if (el && !el.contains(e.target as Node)) onClose();
+      };
+      document.addEventListener("pointerdown", h);
+      remove = () => document.removeEventListener("pointerdown", h);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      remove?.();
+    };
+  }, [onClose]);
+
+  const q = query.toLowerCase();
+  const filtered = options.filter((o) => {
+    if (!q) return true;
+    const meta = optionMeta?.[o];
+    const label = (meta?.label ?? o).toLowerCase();
+    if (label.includes(q) || o.toLowerCase().includes(q)) return true;
+    const desc = meta?.description;
+    return Boolean(desc && desc.toLowerCase().includes(q));
+  });
+
   return (
-    <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-      html, body, #root { height: 100%; overscroll-behavior: none; }
-      * { box-sizing: border-box; }
-      @keyframes navFadeIn { from { opacity:0; transform:translateX(-4px); } to { opacity:1; transform:translateX(0); } }
-      @keyframes fadeUp    { from { opacity:0; transform:translateY(8px);  } to { opacity:1; transform:translateY(0); } }
-      @keyframes spin      { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-      ::-webkit-scrollbar { height: 3px; width: 3px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 99px; }
-      input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
-      input[type=number] { -moz-appearance: textfield; }
-    `}</style>
+    <div id="dd-card" style={{
+      position: "absolute", top, left, width, pointerEvents: "auto", zIndex: 100,
+      background: "rgba(255,255,255,0.97)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+      border: "1px solid rgba(0,0,0,0.09)", borderRadius: 16,
+      boxShadow: "0 16px 48px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.06)",
+      overflow: "hidden", animation: "fadeUp 0.18s cubic-bezier(0.22,1,0.36,1) forwards",
+      fontFamily: "Inter, sans-serif",
+    }}>
+      <div style={{ padding: "10px 14px 6px", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: withSearch ? 8 : 0 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: "#FF6B00", letterSpacing: "0.04em", textTransform: "uppercase" }}>Шаг {step}</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#9ca3af", display: "flex", outline: "none" }}><X size={14} strokeWidth={2} /></button>
+        </div>
+        {withSearch && (
+          <div style={{ position: "relative" }}>
+            <Search size={13} strokeWidth={2} color="#9ca3af" style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => { /* клавиатура только по тапу в поиск */ }}
+              placeholder="Поиск..."
+              inputMode="search"
+              style={{ width: "100%", height: 32, borderRadius: 8, border: "1px solid rgba(0,0,0,0.09)", background: "rgba(0,0,0,0.03)", padding: "0 10px 0 28px", fontSize: 13, color: "#111827", fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+        )}
+      </div>
+      <div style={{ maxHeight: rich ? 280 : 200, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        {filtered.map((opt) => {
+          const isSel = value === opt;
+          const meta = optionMeta?.[opt];
+          const imgs = meta?.imageUrls ?? [];
+          const desc = meta?.description?.trim();
+          if (rich) {
+            return (
+              <button
+                key={opt}
+                type="button"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => { onSelect(opt); onClose(); }}
+                style={{
+                  width: "100%", padding: "10px 14px",
+                  display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4,
+                  background: isSel ? "rgba(255,107,0,0.07)" : "transparent",
+                  border: "none", borderBottom: "1px solid rgba(0,0,0,0.04)",
+                  cursor: "pointer", outline: "none", fontFamily: "Inter, sans-serif",
+                  WebkitTapHighlightColor: "transparent", textAlign: "left",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 500, flexShrink: 0 }}>{meta?.label ?? opt}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto", flexShrink: 0 }}>
+                    {imgs.slice(0, 3).map((src) => (
+                      <img
+                        key={src}
+                        src={src}
+                        alt=""
+                        loading="lazy"
+                        style={{ width: 36, height: 28, objectFit: "contain", borderRadius: 4, background: "rgba(0,0,0,0.03)", display: "block" }}
+                      />
+                    ))}
+                    {isSel && <Check size={14} strokeWidth={2.5} color="#FF6B00" style={{ marginLeft: 2 }} />}
+                  </div>
+                </div>
+                {desc ? (
+                  <span style={{ fontSize: 11, fontWeight: 300, color: "#9ca3af", lineHeight: 1.35 }}>{desc}</span>
+                ) : null}
+              </button>
+            );
+          }
+          return (
+            <button
+              key={opt}
+              type="button"
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => { onSelect(opt); onClose(); }}
+              style={{
+              width: "100%", minHeight: 40, padding: "0 14px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: isSel ? "rgba(255,107,0,0.07)" : "transparent",
+              border: "none", borderBottom: "1px solid rgba(0,0,0,0.04)",
+              cursor: "pointer", outline: "none", fontFamily: "Inter, sans-serif",
+              WebkitTapHighlightColor: "transparent",
+            }}>
+              <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 400 }}>{opt}</span>
+              {isSel && <Check size={14} strokeWidth={2.5} color="#FF6B00" />}
+            </button>
+          );
+        })}
+        {filtered.length === 0 && <div style={{ padding: 14, textAlign: "center", fontSize: 13, color: "#9ca3af" }}>Нет совпадений</div>}
+      </div>
+    </div>
+  );
+}
+
+export function DesktopDropdown({ options, value, onSelect, onClose, anchor, optionMeta }: {
+  options: string[];
+  value: string;
+  onSelect: (v: string) => void;
+  onClose: () => void;
+  anchor: { top: number; left: number; width: number };
+  optionMeta?: Record<string, MarkingNumMeta>;
+}) {
+  const rich = Boolean(optionMeta);
+  return createPortal(
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 2000 }} />
+      <div style={{
+        position: "fixed", top: anchor.top, left: anchor.left,
+        minWidth: rich ? Math.max(anchor.width, 280) : anchor.width,
+        width: rich ? Math.max(anchor.width, 280) : undefined,
+        zIndex: 2001,
+        background: "#fff", borderRadius: 12,
+        boxShadow: "0 8px 32px rgba(0,0,0,0.15)",
+        border: "1px solid rgba(0,0,0,0.08)", overflow: "hidden",
+        animation: "fadeUp 0.14s ease forwards",
+        fontFamily: "Inter, sans-serif",
+        maxHeight: rich ? 320 : undefined,
+        overflowY: rich ? "auto" : undefined,
+      }}>
+        {options.map(o => {
+          const isSel = o === value;
+          const meta = optionMeta?.[o];
+          const imgs = meta?.imageUrls ?? [];
+          const desc = meta?.description?.trim();
+          if (rich) {
+            return (
+              <button key={o} onClick={() => { onSelect(o); onClose(); }} style={{
+                display: "flex", flexDirection: "column", alignItems: "stretch", gap: 4,
+                width: "100%", padding: "10px 14px", border: "none",
+                background: isSel ? "rgba(255,107,0,0.06)" : "none",
+                cursor: "pointer", fontFamily: "Inter, sans-serif", textAlign: "left",
+                borderBottom: "1px solid rgba(0,0,0,0.04)",
+              }}
+                onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"; }}
+                onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "none"; }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 500 }}>{meta?.label ?? o}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto", flexShrink: 0 }}>
+                    {imgs.slice(0, 3).map((src) => (
+                      <img key={src} src={src} alt="" loading="lazy" style={{ width: 40, height: 30, objectFit: "contain", borderRadius: 4, background: "rgba(0,0,0,0.03)", display: "block" }} />
+                    ))}
+                    {isSel && <Check size={13} strokeWidth={2.5} color="#FF6B00" />}
+                  </div>
+                </div>
+                {desc ? <span style={{ fontSize: 11, fontWeight: 300, color: "#9ca3af", lineHeight: 1.35 }}>{desc}</span> : null}
+              </button>
+            );
+          }
+          return (
+            <button key={o} onClick={() => { onSelect(o); onClose(); }} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              width: "100%", padding: "10px 14px", border: "none",
+              background: isSel ? "rgba(255,107,0,0.06)" : "none",
+              cursor: "pointer", fontFamily: "Inter, sans-serif",
+              fontSize: 13, color: isSel ? "#c2500a" : "#111827",
+              fontWeight: isSel ? 600 : 400, textAlign: "left",
+              borderBottom: "1px solid rgba(0,0,0,0.04)",
+            }}
+              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.04)"; }}
+              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "none"; }}
+            >
+              {o}
+              {isSel && <Check size={13} strokeWidth={2.5} color="#FF6B00" />}
+            </button>
+          );
+        })}
+      </div>
+    </>,
+    document.body,
   );
 }

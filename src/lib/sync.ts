@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import type { SyncStatus } from "../components/shared";
 import {
   dequeue,
@@ -247,36 +247,139 @@ export function requestPersistentStorage(): void {
   })();
 }
 
+// ─── In-memory data stores (отдельный канал от SyncSnapshot/emit) ─────────────
+
+let shiftsSnapshot: CachedShift[] = [];
+/** Отфильтрованный по author вид — стабильная ссылка для useSyncExternalStore. */
+let shiftsView: CachedShift[] = [];
+let shiftsHydrated = false;
+let shiftsHydrating: Promise<void> | null = null;
+const shiftListeners = new Set<() => void>();
+
+let dictsSnapshot: Dictionaries | null = null;
+let dictsHydrated = false;
+let dictsHydrating: Promise<void> | null = null;
+const dictListeners = new Set<() => void>();
+
+function recomputeShiftsView() {
+  const me = currentAuthorId();
+  shiftsView = me
+    ? shiftsSnapshot.filter((x) => !x.authorId || x.authorId === me)
+    : shiftsSnapshot;
+}
+
+function emitShifts() {
+  recomputeShiftsView();
+  for (const l of shiftListeners) l();
+}
+
+function emitDicts() {
+  for (const l of dictListeners) l();
+}
+
+function subscribeShifts(listener: () => void) {
+  shiftListeners.add(listener);
+  void ensureShiftsHydrated();
+  return () => { shiftListeners.delete(listener); };
+}
+
+function subscribeDicts(listener: () => void) {
+  dictListeners.add(listener);
+  void ensureDictsHydrated();
+  return () => { dictListeners.delete(listener); };
+}
+
+function getShiftsView(): CachedShift[] {
+  return shiftsView;
+}
+
+function getDictsSnapshot(): Dictionaries | null {
+  return dictsSnapshot;
+}
+
+async function ensureShiftsHydrated(): Promise<void> {
+  if (shiftsHydrated) return;
+  if (shiftsHydrating) return shiftsHydrating;
+  shiftsHydrating = (async () => {
+    try {
+      const list = await listShifts();
+      // Не затирать, если за время await уже пропатчили in-memory стор
+      if (!shiftsHydrated) {
+        shiftsSnapshot = list;
+        shiftsHydrated = true;
+        emitShifts();
+      }
+    } finally {
+      shiftsHydrating = null;
+    }
+  })();
+  return shiftsHydrating;
+}
+
+async function ensureDictsHydrated(): Promise<void> {
+  if (dictsHydrated) return;
+  if (dictsHydrating) return dictsHydrating;
+  dictsHydrating = (async () => {
+    try {
+      const d = await getDictionaries();
+      if (!dictsHydrated) {
+        dictsSnapshot = d;
+        dictsHydrated = true;
+        emitDicts();
+      }
+    } finally {
+      dictsHydrating = null;
+    }
+  })();
+  return dictsHydrating;
+}
+
+async function reloadShiftsSnapshot(): Promise<void> {
+  shiftsSnapshot = await listShifts();
+  shiftsHydrated = true;
+  emitShifts();
+}
+
+async function reloadDictsSnapshot(): Promise<void> {
+  dictsSnapshot = await getDictionaries();
+  dictsHydrated = true;
+  emitDicts();
+}
+
+function setDictsSnapshot(d: Dictionaries) {
+  dictsSnapshot = d;
+  dictsHydrated = true;
+  emitDicts();
+}
+
+async function patchShiftsAdd(shift: CachedShift) {
+  await ensureShiftsHydrated();
+  shiftsSnapshot = shiftsSnapshot.some((s) => s.id === shift.id)
+    ? shiftsSnapshot.map((s) => (s.id === shift.id ? shift : s))
+    : [...shiftsSnapshot, shift];
+  emitShifts();
+}
+
+async function patchShiftsUpdate(shift: CachedShift) {
+  await ensureShiftsHydrated();
+  shiftsSnapshot = shiftsSnapshot.map((s) => (s.id === shift.id ? shift : s));
+  emitShifts();
+}
+
+async function patchShiftsRemove(id: string) {
+  await ensureShiftsHydrated();
+  shiftsSnapshot = shiftsSnapshot.filter((s) => s.id !== id);
+  emitShifts();
+}
+
 // ─── Dictionaries / shifts hooks ──────────────────────────────────────────────
 
 export function useDictionaries(): Dictionaries | null {
-  const [dicts, setDicts] = useState<Dictionaries | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    const load = () => { void getDictionaries().then((d) => { if (!cancelled) setDicts(d); }); };
-    load();
-    const unsub = subscribe(() => load());
-    return () => { cancelled = true; unsub(); };
-  }, []);
-  return dicts;
+  return useSyncExternalStore(subscribeDicts, getDictsSnapshot, getDictsSnapshot);
 }
 
 export function useShifts(): CachedShift[] {
-  const [shifts, setShifts] = useState<CachedShift[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    const load = () => {
-      void listShifts().then((s) => {
-        if (cancelled) return;
-        const me = currentAuthorId();
-        setShifts(me ? s.filter((x) => !x.authorId || x.authorId === me) : s);
-      });
-    };
-    load();
-    const unsub = subscribe(() => load());
-    return () => { cancelled = true; unsub(); };
-  }, []);
-  return shifts;
+  return useSyncExternalStore(subscribeShifts, getShiftsView, getShiftsView);
 }
 
 export function useMarkingTypesMap(): Record<string, string[]> {
@@ -380,8 +483,8 @@ export async function confirmShift(input: {
     shiftId: shift.id,
     createdAt: Date.now(),
   });
+  await patchShiftsAdd(shift);
   await refreshStatus();
-  emit();
   void syncNow();
   return shift;
 }
@@ -471,10 +574,12 @@ export async function createTeammate(fullNameRaw: string): Promise<{ id: string;
 
   const localId = newId();
   const item = { id: localId, name: fullName };
-  await putDictionaries({
+  const next: Dictionaries = {
     ...dicts,
     participants: [...dicts.participants, item],
-  });
+  };
+  await putDictionaries(next);
+  setDictsSnapshot(next);
 
   await enqueue({
     id: newId(),
@@ -484,7 +589,6 @@ export async function createTeammate(fullNameRaw: string): Promise<{ id: string;
     createdAt: Date.now(),
   });
   await refreshStatus();
-  emit();
   void syncNow();
   return item;
 }
@@ -514,8 +618,8 @@ export async function updateShift(id: string, input: ShiftWriteInput): Promise<C
     shiftId: id,
     createdAt: Date.now(),
   });
+  await patchShiftsUpdate(shift);
   await refreshStatus();
-  emit();
   void syncNow();
   return shift;
 }
@@ -536,8 +640,8 @@ export async function removeShift(id: string): Promise<void> {
     });
   }
   await deleteShiftFromDb(id);
+  await patchShiftsRemove(id);
   await refreshStatus();
-  emit();
   void syncNow();
 }
 
@@ -638,6 +742,7 @@ async function pullFromServer(): Promise<{ authorId: string; dicts: Dictionaries
 
   if (hasAny) {
     await putDictionaries(dicts);
+    setDictsSnapshot(dicts);
     setSnapshot({ lastError: null });
     console.info("[sync] dictionaries updated", {
       locations: dicts.locations.length,
@@ -778,6 +883,8 @@ async function pullShiftsFromServer(authorId: string, dicts: Dictionaries): Prom
         await deleteShiftFromDb(localShift.id);
       }
     }
+
+    await reloadShiftsSnapshot();
   } catch (err) {
     console.warn("[sync] pull shifts failed:", err);
   }
@@ -827,14 +934,15 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
     });
 
     const dicts = await getDictionaries();
-    await putDictionaries({
+    const next: Dictionaries = {
       ...dicts,
       participants: dicts.participants.map((p) =>
         p.id === localId || p.name === fullName ? { id: created.id, name: fullName } : p,
       ),
-    });
+    };
+    await putDictionaries(next);
+    setDictsSnapshot(next);
     await dequeue(item.id);
-    emit();
     return;
   }
 
@@ -900,7 +1008,6 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
       // Нерепарируемый мусор в очереди — снимаем, чтобы статус не висел «Не синхр.»
       await dequeue(item.id);
       await putShift({ ...shift, pendingSync: false, updatedAt: Date.now() });
-      emit();
       throw new Error("В очереди смена с пустыми строками — откройте История и заполните поля, затем сохраните");
     }
     throw new Error(`Нет PB-id для строки «${label}» — обновите справочники (синк)`);
@@ -1034,7 +1141,7 @@ export async function syncNow(): Promise<void> {
   } finally {
     syncing = false;
     await refreshStatus();
-    emit();
+    await Promise.all([reloadShiftsSnapshot(), reloadDictsSnapshot()]);
   }
 }
 
@@ -1042,7 +1149,7 @@ export async function syncNow(): Promise<void> {
 export function initSync(): void {
   requestPersistentStorage();
   void (async () => {
-    await getDictionaries();
+    await Promise.all([ensureDictsHydrated(), ensureShiftsHydrated()]);
     await refreshStatus();
     if (navigator.onLine) await syncNow();
   })();

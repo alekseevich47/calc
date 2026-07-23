@@ -1,9 +1,12 @@
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import App from "./app/App.tsx";
+import { applyStoredGraphicsQuality } from "./lib/graphicsPreference";
 import { ensureAuthProfile, restoreSession } from "./lib/session";
 import { initSync } from "./lib/sync";
 import "./styles/index.css";
+
+applyStoredGraphicsQuality();
 
 /** Проверка нового SW: при online / возврате в приложение / раз в минуту */
 const SW_UPDATE_INTERVAL_MS = 60_000;

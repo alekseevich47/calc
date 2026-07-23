@@ -224,8 +224,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "package_dependencies_radix_ui_react_alert_dialog",
-      "community": 19,
-      "community_name": "Radix Switch Tabs",
+      "community": 70,
+      "community_name": "@radix-ui/react-alert-dialog",
       "norm_label": "@radix-ui/react-alert-dialog"
     },
     {
@@ -235,8 +235,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "radix_ui_react_alert_dialog",
-      "community": 19,
-      "community_name": "Radix Switch Tabs",
+      "community": 70,
+      "community_name": "@radix-ui/react-alert-dialog",
       "norm_label": "@radix-ui/react-alert-dialog"
     },
     {
@@ -840,8 +840,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "package_dependencies_idb",
-      "community": 34,
-      "community_name": "idb Library",
+      "community": 19,
+      "community_name": "Radix Switch Tabs",
       "norm_label": "idb"
     },
     {
@@ -851,8 +851,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "idb",
-      "community": 34,
-      "community_name": "idb Library",
+      "community": 19,
+      "community_name": "Radix Switch Tabs",
       "norm_label": "idb"
     },
     {
@@ -1984,8 +1984,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carousel.tsx"
     },
     {
@@ -1995,8 +1995,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselapi",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselapi"
     },
     {
@@ -2006,8 +2006,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_usecarouselparameters",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "usecarouselparameters"
     },
     {
@@ -2017,8 +2017,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouseloptions",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouseloptions"
     },
     {
@@ -2028,8 +2028,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselplugin",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselplugin"
     },
     {
@@ -2039,8 +2039,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselprops",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselprops"
     },
     {
@@ -2050,8 +2050,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontextprops",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselcontextprops"
     },
     {
@@ -2061,8 +2061,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontext",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselcontext"
     },
     {
@@ -2072,8 +2072,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_usecarousel",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "usecarousel()"
     },
     {
@@ -2083,8 +2083,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carousel",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carousel()"
     },
     {
@@ -2094,8 +2094,8 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontent",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselcontent()"
     },
     {
@@ -2105,8 +2105,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselitem",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselitem()"
     },
     {
@@ -2116,8 +2116,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselprevious",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselprevious()"
     },
     {
@@ -2127,8 +2127,8 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselnext",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselnext()"
     },
     {
@@ -2732,8 +2732,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawer.tsx"
     },
     {
@@ -2743,8 +2743,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawer",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawer()"
     },
     {
@@ -2754,8 +2754,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawertrigger",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawertrigger()"
     },
     {
@@ -2765,8 +2765,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerportal",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawerportal()"
     },
     {
@@ -2776,8 +2776,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerclose",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawerclose()"
     },
     {
@@ -2787,8 +2787,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_draweroverlay",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "draweroverlay()"
     },
     {
@@ -2798,8 +2798,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawercontent",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawercontent()"
     },
     {
@@ -2809,8 +2809,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerheader",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawerheader()"
     },
     {
@@ -2820,8 +2820,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerfooter",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawerfooter()"
     },
     {
@@ -2831,8 +2831,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawertitle",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawertitle()"
     },
     {
@@ -2842,8 +2842,8 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerdescription",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "drawerdescription()"
     },
     {
@@ -3887,8 +3887,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_select",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "select.tsx"
     },
     {
@@ -3898,8 +3898,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_app_components_ui_select_select",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "select()"
     },
     {
@@ -3909,8 +3909,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selectgroup",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selectgroup()"
     },
     {
@@ -3920,8 +3920,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selectvalue",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selectvalue()"
     },
     {
@@ -3931,8 +3931,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selecttrigger",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selecttrigger()"
     },
     {
@@ -3942,8 +3942,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selectcontent",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selectcontent()"
     },
     {
@@ -3953,8 +3953,8 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selectlabel",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selectlabel()"
     },
     {
@@ -3964,8 +3964,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selectitem",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selectitem()"
     },
     {
@@ -3975,8 +3975,8 @@
       "source_location": "L129",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selectseparator",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selectseparator()"
     },
     {
@@ -3986,8 +3986,8 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selectscrollupbutton",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selectscrollupbutton()"
     },
     {
@@ -3997,8 +3997,8 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "src_app_components_ui_select_selectscrolldownbutton",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 34,
+      "community_name": "idb Library",
       "norm_label": "selectscrolldownbutton()"
     },
     {
@@ -5020,8 +5020,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_lib_db_markingnumberitem",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "markingnumberitem"
     },
     {
@@ -5031,8 +5031,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_db_markingtypeitem",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "markingtypeitem"
     },
     {
@@ -5240,8 +5240,8 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "src_lib_db_clearuserscopeddata",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "clearuserscopeddata()"
     },
     {
@@ -5251,8 +5251,8 @@
       "source_location": "L264",
       "_origin": "ast",
       "id": "src_lib_db_ensureuserdatascope",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "ensureuserdatascope()"
     },
     {
@@ -5361,8 +5361,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_markingvalue",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "markingvalue.ts"
     },
     {
@@ -5372,8 +5372,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_lib_markingvalue_locationzone",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "locationzone"
     },
     {
@@ -5383,8 +5383,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_lib_markingvalue_markingcoeffinput",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "markingcoeffinput"
     },
     {
@@ -5394,8 +5394,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_lib_markingvalue_finitepositive",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "finitepositive()"
     },
     {
@@ -5405,8 +5405,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_lib_markingvalue_pickzonevalue",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "pickzonevalue()"
     },
     {
@@ -5416,8 +5416,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_lib_markingvalue_resolvenumberitem",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "resolvenumberitem()"
     },
     {
@@ -5427,8 +5427,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_lib_markingvalue_resolvetypeitem",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "resolvetypeitem()"
     },
     {
@@ -5438,8 +5438,8 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "src_lib_markingvalue_resolvemarkingcoeff",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "resolvemarkingcoeff()"
     },
     {
@@ -5449,8 +5449,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "src_lib_markingvalue_workvolumem2",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "workvolumem2()"
     },
     {
@@ -5460,8 +5460,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_lib_markingvalue_rowamount",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "rowamount()"
     },
     {
@@ -5471,8 +5471,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "src_lib_markingvalue_draftrowmetrics",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "draftrowmetrics()"
     },
     {
@@ -5482,8 +5482,8 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "src_lib_markingvalue_quantityforedit",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "quantityforedit()"
     },
     {
@@ -5603,8 +5603,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_lib_session_formatusername",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "formatusername()"
     },
     {
@@ -5768,8 +5768,8 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "src_lib_session_getcurrentuserfullname",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "getcurrentuserfullname()"
     },
     {
@@ -6065,8 +6065,8 @@
       "source_location": "L227",
       "_origin": "ast",
       "id": "src_lib_sync_peeksyncsnapshot",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "peeksyncsnapshot()"
     },
     {
@@ -6263,8 +6263,8 @@
       "source_location": "L1052",
       "_origin": "ast",
       "id": "src_lib_sync_statsperiod",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "statsperiod"
     },
     {
@@ -6288,6 +6288,17 @@
       "community": 2,
       "community_name": "App Shell Routing",
       "norm_label": "main.tsx"
+    },
+    {
+      "label": "onRegisteredSW()",
+      "file_type": "code",
+      "source_file": "src/main.tsx",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "src_main_onregisteredsw",
+      "community": 2,
+      "community_name": "App Shell Routing",
+      "norm_label": "onregisteredsw()"
     },
     {
       "label": "AppShell.tsx",
@@ -7110,8 +7121,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_profilepage",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "profilepage.tsx"
     },
     {
@@ -7121,8 +7132,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pages_profilepage_period",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "period"
     },
     {
@@ -7132,8 +7143,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_pages_profilepage_period_labels",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "period_labels"
     },
     {
@@ -7143,8 +7154,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_pages_profilepage_lang_options",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "lang_options"
     },
     {
@@ -7154,8 +7165,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_pages_profilepage_fmt",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "fmt()"
     },
     {
@@ -7165,8 +7176,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_pages_profilepage_fmtvol",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "fmtvol()"
     },
     {
@@ -7176,8 +7187,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_pages_profilepage_sync_cfg",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "sync_cfg"
     },
     {
@@ -7187,8 +7198,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_pages_profilepage_langsheet",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "langsheet()"
     },
     {
@@ -7198,8 +7209,8 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_pages_profilepage_aboutsheet",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "aboutsheet()"
     },
     {
@@ -7209,8 +7220,8 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "src_pages_profilepage_profilepage",
-      "community": 0,
-      "community_name": "IndexedDB Shift Cache",
+      "community": 2,
+      "community_name": "App Shell Routing",
       "norm_label": "profilepage()"
     },
     {
@@ -7785,8 +7796,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "calc",
-      "id": "readme_calc",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "readme_calc"
     },
     {
       "label": "Figma Design Source",
@@ -7799,8 +7810,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "figma design source",
-      "id": "readme_figma_design",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "readme_figma_design"
     },
     {
       "label": "shadcn/ui",
@@ -7813,8 +7824,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "shadcn/ui",
-      "id": "attributions_shadcn_ui",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "attributions_shadcn_ui"
     },
     {
       "label": "Unsplash",
@@ -7827,8 +7838,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "unsplash",
-      "id": "attributions_unsplash",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "attributions_unsplash"
     },
     {
       "label": "Figma Make Export",
@@ -7841,8 +7852,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "figma make export",
-      "id": "attributions_figma_make",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "attributions_figma_make"
     },
     {
       "label": "\u0423\u0447\u0451\u0442 \u0440\u0430\u0437\u043c\u0435\u0442\u043a\u0438",
@@ -7855,8 +7866,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "\u0443\u0447\u0435\u0442 \u0440\u0430\u0437\u043c\u0435\u0442\u043a\u0438",
-      "id": "index_uchet_razmetki",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "index_uchet_razmetki"
     },
     {
       "label": "PWA Meta Tags",
@@ -7869,8 +7880,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "pwa meta tags",
-      "id": "index_pwa_meta",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "index_pwa_meta"
     },
     {
       "label": "Brand Theme Color #FF6B00",
@@ -7883,8 +7894,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "brand theme color #ff6b00",
-      "id": "index_theme_color",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "index_theme_color"
     },
     {
       "label": "Viewport Zoom Disabled",
@@ -7898,8 +7909,8 @@
       "rationale": "maximum-scale=1, user-scalable=no and touch-action:manipulation prevent pinch/double-tap zoom on field devices",
       "community": 7,
       "norm_label": "viewport zoom disabled",
-      "id": "index_zoom_disabled",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "index_zoom_disabled"
     },
     {
       "label": "robots.txt Disallow All",
@@ -7912,8 +7923,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "robots.txt disallow all",
-      "id": "public_robots_noindex",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "public_robots_noindex"
     },
     {
       "label": "pnpm Workspace",
@@ -7926,8 +7937,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "pnpm workspace",
-      "id": "pnpm_workspace_root",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "pnpm_workspace_root"
     },
     {
       "label": "Vite 6.3.5 Override",
@@ -7940,8 +7951,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "vite 6.3.5 override",
-      "id": "pnpm_workspace_vite_override",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "pnpm_workspace_vite_override"
     },
     {
       "label": "GitHub Actions Deploy Workflow",
@@ -7954,8 +7965,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "github actions deploy workflow",
-      "id": "github_workflows_deploy_cicd",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "github_workflows_deploy_cicd"
     },
     {
       "label": "VITE_POCKETBASE_URL Production",
@@ -7968,8 +7979,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "vite_pocketbase_url production",
-      "id": "github_workflows_deploy_pocketbase_url",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "github_workflows_deploy_pocketbase_url"
     },
     {
       "label": "rsync Deploy to /var/www/calc/dist",
@@ -7982,8 +7993,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "rsync deploy to /var/www/calc/dist",
-      "id": "github_workflows_deploy_rsync",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "github_workflows_deploy_rsync"
     },
     {
       "label": "TASKS_start Deploy Plan",
@@ -7996,8 +8007,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "tasks_start deploy plan",
-      "id": "tasks_tasks_start_plan",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_plan"
     },
     {
       "label": "PocketBase",
@@ -8011,8 +8022,8 @@
       "rationale": "Single binary on same VPS as static frontend; server is source of truth",
       "community": 7,
       "norm_label": "pocketbase",
-      "id": "tasks_tasks_start_pocketbase",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_pocketbase"
     },
     {
       "label": "PWA Offline Shell",
@@ -8026,8 +8037,8 @@
       "rationale": "Service Worker caches app shell only; data cache via IndexedDB; iOS needs Add to Home Screen for reliable offline",
       "community": 7,
       "norm_label": "pwa offline shell",
-      "id": "tasks_tasks_start_pwa",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_pwa"
     },
     {
       "label": "vite-plugin-pwa",
@@ -8040,8 +8051,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "vite-plugin-pwa",
-      "id": "tasks_tasks_start_vite_plugin_pwa",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_vite_plugin_pwa"
     },
     {
       "label": "Offline Sync Queue",
@@ -8055,8 +8066,8 @@
       "rationale": "Write shifts to IndexedDB queue when offline; flush to PocketBase on online/startup; no Background Sync-only path",
       "community": 7,
       "norm_label": "offline sync queue",
-      "id": "tasks_tasks_start_offline_sync",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_offline_sync"
     },
     {
       "label": "IndexedDB Cache Layer",
@@ -8069,8 +8080,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "indexeddb cache layer",
-      "id": "tasks_tasks_start_indexeddb",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_indexeddb"
     },
     {
       "label": "idb Library",
@@ -8084,8 +8095,8 @@
       "rationale": "Chosen over dexie as thinner/lighter IndexedDB wrapper",
       "community": 7,
       "norm_label": "idb library",
-      "id": "tasks_tasks_start_idb",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_idb"
     },
     {
       "label": "src/lib/db.ts",
@@ -8098,8 +8109,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "src/lib/db.ts",
-      "id": "tasks_tasks_start_db_ts",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_db_ts"
     },
     {
       "label": "src/lib/sync.ts",
@@ -8112,8 +8123,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "src/lib/sync.ts",
-      "id": "tasks_tasks_start_sync_ts",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_sync_ts"
     },
     {
       "label": "syncStatus Indicator",
@@ -8127,8 +8138,8 @@
       "rationale": "Unify independent syncStatus state in AppShell and HomePage into single sync service source",
       "community": 7,
       "norm_label": "syncstatus indicator",
-      "id": "tasks_tasks_start_sync_status",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_sync_status"
     },
     {
       "label": "PocketBase Auth",
@@ -8142,8 +8153,8 @@
       "rationale": "authWithPassword; authStore in localStorage by default (remember always on); no public registration \u2014 admin creates users",
       "community": 7,
       "norm_label": "pocketbase auth",
-      "id": "tasks_tasks_start_auth",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_auth"
     },
     {
       "label": "RequireAuth Guard",
@@ -8156,8 +8167,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "requireauth guard",
-      "id": "tasks_tasks_start_require_auth",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_require_auth"
     },
     {
       "label": "shifts Collection",
@@ -8170,8 +8181,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "shifts collection",
-      "id": "tasks_tasks_start_shifts",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_shifts"
     },
     {
       "label": "shift_rows Collection",
@@ -8184,8 +8195,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "shift_rows collection",
-      "id": "tasks_tasks_start_shift_rows",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_shift_rows"
     },
     {
       "label": "locations Dictionary",
@@ -8198,8 +8209,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "locations dictionary",
-      "id": "tasks_tasks_start_locations",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_locations"
     },
     {
       "label": "marking_numbers Dictionary",
@@ -8212,8 +8223,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "marking_numbers dictionary",
-      "id": "tasks_tasks_start_marking_numbers",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_marking_numbers"
     },
     {
       "label": "marking_types Dictionary",
@@ -8226,8 +8237,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "marking_types dictionary",
-      "id": "tasks_tasks_start_marking_types",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_marking_types"
     },
     {
       "label": "materials Dictionary",
@@ -8240,8 +8251,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "materials dictionary",
-      "id": "tasks_tasks_start_materials",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_materials"
     },
     {
       "label": "Equal Salary Split",
@@ -8255,8 +8266,8 @@
       "rationale": "History aggregates perPerson() \u2014 salary divided equally among shift participants",
       "community": 7,
       "norm_label": "equal salary split",
-      "id": "tasks_tasks_start_salary_split",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_salary_split"
     },
     {
       "label": "Nginx SPA + PB Proxy",
@@ -8270,8 +8281,8 @@
       "rationale": "try_files for SPA; proxy /pb/ or pb subdomain to PocketBase on 127.0.0.1:8090; same-origin avoids CORS",
       "community": 7,
       "norm_label": "nginx spa + pb proxy",
-      "id": "tasks_tasks_start_nginx",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_nginx"
     },
     {
       "label": "VPS Git Deploy",
@@ -8285,8 +8296,8 @@
       "rationale": "CI builds dist and rsyncs to server preferred over build-on-server (fewer prod deps)",
       "community": 7,
       "norm_label": "vps git deploy",
-      "id": "tasks_tasks_start_vps_deploy",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_vps_deploy"
     },
     {
       "label": "DesktopHomePage",
@@ -8300,8 +8311,8 @@
       "rationale": "PC layout lives inside HomePage.tsx; HomePcPage.tsx is dead code to delete",
       "community": 30,
       "norm_label": "desktophomepage",
-      "id": "tasks_tasks_start_desktop_home",
-      "community_name": "Portal Desktop Home"
+      "community_name": "Portal Desktop Home",
+      "id": "tasks_tasks_start_desktop_home"
     },
     {
       "label": "HomePcPage Dead Code",
@@ -8314,8 +8325,8 @@
       "contributor": null,
       "community": 30,
       "norm_label": "homepcpage dead code",
-      "id": "tasks_tasks_start_home_pc_dead",
-      "community_name": "Portal Desktop Home"
+      "community_name": "Portal Desktop Home",
+      "id": "tasks_tasks_start_home_pc_dead"
     },
     {
       "label": "#app-portal",
@@ -8329,8 +8340,8 @@
       "rationale": "Unified modal/sheet portal for mobile and desktop replacing #phone-portal",
       "community": 30,
       "norm_label": "#app-portal",
-      "id": "tasks_tasks_start_app_portal",
-      "community_name": "Portal Desktop Home"
+      "community_name": "Portal Desktop Home",
+      "id": "tasks_tasks_start_app_portal"
     },
     {
       "label": "iOS Add to Home Screen Onboarding",
@@ -8343,8 +8354,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "ios add to home screen onboarding",
-      "id": "tasks_tasks_start_ios_install",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_ios_install"
     },
     {
       "label": "Preserve Figma Visual",
@@ -8358,8 +8369,8 @@
       "rationale": "Do not rewrite inline styles, keyframes, or unused shadcn kit; only wire real logic around existing UI",
       "community": 7,
       "norm_label": "preserve figma visual",
-      "id": "tasks_tasks_start_preserve_visual",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_preserve_visual"
     },
     {
       "label": "PB Path vs Subdomain Open Question",
@@ -8372,8 +8383,8 @@
       "contributor": null,
       "community": 7,
       "norm_label": "pb path vs subdomain open question",
-      "id": "tasks_tasks_start_pb_path_ambiguity",
-      "community_name": "Deploy Docs Branding"
+      "community_name": "Deploy Docs Branding",
+      "id": "tasks_tasks_start_pb_path_ambiguity"
     },
     {
       "label": "Guidelines Placeholder",
@@ -8386,8 +8397,8 @@
       "contributor": null,
       "community": 68,
       "norm_label": "guidelines placeholder",
-      "id": "guidelines_guidelines_placeholder",
-      "community_name": "Guidelines Placeholder"
+      "community_name": "Guidelines Placeholder",
+      "id": "guidelines_guidelines_placeholder"
     },
     {
       "label": "icon-192.png PWA app icon",
@@ -8397,8 +8408,8 @@
       "description": "192\u00d7192 px Progressive Web App icon: flat geometric nested-square brand mark for home screen / app switcher.",
       "community": 21,
       "norm_label": "icon-192.png pwa app icon",
-      "id": "public_icons_icon_192_pwa_icon",
-      "community_name": "PWA Icon 192"
+      "community_name": "PWA Icon 192",
+      "id": "public_icons_icon_192_pwa_icon"
     },
     {
       "label": "Nested square brand mark",
@@ -8408,8 +8419,8 @@
       "description": "Symmetrical flat mark: black outer square, centered orange square, smaller white square inset; no gradients, shadows, or rounded corners.",
       "community": 21,
       "norm_label": "nested square brand mark",
-      "id": "public_icons_icon_192_brand_mark",
-      "community_name": "PWA Icon 192"
+      "community_name": "PWA Icon 192",
+      "id": "public_icons_icon_192_brand_mark"
     },
     {
       "label": "Black outer frame",
@@ -8419,8 +8430,8 @@
       "description": "Solid black square background framing the orange and white nested squares.",
       "community": 21,
       "norm_label": "black outer frame",
-      "id": "public_icons_icon_192_color_black",
-      "community_name": "PWA Icon 192"
+      "community_name": "PWA Icon 192",
+      "id": "public_icons_icon_192_color_black"
     },
     {
       "label": "Orange accent square",
@@ -8430,8 +8441,8 @@
       "description": "Large saturated warm orange square (~#FF7F00 / brand orange) centered on the black field.",
       "community": 21,
       "norm_label": "orange accent square",
-      "id": "public_icons_icon_192_color_orange",
-      "community_name": "PWA Icon 192"
+      "community_name": "PWA Icon 192",
+      "id": "public_icons_icon_192_color_orange"
     },
     {
       "label": "White center square",
@@ -8441,8 +8452,8 @@
       "description": "Smaller white square centered in the orange field, creating a button-like hole in the mark.",
       "community": 21,
       "norm_label": "white center square",
-      "id": "public_icons_icon_192_color_white",
-      "community_name": "PWA Icon 192"
+      "community_name": "PWA Icon 192",
+      "id": "public_icons_icon_192_color_white"
     },
     {
       "label": "calc app visual identity",
@@ -8452,8 +8463,8 @@
       "description": "Brand identity signal for the calc PWA: orange-on-black nested squares used as installable app icon.",
       "community": 21,
       "norm_label": "calc app visual identity",
-      "id": "public_icons_icon_192_calc_brand",
-      "community_name": "PWA Icon 192"
+      "community_name": "PWA Icon 192",
+      "id": "public_icons_icon_192_calc_brand"
     },
     {
       "label": "icon-512.png",
@@ -8463,8 +8474,8 @@
       "description": "512\u00d7512 PWA/app icon: three nested centered squares (black outer, orange middle, white inner), sharp corners, no gradients or shadows.",
       "community": 23,
       "norm_label": "icon-512.png",
-      "id": "public_icons_icon_512_pwa_icon",
-      "community_name": "PWA Icon 512"
+      "community_name": "PWA Icon 512",
+      "id": "public_icons_icon_512_pwa_icon"
     },
     {
       "label": "Nested-square brand mark",
@@ -8474,8 +8485,8 @@
       "description": "Minimal geometric brand mark: square-within-square composition, symmetrical and centered.",
       "community": 23,
       "norm_label": "nested-square brand mark",
-      "id": "public_icons_icon_512_brand_mark",
-      "community_name": "PWA Icon 512"
+      "community_name": "PWA Icon 512",
+      "id": "public_icons_icon_512_brand_mark"
     },
     {
       "label": "Black outer field",
@@ -8485,8 +8496,8 @@
       "description": "Solid black outermost square serving as icon background/border.",
       "community": 23,
       "norm_label": "black outer field",
-      "id": "public_icons_icon_512_color_black",
-      "community_name": "PWA Icon 512"
+      "community_name": "PWA Icon 512",
+      "id": "public_icons_icon_512_color_black"
     },
     {
       "label": "Orange brand square",
@@ -8496,8 +8507,8 @@
       "description": "Large solid high-saturation orange middle square; primary brand accent (approx #FF7F00, aligns with app orange #FF6B00).",
       "community": 23,
       "norm_label": "orange brand square",
-      "id": "public_icons_icon_512_color_orange",
-      "community_name": "PWA Icon 512"
+      "community_name": "PWA Icon 512",
+      "id": "public_icons_icon_512_color_orange"
     },
     {
       "label": "White inner square",
@@ -8507,8 +8518,8 @@
       "description": "Smaller solid white (#FFFFFF) center square nested inside the orange field.",
       "community": 23,
       "norm_label": "white inner square",
-      "id": "public_icons_icon_512_color_white",
-      "community_name": "PWA Icon 512"
+      "community_name": "PWA Icon 512",
+      "id": "public_icons_icon_512_color_white"
     },
     {
       "label": "PWA install / home-screen icon",
@@ -8518,8 +8529,8 @@
       "description": "High-resolution app icon for Web App Manifest / installable PWA under public/icons for the calc road-marking payroll app.",
       "community": 23,
       "norm_label": "pwa install / home-screen icon",
-      "id": "public_icons_icon_512_purpose",
-      "community_name": "PWA Icon 512"
+      "community_name": "PWA Icon 512",
+      "id": "public_icons_icon_512_purpose"
     },
     {
       "label": "apple-touch-icon.png iOS home screen icon",
@@ -8529,8 +8540,8 @@
       "description": "Apple touch / iOS home-screen icon for the calc PWA: flat geometric nested-square brand mark (orange field with centered white square).",
       "community": 20,
       "norm_label": "apple-touch-icon.png ios home screen icon",
-      "id": "public_icons_apple_touch_icon_pwa_icon",
-      "community_name": "Apple Touch Icon"
+      "community_name": "Apple Touch Icon",
+      "id": "public_icons_apple_touch_icon_pwa_icon"
     },
     {
       "label": "Nested square brand mark",
@@ -8540,8 +8551,8 @@
       "description": "Minimalist flat mark: solid orange outer square with a smaller solid white square centered inside; no gradients, textures, shadows, or rounded corners.",
       "community": 20,
       "norm_label": "nested square brand mark",
-      "id": "public_icons_apple_touch_icon_brand_mark",
-      "community_name": "Apple Touch Icon"
+      "community_name": "Apple Touch Icon",
+      "id": "public_icons_apple_touch_icon_brand_mark"
     },
     {
       "label": "Orange background square",
@@ -8551,8 +8562,8 @@
       "description": "Uniform vibrant orange square filling the entire icon canvas as the background field.",
       "community": 20,
       "norm_label": "orange background square",
-      "id": "public_icons_apple_touch_icon_color_orange",
-      "community_name": "Apple Touch Icon"
+      "community_name": "Apple Touch Icon",
+      "id": "public_icons_apple_touch_icon_color_orange"
     },
     {
       "label": "White center square",
@@ -8562,8 +8573,8 @@
       "description": "Smaller white square (~25\u201330% of icon width/height) centered in the orange field, forming a button-like hole in the mark.",
       "community": 20,
       "norm_label": "white center square",
-      "id": "public_icons_apple_touch_icon_color_white",
-      "community_name": "Apple Touch Icon"
+      "community_name": "Apple Touch Icon",
+      "id": "public_icons_apple_touch_icon_color_white"
     },
     {
       "label": "iOS Add to Home Screen icon",
@@ -8573,8 +8584,8 @@
       "description": "Asset role: apple-touch-icon used when installing the PWA on iPhone/iPad home screen (Safari / WebKit).",
       "community": 20,
       "norm_label": "ios add to home screen icon",
-      "id": "public_icons_apple_touch_icon_ios_homescreen",
-      "community_name": "Apple Touch Icon"
+      "community_name": "Apple Touch Icon",
+      "id": "public_icons_apple_touch_icon_ios_homescreen"
     },
     {
       "label": "calc app visual identity",
@@ -8584,8 +8595,8 @@
       "description": "Brand identity signal for the calc PWA on iOS: orange-and-white nested squares as the home-screen app icon.",
       "community": 20,
       "norm_label": "calc app visual identity",
-      "id": "public_icons_apple_touch_icon_calc_brand",
-      "community_name": "Apple Touch Icon"
+      "community_name": "Apple Touch Icon",
+      "id": "public_icons_apple_touch_icon_calc_brand"
     },
     {
       "label": "icon-192-maskable.png maskable PWA icon",
@@ -8595,8 +8606,8 @@
       "description": "192\u00d7192 px maskable Progressive Web App icon: full-bleed orange field with a centered white square, sized for OS adaptive masks.",
       "community": 22,
       "norm_label": "icon-192-maskable.png maskable pwa icon",
-      "id": "public_icons_icon_192_maskable_pwa_icon",
-      "community_name": "Maskable Icon 192"
+      "community_name": "Maskable Icon 192",
+      "id": "public_icons_icon_192_maskable_pwa_icon"
     },
     {
       "label": "Orange-white nested square mark",
@@ -8606,8 +8617,8 @@
       "description": "Minimal flat mark: solid orange square background with a smaller solid white square centered; no black frame, gradients, or rounded corners.",
       "community": 22,
       "norm_label": "orange-white nested square mark",
-      "id": "public_icons_icon_192_maskable_brand_mark",
-      "community_name": "Maskable Icon 192"
+      "community_name": "Maskable Icon 192",
+      "id": "public_icons_icon_192_maskable_brand_mark"
     },
     {
       "label": "Orange full-bleed background",
@@ -8617,8 +8628,8 @@
       "description": "Uniform vibrant orange fill covering the entire icon canvas (maskable bleed / padding area).",
       "community": 22,
       "norm_label": "orange full-bleed background",
-      "id": "public_icons_icon_192_maskable_color_orange",
-      "community_name": "Maskable Icon 192"
+      "community_name": "Maskable Icon 192",
+      "id": "public_icons_icon_192_maskable_color_orange"
     },
     {
       "label": "White center square",
@@ -8628,8 +8639,8 @@
       "description": "Small solid white square centered on the orange field; primary foreground glyph of the mark.",
       "community": 22,
       "norm_label": "white center square",
-      "id": "public_icons_icon_192_maskable_color_white",
-      "community_name": "Maskable Icon 192"
+      "community_name": "Maskable Icon 192",
+      "id": "public_icons_icon_192_maskable_color_white"
     },
     {
       "label": "Maskable safe zone layout",
@@ -8639,8 +8650,8 @@
       "description": "White square sits well inside the central ~80% safe zone so circle/rounded-square OS masks keep the mark visible; orange extends to edges as bleed.",
       "community": 22,
       "norm_label": "maskable safe zone layout",
-      "id": "public_icons_icon_192_maskable_safe_zone",
-      "community_name": "Maskable Icon 192"
+      "community_name": "Maskable Icon 192",
+      "id": "public_icons_icon_192_maskable_safe_zone"
     },
     {
       "label": "calc app visual identity",
@@ -8650,8 +8661,8 @@
       "description": "Maskable variant of the calc PWA brand: orange accent with inset white square for adaptive home-screen icons.",
       "community": 22,
       "norm_label": "calc app visual identity",
-      "id": "public_icons_icon_192_maskable_calc_brand",
-      "community_name": "Maskable Icon 192"
+      "community_name": "Maskable Icon 192",
+      "id": "public_icons_icon_192_maskable_calc_brand"
     },
     {
       "label": "icon-512-maskable.png maskable PWA icon",
@@ -8661,8 +8672,8 @@
       "description": "512\u00d7512 px maskable Progressive Web App icon: solid orange canvas with a small centered white square kept in the safe zone for OS masking (circle, squircle, rounded rect).",
       "community": 24,
       "norm_label": "icon-512-maskable.png maskable pwa icon",
-      "id": "public_icons_icon_512_maskable_pwa_icon",
-      "community_name": "Maskable Icon 512"
+      "community_name": "Maskable Icon 512",
+      "id": "public_icons_icon_512_maskable_pwa_icon"
     },
     {
       "label": "Centered white-on-orange mark",
@@ -8672,8 +8683,8 @@
       "description": "Minimal flat mark: single solid white square centered on a full-bleed solid orange field; no gradients, shadows, borders, or outer black frame.",
       "community": 24,
       "norm_label": "centered white-on-orange mark",
-      "id": "public_icons_icon_512_maskable_brand_mark",
-      "community_name": "Maskable Icon 512"
+      "community_name": "Maskable Icon 512",
+      "id": "public_icons_icon_512_maskable_brand_mark"
     },
     {
       "label": "Orange full-bleed background",
@@ -8683,8 +8694,8 @@
       "description": "Uniform solid bright orange covering the entire 512\u00d7512 canvas (maskable outer padding / bleed).",
       "community": 24,
       "norm_label": "orange full-bleed background",
-      "id": "public_icons_icon_512_maskable_color_orange",
-      "community_name": "Maskable Icon 512"
+      "community_name": "Maskable Icon 512",
+      "id": "public_icons_icon_512_maskable_color_orange"
     },
     {
       "label": "White center square",
@@ -8694,8 +8705,8 @@
       "description": "Small solid white square centered in the frame; side length roughly ~1/4 of the icon, critical content for masked display.",
       "community": 24,
       "norm_label": "white center square",
-      "id": "public_icons_icon_512_maskable_color_white",
-      "community_name": "Maskable Icon 512"
+      "community_name": "Maskable Icon 512",
+      "id": "public_icons_icon_512_maskable_color_white"
     },
     {
       "label": "Maskable safe zone layout",
@@ -8705,8 +8716,8 @@
       "description": "White square concentrated at center so OS adaptive masks crop only the orange bleed and leave the mark fully visible.",
       "community": 24,
       "norm_label": "maskable safe zone layout",
-      "id": "public_icons_icon_512_maskable_safe_zone",
-      "community_name": "Maskable Icon 512"
+      "community_name": "Maskable Icon 512",
+      "id": "public_icons_icon_512_maskable_safe_zone"
     },
     {
       "label": "calc app visual identity",
@@ -8716,8 +8727,8 @@
       "description": "Brand signal for the calc PWA installable icon: orange field + white square (maskable variant without black outer frame).",
       "community": 24,
       "norm_label": "calc app visual identity",
-      "id": "public_icons_icon_512_maskable_calc_brand",
-      "community_name": "Maskable Icon 512"
+      "community_name": "Maskable Icon 512",
+      "id": "public_icons_icon_512_maskable_calc_brand"
     }
   ],
   "links": [
@@ -10234,7 +10245,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/main.tsx",
-      "source_location": "L2",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_main",
@@ -10246,7 +10257,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/main.tsx",
-      "source_location": "L2",
+      "source_location": "L3",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_main",
@@ -20325,7 +20336,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/main.tsx",
-      "source_location": "L3",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_main",
@@ -20661,7 +20672,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/main.tsx",
-      "source_location": "L3",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_main",
@@ -20889,7 +20900,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/main.tsx",
-      "source_location": "L3",
+      "source_location": "L4",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_main",
@@ -21568,7 +21579,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/main.tsx",
-      "source_location": "L4",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_main",
@@ -22840,7 +22851,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/main.tsx",
-      "source_location": "L4",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_main",
@@ -22882,6 +22893,17 @@
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
       "target": "src_lib_sync_computeuserstats"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_main",
+      "target": "src_main_onregisteredsw",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -25838,5 +25860,5 @@
       "source_file": "Tasks/TASKS_start.md"
     }
   ],
-  "built_at_commit": "e27d262aa075345fc4c02c5fd73a80d309e27432"
+  "built_at_commit": "a73e7c5a6559bde2d9f1f07f50ee2ce261212749"
 }

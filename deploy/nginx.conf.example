@@ -16,17 +16,38 @@ location = /calc {
     return 301 /calc/;
 }
 
+# SW / HTML / manifest — БЕЗ долгого кэша (отдельные location, не nested).
+# Иначе правило `expires 1y` на *.js кэширует sw.js на год → телефон
+# вечно открывает старый PWA (ПК после hard-refresh уже новый).
+location = /calc/sw.js {
+    alias /var/www/calc/dist/sw.js;
+    add_header Cache-Control "no-cache" always;
+}
+location = /calc/index.html {
+    alias /var/www/calc/dist/index.html;
+    add_header Cache-Control "no-cache" always;
+}
+location = /calc/manifest.webmanifest {
+    alias /var/www/calc/dist/manifest.webmanifest;
+    add_header Cache-Control "no-cache" always;
+    default_type application/manifest+json;
+}
+location ~* ^/calc/(workbox-[^/]+\.js)$ {
+    alias /var/www/calc/dist/$1;
+    add_header Cache-Control "no-cache" always;
+}
+
 # Статика SPA (сборка Vite с base: '/calc/')
 location /calc/ {
     alias /var/www/calc/dist/;
     index index.html;
     try_files $uri $uri/ /calc/index.html;
 
-    # index.html и SW — без долгого кэша
-    location ~* ^/calc/(index\.html|sw\.js|registerSW\.js|workbox-.*\.js|manifest\.webmanifest)$ {
+    location ~* \.html$ {
         add_header Cache-Control "no-cache" always;
     }
 
+    # Хэшированные ассеты — долгий кэш OK
     location ~* \.(?:js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
         expires 1y;
         add_header Cache-Control "public, no-transform";

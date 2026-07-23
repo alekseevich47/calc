@@ -78,10 +78,13 @@ export default defineConfig({
       },
       workbox: {
         // App shell only — data cache lives in IndexedDB (Block 2)
-        // html не в globPatterns: иначе precache CacheFirst перебивает NetworkFirst
+        // navigateFallback (NavigationRoute) в generateSW регистрируется РАНЬШЕ
+        // runtimeCaching → NetworkFirst не срабатывал. Offline SPA: NetworkFirst
+        // кэширует ответ navigate в html-shell (start_url после первого онлайна).
         cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest,woff2}'],
-        navigateFallback: `${BASE}index.html`,
         runtimeCaching: [
           {
             // Онлайн → свежий shell; офлайн → кэш (timeout 3s)

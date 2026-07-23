@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
 import { Plus, Calendar, ChevronDown, X, Search, Check, Trash2 } from "lucide-react";
 import { StatusBadge } from "../components/shared";
-import { DEFAULT_DICTIONARIES, markingNumberDisplayMeta, markingTypesMap, uniqueMarkingNumbers } from "../lib/db";
+import { DEFAULT_DICTIONARIES, markingTypesByNumberId, markingTypesMap, sortedMarkingNumbers } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
 import { getCurrentUserFullName, looksLikePbId, subscribeAuthStore } from "../lib/session";
 import { confirmShift, createTeammate, buildParticipantOptions, isShiftRowComplete, markingNumHasTypes, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
@@ -12,39 +12,61 @@ import type { QuickRow, ShellContext } from "./AppShell";
 // ─── Dictionaries context (из IndexedDB / PocketBase) ─────────────────────────
 
 type MarkingNumMeta = {
+  /** Отображаемый номер (PB `number`). */
+  label: string;
   description?: string;
   imageUrls: string[];
 };
 
 type DictOptions = {
   locations: string[];
-  markingNums: string[];
-  /** Мета по номеру разметки: описание + URL фото из PB. */
+  /** PB-id записей marking_numbers — значения опций dropdown. */
+  markingNumIds: string[];
+  /** Мета по PB-id: label=number, описание, фото. */
   markingNumMeta: Record<string, MarkingNumMeta>;
+  /** Типы по PB-id записи № разметки. */
+  markingTypesById: Record<string, string[]>;
+  /** Типы по строке number (fallback). */
   markingTypes: Record<string, string[]>;
   materials: string[];
   participants: string[];
 };
 
 function toDictOptions(dicts: typeof DEFAULT_DICTIONARIES): DictOptions {
-  const rawMeta = markingNumberDisplayMeta(dicts);
   const markingNumMeta: Record<string, MarkingNumMeta> = {};
-  for (const [num, m] of Object.entries(rawMeta)) {
-    markingNumMeta[num] = {
-      description: m.description,
-      imageUrls: m.images
-        .map((img) => markingNumberImageUrl(img.recordId, img.filename))
-        .filter(Boolean),
+  const markingNumIds: string[] = [];
+  for (const n of sortedMarkingNumbers(dicts)) {
+    markingNumIds.push(n.id);
+    markingNumMeta[n.id] = {
+      label: n.number,
+      description: n.description,
+      imageUrls: (n.images ?? []).map((f) => markingNumberImageUrl(n.id, f)).filter(Boolean),
     };
   }
   return {
     locations: dicts.locations.map((x) => x.name),
-    markingNums: uniqueMarkingNumbers(dicts),
+    markingNumIds,
     markingNumMeta,
+    markingTypesById: markingTypesByNumberId(dicts),
     markingTypes: markingTypesMap(dicts),
     materials: dicts.materials.map((x) => x.name),
     participants: dicts.participants.map((x) => x.name),
   };
+}
+
+function resolveMarkingNumberId(
+  dict: DictOptions,
+  markingNum: string,
+  markingNumberId?: string,
+): string {
+  if (markingNumberId && dict.markingNumMeta[markingNumberId]) return markingNumberId;
+  return dict.markingNumIds.find((id) => dict.markingNumMeta[id]?.label === markingNum) ?? "";
+}
+
+function typesForMarking(dict: DictOptions, markingNum: string, markingNumberId?: string): string[] {
+  const id = resolveMarkingNumberId(dict, markingNum, markingNumberId);
+  if (id && dict.markingTypesById[id]?.length) return dict.markingTypesById[id];
+  return dict.markingTypes[markingNum] || [];
 }
 
 const DictContext = createContext<DictOptions>(toDictOptions(DEFAULT_DICTIONARIES));
@@ -243,13 +265,23 @@ interface FilledRow {
   id: number;
   location: string;
   markingNum: string;
+  /** PB-id выбранной записи marking_numbers (вариант с своим description/image). */
+  markingNumberId?: string;
   markingType: string;
   volume: number;
   material: string;
   tariff: number;
 }
 
-interface EditRow { location: string; markingNum: string; markingType: string; volume: string; material: string; tariff: string; }
+interface EditRow {
+  location: string;
+  markingNum: string;
+  markingNumberId: string;
+  markingType: string;
+  volume: string;
+  material: string;
+  tariff: string;
+}
 
 const COL_DEFS: { key: ColKey | "payment"; short: string; width: number }[] = [
   { key: "location",    short: "Н.п. / трасса", width: 110 },
@@ -478,8 +510,10 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
   const q = query.toLowerCase();
   const filtered = options.filter((o) => {
     if (!q) return true;
-    if (o.toLowerCase().includes(q)) return true;
-    const desc = optionMeta?.[o]?.description;
+    const meta = optionMeta?.[o];
+    const label = (meta?.label ?? o).toLowerCase();
+    if (label.includes(q) || o.toLowerCase().includes(q)) return true;
+    const desc = meta?.description;
     return Boolean(desc && desc.toLowerCase().includes(q));
   });
 
@@ -535,7 +569,7 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 500, flexShrink: 0 }}>{opt}</span>
+                  <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 500, flexShrink: 0 }}>{meta?.label ?? opt}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto", flexShrink: 0 }}>
                     {imgs.slice(0, 3).map((src) => (
                       <img
@@ -582,15 +616,15 @@ function DropdownCard({ options, value, onSelect, onClose, withSearch, top, left
 
 // ─── New-row edit form ────────────────────────────────────────────────────────
 
-function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraftMarkingNum }: {
+function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraftMarkingKey }: {
   phoneRef: React.RefObject<HTMLDivElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onAdd: (row: Omit<FilledRow, "id">) => void;
   onCancel: () => void;
   showTypeCol: boolean;
-  onDraftMarkingNum: (num: string) => void;
+  onDraftMarkingKey: (key: string) => void;
 }) {
-  const [row, setRow] = useState<EditRow>({ location: "", markingNum: "", markingType: "", volume: "", material: "", tariff: "" });
+  const [row, setRow] = useState<EditRow>({ location: "", markingNum: "", markingNumberId: "", markingType: "", volume: "", material: "", tariff: "" });
   const [openCol, setOpenCol] = useState<ColKey | null>(null);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 240 });
   const [barWidth, setBarWidth] = useState<number | undefined>();
@@ -606,18 +640,20 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
     return () => ro.disconnect();
   }, [scrollRef]);
 
-  useEffect(() => {
-    onDraftMarkingNum(row.markingNum);
-    return () => onDraftMarkingNum("");
-  }, [row.markingNum, onDraftMarkingNum]);
+  const markingKey = resolveMarkingNumberId(dict, row.markingNum, row.markingNumberId);
 
-  const typeOptions = dict.markingTypes[row.markingNum] || [];
-  const typeSelectable = markingNumHasTypes(dict.markingTypes, row.markingNum);
+  useEffect(() => {
+    onDraftMarkingKey(markingKey);
+    return () => onDraftMarkingKey("");
+  }, [markingKey, onDraftMarkingKey]);
+
+  const typeOptions = typesForMarking(dict, row.markingNum, row.markingNumberId);
+  const typeSelectable = typeOptions.length > 0;
   const cols = visibleColDefs(showTypeCol);
 
   function getOptions(col: ColKey): string[] {
     if (col === "location") return dict.locations;
-    if (col === "markingNum") return dict.markingNums;
+    if (col === "markingNum") return dict.markingNumIds;
     if (col === "markingType") return typeOptions;
     if (col === "material") return dict.materials;
     return [];
@@ -640,7 +676,17 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
   }
 
   function setVal(col: ColKey, val: string) {
-    setRow((p) => { const n = { ...p, [col]: val }; if (col === "markingNum") n.markingType = ""; return n; });
+    if (col === "markingNum") {
+      const meta = dict.markingNumMeta[val];
+      setRow((p) => ({
+        ...p,
+        markingNumberId: val,
+        markingNum: meta?.label ?? "",
+        markingType: "",
+      }));
+      return;
+    }
+    setRow((p) => ({ ...p, [col]: val }));
   }
 
   const vol = parseFloat(row.volume) || 0;
@@ -660,24 +706,33 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
   ];
 
   function handleAdd() {
-    if (!isShiftRowComplete({ ...row, volume: vol, tariff: tar }, dict.markingTypes)) return;
+    const typeMap = { ...dict.markingTypes, ...dict.markingTypesById };
+    if (!isShiftRowComplete({ ...row, volume: vol, tariff: tar }, typeMap)) return;
     onAdd({
-      location: row.location, markingNum: row.markingNum, markingType: typeSelectable ? row.markingType : "",
+      location: row.location,
+      markingNum: row.markingNum,
+      markingNumberId: row.markingNumberId || undefined,
+      markingType: typeSelectable ? row.markingType : "",
       volume: vol, material: row.material, tariff: tar,
     });
-    // Объём / материал / тариф / оплата остаются для следующей строки
-    setRow((p) => ({
+    setRow({
       location: "",
       markingNum: "",
+      markingNumberId: "",
       markingType: "",
-      volume: p.volume,
-      material: p.material,
-      tariff: p.tariff,
-    }));
+      volume: "",
+      material: "",
+      tariff: "",
+    });
     setOpenCol(null);
   }
 
-  const canAdd = isShiftRowComplete(row, dict.markingTypes);
+  const canAdd = isShiftRowComplete(row, { ...dict.markingTypes, ...dict.markingTypesById });
+  const dropdownValue = openCol === "markingNum"
+    ? markingKey
+    : openCol
+      ? (row as any)[openCol]
+      : "";
 
   return (
     <>
@@ -707,7 +762,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
               return (
                 <td
                   key={col}
-                  onMouseDown={(e) => { if (isOpen) e.stopPropagation(); }}
+                  onPointerDown={(e) => { if (isOpen) e.stopPropagation(); }}
                   onClick={(e) => {
                     if (locked) return;
                     if (openCol === col) setOpenCol(null);
@@ -761,7 +816,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
         if (!portal) return null;
         return createPortal(
           <DropdownCard
-            options={getOptions(openCol)} value={(row as any)[openCol]}
+            options={getOptions(openCol)} value={dropdownValue}
             onSelect={(v) => setVal(openCol, v)} onClose={() => setOpenCol(null)}
             withSearch={openCol === "location" || openCol === "markingNum"}
             top={dropPos.top} left={dropPos.left} width={dropPos.width}
@@ -777,27 +832,28 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
 // ─── Edit Row Form ────────────────────────────────────────────────────────────
 // Same layout as NewRowForm but pre-filled; saves changes to existing row.
 
-function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, onDraftMarkingNum }: {
+function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, onDraftMarkingKey }: {
   phoneRef: React.RefObject<HTMLDivElement | null>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   row: FilledRow;
   onSave: (updated: Omit<FilledRow, "id">) => void;
   onCancel: () => void;
   showTypeCol: boolean;
-  onDraftMarkingNum: (num: string) => void;
+  onDraftMarkingKey: (key: string) => void;
 }) {
-  const [editRow, setEditRow] = useState<EditRow>({
+  const dict = useDict();
+  const [editRow, setEditRow] = useState<EditRow>(() => ({
     location:    row.location,
     markingNum:  row.markingNum,
+    markingNumberId: resolveMarkingNumberId(dict, row.markingNum, row.markingNumberId),
     markingType: row.markingType,
     volume:      String(row.volume),
     material:    row.material,
     tariff:      String(row.tariff),
-  });
+  }));
   const [openCol, setOpenCol] = useState<ColKey | null>(null);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 240 });
   const [barWidth, setBarWidth] = useState<number | undefined>();
-  const dict = useDict();
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -809,19 +865,22 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
     return () => ro.disconnect();
   }, [scrollRef]);
 
-  useEffect(() => {
-    onDraftMarkingNum(editRow.markingNum);
-    return () => onDraftMarkingNum("");
-  }, [editRow.markingNum, onDraftMarkingNum]);
+  const markingKey = resolveMarkingNumberId(dict, editRow.markingNum, editRow.markingNumberId);
 
-  const typeOptions = dict.markingTypes[editRow.markingNum] || [];
-  const typeSelectable = markingNumHasTypes(dict.markingTypes, editRow.markingNum);
-  const canSave = isShiftRowComplete(editRow, dict.markingTypes);
+  useEffect(() => {
+    onDraftMarkingKey(markingKey);
+    return () => onDraftMarkingKey("");
+  }, [markingKey, onDraftMarkingKey]);
+
+  const typeOptions = typesForMarking(dict, editRow.markingNum, editRow.markingNumberId);
+  const typeSelectable = typeOptions.length > 0;
+  const typeMap = { ...dict.markingTypes, ...dict.markingTypesById };
+  const canSave = isShiftRowComplete(editRow, typeMap);
   const cols = visibleColDefs(showTypeCol);
 
   function getOptions(col: ColKey): string[] {
     if (col === "location") return dict.locations;
-    if (col === "markingNum") return dict.markingNums;
+    if (col === "markingNum") return dict.markingNumIds;
     if (col === "markingType") return typeOptions;
     if (col === "material") return dict.materials;
     return [];
@@ -844,7 +903,17 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
   }
 
   function setVal(col: ColKey, val: string) {
-    setEditRow((p) => { const n = { ...p, [col]: val }; if (col === "markingNum") n.markingType = ""; return n; });
+    if (col === "markingNum") {
+      const meta = dict.markingNumMeta[val];
+      setEditRow((p) => ({
+        ...p,
+        markingNumberId: val,
+        markingNum: meta?.label ?? "",
+        markingType: "",
+      }));
+      return;
+    }
+    setEditRow((p) => ({ ...p, [col]: val }));
   }
 
   const vol = parseFloat(editRow.volume) || 0;
@@ -862,6 +931,12 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
     { key: "material" },
     { key: "tariff" },
   ];
+
+  const dropdownValue = openCol === "markingNum"
+    ? markingKey
+    : openCol
+      ? (editRow as any)[openCol]
+      : "";
 
   return (
     <>
@@ -891,7 +966,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
               return (
                 <td
                   key={col}
-                  onMouseDown={(e) => { if (isOpen) e.stopPropagation(); }}
+                  onPointerDown={(e) => { if (isOpen) e.stopPropagation(); }}
                   onClick={(e) => {
                     if (locked) return;
                     if (openCol === col) setOpenCol(null);
@@ -935,6 +1010,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
             if (!canSave) return;
             onSave({
               location: editRow.location, markingNum: editRow.markingNum,
+              markingNumberId: editRow.markingNumberId || undefined,
               markingType: typeSelectable ? editRow.markingType : "",
               volume: vol, material: editRow.material, tariff: tar,
             });
@@ -951,7 +1027,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
         if (!portal) return null;
         return createPortal(
           <DropdownCard
-            options={getOptions(openCol)} value={(editRow as any)[openCol]}
+            options={getOptions(openCol)} value={dropdownValue}
             onSelect={(v) => setVal(openCol, v)} onClose={() => setOpenCol(null)}
             withSearch={openCol === "location" || openCol === "markingNum"}
             top={dropPos.top} left={dropPos.left} width={dropPos.width}
@@ -973,18 +1049,21 @@ function WorkTable({ rows, setRows, phoneRef }: {
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [formMarkingNum, setFormMarkingNum] = useState("");
+  const [formMarkingKey, setFormMarkingKey] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const dict = useDict();
-  const onDraftMarkingNum = useMemo(() => (num: string) => setFormMarkingNum(num), []);
+  const onDraftMarkingKey = useMemo(() => (key: string) => setFormMarkingKey(key), []);
 
   const showTypeCol =
-    rows.some((r) => markingNumHasTypes(dict.markingTypes, r.markingNum)) ||
-    markingNumHasTypes(dict.markingTypes, formMarkingNum);
+    rows.some((r) => {
+      const key = resolveMarkingNumberId(dict, r.markingNum, r.markingNumberId);
+      return markingNumHasTypes(dict.markingTypesById, key) || markingNumHasTypes(dict.markingTypes, r.markingNum);
+    }) ||
+    markingNumHasTypes(dict.markingTypesById, formMarkingKey);
 
   function addRow(data: Omit<FilledRow, "id">) {
     setRows((p) => [...p, { ...data, id: Date.now() }]);
-    // форма остаётся открытой — NewRowForm сам сохраняет объём/материал/тариф
+    // форма остаётся открытой — NewRowForm сбрасывает все поля
   }
 
   function saveRow(id: number, data: Omit<FilledRow, "id">) {
@@ -1020,7 +1099,7 @@ function WorkTable({ rows, setRows, phoneRef }: {
               scrollRef={scrollRef}
               row={row}
               showTypeCol={showTypeCol}
-              onDraftMarkingNum={onDraftMarkingNum}
+              onDraftMarkingKey={onDraftMarkingKey}
               onSave={(data) => saveRow(row.id, data)}
               onCancel={() => setEditingId(null)}
             />
@@ -1041,7 +1120,7 @@ function WorkTable({ rows, setRows, phoneRef }: {
             phoneRef={phoneRef}
             scrollRef={scrollRef}
             showTypeCol={showTypeCol}
-            onDraftMarkingNum={onDraftMarkingNum}
+            onDraftMarkingKey={onDraftMarkingKey}
             onAdd={addRow}
             onCancel={() => setAdding(false)}
           />
@@ -1475,7 +1554,7 @@ function DesktopDropdown({ options, value, onSelect, onClose, anchor, optionMeta
                 onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.background = "none"; }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 500 }}>{o}</span>
+                  <span style={{ fontSize: 13, color: isSel ? "#c2500a" : "#111827", fontWeight: isSel ? 600 : 500 }}>{meta?.label ?? o}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto", flexShrink: 0 }}>
                     {imgs.slice(0, 3).map((src) => (
                       <img key={src} src={src} alt="" loading="lazy" style={{ width: 40, height: 30, objectFit: "contain", borderRadius: 4, background: "rgba(0,0,0,0.03)", display: "block" }} />
@@ -1514,7 +1593,7 @@ function DesktopDropdown({ options, value, onSelect, onClose, anchor, optionMeta
 // ─── Desktop: editable table row ─────────────────────────────────────────────
 
 interface DesktopRowDraft {
-  location: string; markingNum: string; markingType: string;
+  location: string; markingNum: string; markingNumberId: string; markingType: string;
   volume: string; material: string; tariff: string;
 }
 
@@ -1528,26 +1607,31 @@ const DESKTOP_COLS = [
   { key: "payment",     label: "Оплата",         flex: 1.0 },
 ] as const;
 
-function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraftMarkingNum }: {
+function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraftMarkingKey }: {
   initial: DesktopRowDraft;
   onSave: (d: DesktopRowDraft) => void;
   onCancel: () => void;
   isNew: boolean;
   showTypeCol: boolean;
-  onDraftMarkingNum: (num: string) => void;
+  onDraftMarkingKey: (key: string) => void;
 }) {
-  const [draft, setDraft] = useState<DesktopRowDraft>(initial);
+  const dict = useDict();
+  const [draft, setDraft] = useState<DesktopRowDraft>(() => ({
+    ...initial,
+    markingNumberId: initial.markingNumberId || resolveMarkingNumberId(dict, initial.markingNum, initial.markingNumberId),
+  }));
   const [openCol, setOpenCol] = useState<string | null>(null);
   const [anchor, setAnchor] = useState({ top: 0, left: 0, width: 160 });
-  const dict = useDict();
+
+  const markingKey = resolveMarkingNumberId(dict, draft.markingNum, draft.markingNumberId);
 
   useEffect(() => {
-    onDraftMarkingNum(draft.markingNum);
-    return () => onDraftMarkingNum("");
-  }, [draft.markingNum, onDraftMarkingNum]);
+    onDraftMarkingKey(markingKey);
+    return () => onDraftMarkingKey("");
+  }, [markingKey, onDraftMarkingKey]);
 
-  const typeOptions = dict.markingTypes[draft.markingNum] || [];
-  const typeSelectable = markingNumHasTypes(dict.markingTypes, draft.markingNum);
+  const typeOptions = typesForMarking(dict, draft.markingNum, draft.markingNumberId);
+  const typeSelectable = typeOptions.length > 0;
   const payment = (parseFloat(draft.volume) || 0) * (parseFloat(draft.tariff) || 0);
   const visibleCols = showTypeCol
     ? DESKTOP_COLS
@@ -1564,12 +1648,22 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
   }
 
   function set(col: string, val: string) {
-    setDraft(p => { const n = { ...p, [col]: val }; if (col === "markingNum") n.markingType = ""; return n; });
+    if (col === "markingNum") {
+      const meta = dict.markingNumMeta[val];
+      setDraft((p) => ({
+        ...p,
+        markingNumberId: val,
+        markingNum: meta?.label ?? "",
+        markingType: "",
+      }));
+      return;
+    }
+    setDraft((p) => ({ ...p, [col]: val }));
   }
 
   const accent = isNew ? "rgba(255,107,0,0.04)" : "rgba(99,102,241,0.04)";
   const accentBorder = isNew ? "rgba(255,107,0,0.20)" : "rgba(99,102,241,0.20)";
-  const canSave = isShiftRowComplete(draft, dict.markingTypes);
+  const canSave = isShiftRowComplete(draft, { ...dict.markingTypes, ...dict.markingTypesById });
 
   return (
     <>
@@ -1579,14 +1673,15 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
           const isOpen = openCol === col;
           const options =
             col === "location"    ? dict.locations :
-            col === "markingNum"  ? dict.markingNums :
+            col === "markingNum"  ? dict.markingNumIds :
             col === "markingType" ? typeOptions :
             col === "material"    ? dict.materials : null;
           const locked = col === "markingType" && !typeSelectable;
+          const cellValue = col === "markingNum" ? markingKey : (draft as any)[col];
 
           return (
             <td key={col}
-              onMouseDown={e => { if (isOpen) e.stopPropagation(); }}
+              onPointerDown={e => { if (isOpen) e.stopPropagation(); }}
               onClick={e => {
                 if (locked || !options) return;
                 if (openCol === col) setOpenCol(null);
@@ -1611,12 +1706,12 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
                 />
               ) : (
                 <span style={{ fontSize: 13, color: (draft as any)[col] ? "#111827" : "#c4c9d4", fontWeight: (draft as any)[col] ? 500 : 400 }}>
-                  {(draft as any)[col] || "Выбрать..."}
+                  {col === "markingNum" ? (draft.markingNum || "Выбрать...") : ((draft as any)[col] || "Выбрать...")}
                 </span>
               )}
               {options && !locked && openCol === col && (
                 <DesktopDropdown
-                  options={options} value={(draft as any)[col]}
+                  options={options} value={cellValue}
                   onSelect={v => set(col, v)} onClose={() => setOpenCol(null)}
                   anchor={anchor}
                   optionMeta={col === "markingNum" ? dict.markingNumMeta : undefined}
@@ -1642,14 +1737,15 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
                   markingType: typeSelectable ? draft.markingType : "",
                 });
                 if (isNew) {
-                  setDraft((p) => ({
+                  setDraft({
                     location: "",
                     markingNum: "",
+                    markingNumberId: "",
                     markingType: "",
-                    volume: p.volume,
-                    material: p.material,
-                    tariff: p.tariff,
-                  }));
+                    volume: "",
+                    material: "",
+                    tariff: "",
+                  });
                   setOpenCol(null);
                 }
               }} style={{
@@ -1689,16 +1785,19 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
-  const [formMarkingNum, setFormMarkingNum] = useState("");
+  const [formMarkingKey, setFormMarkingKey] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateAnchor, setDateAnchor] = useState({ top: 0, left: 0 });
   const [showAddTeammate, setShowAddTeammate] = useState(false);
   const dateBtnRef = useRef<HTMLButtonElement>(null);
-  const onDraftMarkingNum = useMemo(() => (num: string) => setFormMarkingNum(num), []);
+  const onDraftMarkingKey = useMemo(() => (key: string) => setFormMarkingKey(key), []);
 
   const showTypeCol =
-    rows.some((r) => markingNumHasTypes(dict.markingTypes, r.markingNum)) ||
-    markingNumHasTypes(dict.markingTypes, formMarkingNum);
+    rows.some((r) => {
+      const key = resolveMarkingNumberId(dict, r.markingNum, r.markingNumberId);
+      return markingNumHasTypes(dict.markingTypesById, key) || markingNumHasTypes(dict.markingTypes, r.markingNum);
+    }) ||
+    markingNumHasTypes(dict.markingTypesById, formMarkingKey);
   const desktopCols = showTypeCol
     ? DESKTOP_COLS
     : DESKTOP_COLS.filter((c) => c.key !== "markingType");
@@ -1707,7 +1806,7 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
   const totalVol = rows.reduce((s, r) => s + r.volume, 0);
   const totalPay = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
   const pp = participants.length > 0 ? Math.round(totalPay / participants.length) : 0;
-  const canConfirm = rows.some((r) => isShiftRowComplete(r, dict.markingTypes)) && participants.length > 0;
+  const canConfirm = rows.some((r) => isShiftRowComplete(r, { ...dict.markingTypes, ...dict.markingTypesById })) && participants.length > 0;
 
   const dateStr = selectedDate.toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" });
 
@@ -1730,15 +1829,17 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
   function addRow(d: DesktopRowDraft) {
     setRows(p => [...p, {
       id: Date.now(), location: d.location, markingNum: d.markingNum,
+      markingNumberId: d.markingNumberId || undefined,
       markingType: d.markingType, volume: parseFloat(d.volume) || 0,
       material: d.material, tariff: parseFloat(d.tariff) || 0,
     }]);
-    // форма остаётся — DesktopEditRow сбрасывает место/№/тип, сохраняет объём/материал/тариф
   }
 
   function saveRow(id: number, d: DesktopRowDraft) {
     setRows(p => p.map(r => r.id === id ? {
-      ...r, location: d.location, markingNum: d.markingNum, markingType: d.markingType,
+      ...r, location: d.location, markingNum: d.markingNum,
+      markingNumberId: d.markingNumberId || undefined,
+      markingType: d.markingType,
       volume: parseFloat(d.volume) || 0, material: d.material, tariff: parseFloat(d.tariff) || 0,
     } : r));
     setEditingId(null);
@@ -1809,14 +1910,20 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
                   return (
                     <DesktopEditRow key={row.id} isNew={false}
                       showTypeCol={showTypeCol}
-                      onDraftMarkingNum={onDraftMarkingNum}
-                      initial={{ location: row.location, markingNum: row.markingNum, markingType: row.markingType, volume: String(row.volume), material: row.material, tariff: String(row.tariff) }}
+                      onDraftMarkingKey={onDraftMarkingKey}
+                      initial={{
+                        location: row.location, markingNum: row.markingNum,
+                        markingNumberId: row.markingNumberId ?? "",
+                        markingType: row.markingType, volume: String(row.volume),
+                        material: row.material, tariff: String(row.tariff),
+                      }}
                       onSave={d => saveRow(row.id, d)} onCancel={() => setEditingId(null)}
                     />
                   );
                 }
                 const hov = hoveredId === row.id;
-                const rowHasType = markingNumHasTypes(dict.markingTypes, row.markingNum);
+                const rowKey = resolveMarkingNumberId(dict, row.markingNum, row.markingNumberId);
+                const rowHasType = markingNumHasTypes(dict.markingTypesById, rowKey) || markingNumHasTypes(dict.markingTypes, row.markingNum);
                 const cells = showTypeCol
                   ? [
                       { val: row.location, muted: false },
@@ -1869,8 +1976,8 @@ function DesktopHomePage({ rows, setRows, participants, setParticipants, selecte
               {adding && (
                 <DesktopEditRow isNew={true}
                   showTypeCol={showTypeCol}
-                  onDraftMarkingNum={onDraftMarkingNum}
-                  initial={{ location: "", markingNum: "", markingType: "", volume: "", material: "", tariff: "" }}
+                  onDraftMarkingKey={onDraftMarkingKey}
+                  initial={{ location: "", markingNum: "", markingNumberId: "", markingType: "", volume: "", material: "", tariff: "" }}
                   onSave={addRow} onCancel={() => setAdding(false)}
                 />
               )}
@@ -2048,15 +2155,15 @@ export default function HomePage() {
   }, [dictOptions.locations, registerAddRow]);
 
   async function handleConfirmSave() {
-    const complete = rows.filter((r) => isShiftRowComplete(r, dictOptions.markingTypes));
+    const complete = rows.filter((r) => isShiftRowComplete(r, { ...dictOptions.markingTypes, ...dictOptions.markingTypesById }));
     if (saving || complete.length === 0 || participants.length === 0) return;
     setSaving(true);
     try {
       await confirmShift({
         date: selectedDate,
         participants,
-        rows: complete.map(({ location, markingNum, markingType, volume, material, tariff }) => ({
-          location, markingNum, markingType, volume, material, tariff,
+        rows: complete.map(({ location, markingNum, markingNumberId, markingType, volume, material, tariff }) => ({
+          location, markingNum, markingNumberId, markingType, volume, material, tariff,
         })),
       });
       setRows([]);
@@ -2067,7 +2174,7 @@ export default function HomePage() {
   }
 
   const total = rows.reduce((s, r) => s + r.volume * r.tariff, 0);
-  const completeCount = rows.filter((r) => isShiftRowComplete(r, dictOptions.markingTypes)).length;
+  const completeCount = rows.filter((r) => isShiftRowComplete(r, { ...dictOptions.markingTypes, ...dictOptions.markingTypesById })).length;
   const canConfirm = completeCount > 0 && participants.length > 0;
 
   const body = isDesktop ? (

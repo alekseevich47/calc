@@ -38,17 +38,72 @@ function isPbId(id?: string): boolean {
   return !!id && looksLikePbId(id);
 }
 
+/** PB relation: строка | объект | массив (maxSelect>1) → первый id. */
+function relationId(value: unknown): string {
+  if (value == null || value === "") return "";
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "";
+    return relationId(value[0]);
+  }
+  if (typeof value === "object") {
+    const id = (value as { id?: unknown }).id;
+    return id != null ? String(id).trim() : "";
+  }
+  return String(value).trim();
+}
+
+/** PB expand: объект или массив записей → первая запись. */
+function expandOne<T extends Record<string, unknown>>(value: unknown): T | undefined {
+  if (value == null) return undefined;
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return first && typeof first === "object" ? (first as T) : undefined;
+  }
+  if (typeof value === "object") return value as T;
+  return undefined;
+}
+
+function enrichRowFromDicts(row: ShiftRowData, dicts: Dictionaries): ShiftRowData {
+  const locId = row.locationId || "";
+  const numId = row.markingNumberId || "";
+  const typeId = row.markingTypeId || "";
+  const matId = row.materialId || "";
+  const loc = locId ? dicts.locations.find((x) => x.id === locId) : undefined;
+  const num = numId ? dicts.markingNumbers.find((x) => x.id === numId) : undefined;
+  const typ = typeId ? dicts.markingTypes.find((x) => x.id === typeId) : undefined;
+  const mat = matId ? dicts.materials.find((x) => x.id === matId) : undefined;
+  return {
+    ...row,
+    location: row.location || loc?.name || "",
+    markingNum: row.markingNum || (num ? String(num.number) : ""),
+    markingType: row.markingType || typ?.name || "",
+    material: row.material || mat?.name || "",
+  };
+}
+
+function rowHasLabels(r: ShiftRowData): boolean {
+  return Boolean(
+    String(r.location || "").trim() ||
+    String(r.markingNum || "").trim() ||
+    String(r.material || "").trim(),
+  );
+}
+
 /** Строка полная: все editable-поля (место, №, тип, объём>0, материал, тариф>0). Оплата — производная. */
 export function isShiftRowComplete(
   r: {
     location?: string;
     markingNum?: string;
+    markingNumberId?: string;
     markingType?: string;
     volume?: string | number;
     material?: string;
     tariff?: string | number;
   },
-  /** Если передан — тип обязателен только когда у № есть варианты в справочнике. */
+  /**
+   * Карта типов: ключ = markingNumberId или number.
+   * Тип обязателен только если у выбранной записи есть варианты.
+   */
   markingTypes?: Record<string, string[]>,
 ): boolean {
   const volRaw = String(r.volume ?? "").trim();
@@ -57,8 +112,9 @@ export function isShiftRowComplete(
   const vol = Number(volRaw.replace(",", "."));
   const tar = Number(tarRaw.replace(",", "."));
   const num = String(r.markingNum ?? "").trim();
+  const typeKey = String(r.markingNumberId ?? "").trim() || num;
   const typeRequired = markingTypes
-    ? (markingTypes[num] || []).length > 0
+    ? (markingTypes[typeKey] || []).length > 0
     : true;
   return Boolean(
     String(r.location ?? "").trim() &&
@@ -70,12 +126,12 @@ export function isShiftRowComplete(
   );
 }
 
-/** У номера разметки есть привязанные типы в справочнике. */
+/** У записи № разметки (id или number) есть привязанные типы. */
 export function markingNumHasTypes(
   markingTypes: Record<string, string[]>,
-  markingNum: string,
+  key: string,
 ): boolean {
-  return (markingTypes[String(markingNum ?? "").trim()] || []).length > 0;
+  return (markingTypes[String(key ?? "").trim()] || []).length > 0;
 }
 
 /** Опции выбора: текущий пользователь + свои teammates (без других users). */
@@ -228,6 +284,7 @@ export async function confirmShift(input: {
   rows: Array<{
     location: string;
     markingNum: string;
+    markingNumberId?: string;
     markingType: string;
     volume: number;
     material: string;
@@ -246,7 +303,9 @@ export async function confirmShift(input: {
   const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
 
   const rows: ShiftRowData[] = completeRows.map((r) => {
-    const markingNumberId = numByVal.get(r.markingNum);
+    const markingNumberId = isPbId(r.markingNumberId)
+      ? r.markingNumberId
+      : numByVal.get(r.markingNum);
     const markingTypeId = markingNumberId
       ? dicts.markingTypes.find((t) => t.markingNumberId === markingNumberId && t.name === r.markingType)?.id
       : undefined;
@@ -311,6 +370,7 @@ type ShiftWriteInput = {
   rows: Array<{
     location: string;
     markingNum: string;
+    markingNumberId?: string;
     markingType: string;
     volume: number;
     material: string;
@@ -330,7 +390,9 @@ async function resolveShiftWrite(input: ShiftWriteInput): Promise<{
   const partByName = new Map(dicts.participants.map((x) => [x.name, x.id]));
 
   const rows: ShiftRowData[] = input.rows.map((r) => {
-    const markingNumberId = numByVal.get(r.markingNum);
+    const markingNumberId = isPbId(r.markingNumberId)
+      ? r.markingNumberId
+      : numByVal.get(r.markingNum);
     const markingTypeId = markingNumberId
       ? dicts.markingTypes.find((t) => t.markingNumberId === markingNumberId && t.name === r.markingType)?.id
       : undefined;
@@ -458,20 +520,20 @@ async function safeList(collection: string, opts?: { sort?: string; fields?: str
   }
 }
 
-async function pullFromServer(): Promise<void> {
+async function pullFromServer(): Promise<{ authorId: string; dicts: Dictionaries } | null> {
   if (!isPocketBaseConfigured()) {
     setSnapshot({ lastError: "PocketBase URL не задан" });
-    return;
+    return null;
   }
   if (!pb.authStore.isValid) {
     setSnapshot({ lastError: "Нет сессии PocketBase — войдите снова" });
-    return;
+    return null;
   }
 
   const authorId = currentAuthorId();
   if (!authorId) {
     setSnapshot({ lastError: "Нет id пользователя — войдите снова" });
-    return;
+    return null;
   }
   await ensureUserDataScope(authorId);
 
@@ -515,11 +577,7 @@ async function pullFromServer(): Promise<void> {
       return {
         id: r.id,
         name: String(r.name),
-        markingNumberId: String(
-          typeof r.marking_number === "object" && r.marking_number
-            ? (r.marking_number as { id?: string }).id ?? r.marking_number
-            : r.marking_number,
-        ),
+        markingNumberId: relationId(r.marking_number),
         ...(Number.isFinite(value) ? { value } : {}),
       };
     }),
@@ -553,53 +611,99 @@ async function pullFromServer(): Promise<void> {
     setSnapshot({ lastError: msg });
   }
 
+  return { authorId, dicts };
+}
+
+/**
+ * Pull смен. Вызывать после push очереди: иначе гонка delete→create rows
+ * затирает локальную наполняемость пустым ответом.
+ */
+async function pullShiftsFromServer(authorId: string, dicts: Dictionaries): Promise<void> {
   try {
     // Только свои смены (listRule тоже фильтрует по author)
     const remote = await pb.collection("shifts").getFullList({
       filter: `author="${authorId}"`,
       sort: "-date",
-      expand: "shift_rows_via_shift",
     });
 
     const remoteIds = new Set(remote.map((r) => r.id));
+    const locals = await listShifts();
+    const byPbId = new Map(locals.filter((s) => s.pbId).map((s) => [s.pbId!, s]));
 
     for (const rec of remote) {
+      const existing = byPbId.get(rec.id);
+      if (existing?.pendingSync) continue;
+
       let rows: ShiftRowData[] = [];
+      let rowsOk = false;
       try {
         const rowRecs = await pb.collection("shift_rows").getFullList({
           filter: `shift="${rec.id}"`,
           sort: "sort_order",
           expand: "location,marking_number,marking_type,material",
         });
+        rowsOk = true;
         rows = rowRecs.map((rr) => {
-          const loc = rr.expand?.location as { name?: string } | undefined;
-          const mn = rr.expand?.marking_number as { number?: string; name?: string } | undefined;
-          const mt = rr.expand?.marking_type as { name?: string } | undefined;
-          const mat = rr.expand?.material as { name?: string } | undefined;
+          const loc = expandOne<{ name?: string }>(rr.expand?.location);
+          const mn = expandOne<{ number?: string; name?: string }>(rr.expand?.marking_number);
+          const mt = expandOne<{ name?: string }>(rr.expand?.marking_type);
+          const mat = expandOne<{ name?: string }>(rr.expand?.material);
           const volume = Number(rr.volume) || 0;
           const tariff = Number(rr.rate) || 0;
+          const markingTypeId = relationId(rr.marking_type) || undefined;
+          return enrichRowFromDicts(
+            {
+              location: loc?.name ?? "",
+              markingNum: String(mn?.number ?? mn?.name ?? ""),
+              markingType: mt?.name ?? "",
+              volume,
+              material: mat?.name ?? "",
+              tariff,
+              amount: Number(rr.amount) || volume * tariff,
+              locationId: relationId(rr.location) || undefined,
+              markingNumberId: relationId(rr.marking_number) || undefined,
+              markingTypeId,
+              materialId: relationId(rr.material) || undefined,
+            },
+            dicts,
+          );
+        });
+      } catch (err) {
+        console.warn("[sync] pull shift_rows failed:", rec.id, err);
+        // Не затираем локальную наполняемость при сбое чтения строк
+        if (existing?.rows?.length) continue;
+      }
+
+      // Пустой ответ при непустом локальном кэше — не затираем (гонка delete→create / сбой API)
+      if (rowsOk && rows.length === 0 && existing?.rows?.length) {
+        console.warn("[sync] keep local rows — remote empty for", rec.id);
+        rows = existing.rows.map((r) => enrichRowFromDicts(r, dicts));
+      } else if (
+        rows.length > 0 &&
+        existing?.rows?.length &&
+        !rows.some(rowHasLabels) &&
+        existing.rows.some(rowHasLabels)
+      ) {
+        // Expand/имена пустые, локально есть подписи — сохраняем числа с сервера + подписи с локали по индексу
+        rows = rows.map((r, i) => {
+          const prev = existing.rows[i];
+          if (!prev) return r;
           return {
-            location: loc?.name ?? "",
-            markingNum: String(mn?.number ?? mn?.name ?? ""),
-            markingType: mt?.name ?? "",
-            volume,
-            material: mat?.name ?? "",
-            tariff,
-            amount: Number(rr.amount) || volume * tariff,
-            locationId: String(rr.location || ""),
-            markingNumberId: String(rr.marking_number || ""),
-            markingTypeId: rr.marking_type ? String(rr.marking_type) : undefined,
-            materialId: String(rr.material || ""),
+            ...r,
+            location: r.location || prev.location,
+            markingNum: r.markingNum || prev.markingNum,
+            markingType: r.markingType || prev.markingType,
+            material: r.material || prev.material,
+            locationId: r.locationId || prev.locationId,
+            markingNumberId: r.markingNumberId || prev.markingNumberId,
+            markingTypeId: r.markingTypeId || prev.markingTypeId,
+            materialId: r.materialId || prev.materialId,
           };
         });
-      } catch {
-        continue;
       }
 
       const participantNames = parseShiftParticipantNames(rec);
       const dateRaw = String(rec.date).slice(0, 10);
-      const existing = (await listShifts()).find((s) => s.pbId === rec.id);
-      if (existing?.pendingSync) continue;
 
       await putShift({
         id: existing?.id ?? rec.id,
@@ -786,17 +890,12 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
       });
     }
 
-    try {
-      const old = await pb.collection("shift_rows").getFullList({ filter: `shift="${pbId}"` });
-      await Promise.all(old.map((r) => pb.collection("shift_rows").delete(r.id)));
-    } catch {
-      /* ignore */
-    }
-
+    // Сначала создаём новые строки, потом удаляем старые — без окна с пустым shift_rows
+    const createdIds = new Set<string>();
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       // PB required number: 0 считается blank → нумерация с 1
-      await pb.collection("shift_rows").create({
+      const created = await pb.collection("shift_rows").create({
         shift: pbId,
         location: r.locationId,
         marking_number: r.markingNumberId,
@@ -807,6 +906,17 @@ async function pushQueueItem(item: Awaited<ReturnType<typeof listQueue>>[number]
         amount: r.amount,
         sort_order: i + 1,
       });
+      createdIds.add(created.id);
+    }
+    try {
+      const old = await pb.collection("shift_rows").getFullList({ filter: `shift="${pbId}"` });
+      await Promise.all(
+        old
+          .filter((r) => !createdIds.has(r.id))
+          .map((r) => pb.collection("shift_rows").delete(r.id)),
+      );
+    } catch {
+      /* ignore */
     }
 
     await putShift({
@@ -844,7 +954,8 @@ export async function syncNow(): Promise<void> {
   await refreshStatus();
 
   try {
-    await pullFromServer();
+    // 1) справочники → 2) очередь → 3) смены (после push, чтобы rows уже были на сервере)
+    const pulled = await pullFromServer();
 
     const queue = await listQueue();
     let lastErr: string | null = null;
@@ -863,6 +974,15 @@ export async function syncNow(): Promise<void> {
       }
     }
     if (lastErr) setSnapshot({ lastError: lastErr });
+
+    if (pulled) {
+      await pullShiftsFromServer(pulled.authorId, pulled.dicts);
+    } else {
+      const authorId = currentAuthorId();
+      if (authorId && pb.authStore.isValid) {
+        await pullShiftsFromServer(authorId, await getDictionaries());
+      }
+    }
   } finally {
     syncing = false;
     await refreshStatus();

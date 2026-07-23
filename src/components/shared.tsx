@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router";
+import { useRef } from "react";
 import { Home, List, User, Plus } from "lucide-react";
 
 // ─── Bottom Nav ───────────────────────────────────────────────────────────────
@@ -9,9 +10,61 @@ const TABS = [
   { id: "profile", icon: User, label: "Профиль",  path: "/profile" },
 ] as const;
 
+/** Горизонтальный свайп по пилюле вкладок (не по FAB и не по контенту страниц —
+ *  там уже swipe-delete / горизонтальный скролл таблицы). */
+const NAV_SWIPE_MIN_DX = 48;
+const NAV_SWIPE_MAX_DY = 36;
+
 export function BottomNav({ onFabClick }: { onFabClick?: () => void }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressClick = useRef(false);
+
+  const activeIdx = TABS.findIndex(
+    ({ id, path }) => pathname === path || (pathname === "/" && id === "home"),
+  );
+
+  function goRelative(delta: number) {
+    const idx = activeIdx < 0 ? 0 : activeIdx;
+    const next = idx + delta;
+    if (next < 0 || next >= TABS.length) return;
+    navigate(TABS[next].path);
+  }
+
+  function onPillPointerDown(e: React.PointerEvent) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    swipeStart.current = { x: e.clientX, y: e.clientY };
+    suppressClick.current = false;
+  }
+
+  function onPillPointerUp(e: React.PointerEvent) {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dx) < NAV_SWIPE_MIN_DX) return;
+    if (Math.abs(dy) > NAV_SWIPE_MAX_DY) return;
+    if (Math.abs(dx) <= Math.abs(dy)) return;
+    suppressClick.current = true;
+    // свайп влево → следующая вкладка; вправо → предыдущая
+    goRelative(dx < 0 ? 1 : -1);
+  }
+
+  function onPillPointerCancel() {
+    swipeStart.current = null;
+  }
+
+  function onTabClick(path: string, e: React.MouseEvent) {
+    if (suppressClick.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      suppressClick.current = false;
+      return;
+    }
+    navigate(path);
+  }
 
   return (
     <div style={{
@@ -22,18 +75,23 @@ export function BottomNav({ onFabClick }: { onFabClick?: () => void }) {
       pointerEvents: "none",
     }}>
       <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, pointerEvents: "auto" }}>
-      <div style={{
+      <div
+        onPointerDown={onPillPointerDown}
+        onPointerUp={onPillPointerUp}
+        onPointerCancel={onPillPointerCancel}
+        style={{
         flex: 1, height: 64,
         background: "rgba(255,255,255,0.62)",
         backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
         borderRadius: 999, border: "1px solid rgba(255,255,255,0.55)",
         boxShadow: "0 8px 32px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06)",
         display: "flex", alignItems: "center", padding: "6px 8px", gap: 4,
+        touchAction: "pan-y",
       }}>
         {TABS.map(({ id, icon: Icon, label, path }) => {
           const isActive = pathname === path || (pathname === "/" && id === "home");
           return (
-            <button key={id} onClick={() => navigate(path)} style={{
+            <button key={id} onClick={(e) => onTabClick(path, e)} style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               height: 52, borderRadius: 999, border: "none", cursor: "pointer",
               padding: isActive ? "0 18px" : "0 14px",

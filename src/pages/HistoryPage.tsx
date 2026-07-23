@@ -3,7 +3,7 @@ import { Calendar, SlidersHorizontal, X, Check, ChevronDown, ChevronUp, Trash2, 
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router";
 import type { CachedShift } from "../lib/db";
-import { markingNumberDisplayMeta, markingTypesMap, uniqueMarkingNumbers } from "../lib/db";
+import { markingTypesByNumberId, markingTypesMap, sortedMarkingNumbers } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
 import {
   buildParticipantOptions,
@@ -19,6 +19,7 @@ import { getCurrentUserFullName } from "../lib/session";
 import type { ShellContext } from "./AppShell";
 
 type MarkingNumMeta = {
+  label: string;
   description?: string;
   imageUrls: string[];
 };
@@ -28,6 +29,7 @@ type MarkingNumMeta = {
 interface WorkRow {
   location: string;
   markingNum: string;
+  markingNumberId?: string;
   markingType: string;
   volume: number;
   material: string;
@@ -47,6 +49,7 @@ interface Shift {
 type EditDraftRow = {
   location: string;
   markingNum: string;
+  markingNumberId: string;
   markingType: string;
   volume: string;
   material: string;
@@ -63,6 +66,7 @@ function cachedToShift(s: CachedShift): Shift {
     rows: s.rows.map((r) => ({
       location: r.location,
       markingNum: r.markingNum,
+      markingNumberId: r.markingNumberId,
       markingType: r.markingType,
       volume: r.volume,
       material: r.material,
@@ -426,10 +430,14 @@ function EditFieldSelect({
   const q = query.toLowerCase();
   const filtered = opts.filter((o) => {
     if (!q) return true;
-    if (o.toLowerCase().includes(q)) return true;
-    const desc = optionMeta?.[o]?.description;
+    const meta = optionMeta?.[o];
+    const label = (meta?.label ?? o).toLowerCase();
+    if (label.includes(q) || o.toLowerCase().includes(q)) return true;
+    const desc = meta?.description;
     return Boolean(desc && desc.toLowerCase().includes(q));
   });
+
+  const displayValue = optionMeta?.[value]?.label ?? value;
 
   function openMenu() {
     if (disabled || !btnRef.current) return;
@@ -491,7 +499,7 @@ function EditFieldSelect({
         style={fieldStyle}
       >
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: value ? 500 : 400 }}>
-          {value || label}
+          {displayValue || label}
         </span>
         <ChevronDown size={14} strokeWidth={2} color="#9ca3af" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
       </button>
@@ -544,7 +552,7 @@ function EditFieldSelect({
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      <span style={{ fontSize: 13, color: sel ? "#4f46e5" : "#111827", fontWeight: sel ? 600 : 500 }}>{opt}</span>
+                      <span style={{ fontSize: 13, color: sel ? "#4f46e5" : "#111827", fontWeight: sel ? 600 : 500 }}>{meta?.label ?? opt}</span>
                       <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto", flexShrink: 0 }}>
                         {imgs.slice(0, 3).map((src) => (
                           <img key={src} src={src} alt="" loading="lazy" style={{ width: 36, height: 28, objectFit: "contain", borderRadius: 4, background: "rgba(0,0,0,0.03)", display: "block" }} />
@@ -595,19 +603,21 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
   onClose: () => void;
 }) {
   const dicts = useDictionaries();
-  const typeMap = useMemo(() => (dicts ? markingTypesMap(dicts) : {}), [dicts]);
+  const typeMapById = useMemo(() => (dicts ? markingTypesByNumberId(dicts) : {}), [dicts]);
+  const typeMapByNum = useMemo(() => (dicts ? markingTypesMap(dicts) : {}), [dicts]);
   const locations = dicts?.locations.map((x) => x.name) ?? [];
-  const markingNums = dicts ? uniqueMarkingNumbers(dicts) : [];
+  const markingNumIds = useMemo(
+    () => (dicts ? sortedMarkingNumbers(dicts).map((n) => n.id) : []),
+    [dicts],
+  );
   const markingNumMeta = useMemo(() => {
     const map: Record<string, MarkingNumMeta> = {};
     if (!dicts) return map;
-    const raw = markingNumberDisplayMeta(dicts);
-    for (const [num, m] of Object.entries(raw)) {
-      map[num] = {
-        description: m.description,
-        imageUrls: m.images
-          .map((img) => markingNumberImageUrl(img.recordId, img.filename))
-          .filter(Boolean),
+    for (const n of sortedMarkingNumbers(dicts)) {
+      map[n.id] = {
+        label: n.number,
+        description: n.description,
+        imageUrls: (n.images ?? []).map((f) => markingNumberImageUrl(n.id, f)).filter(Boolean),
       };
     }
     return map;
@@ -621,6 +631,7 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
     shift.rows.map((r) => ({
       location: r.location,
       markingNum: r.markingNum,
+      markingNumberId: r.markingNumberId ?? "",
       markingType: r.markingType,
       volume: String(r.volume),
       material: r.material,
@@ -633,13 +644,25 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
     setParticipants((prev) => prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]);
   }
 
+  function typesForRow(r: EditDraftRow): string[] {
+    if (r.markingNumberId && typeMapById[r.markingNumberId]?.length) {
+      return typeMapById[r.markingNumberId];
+    }
+    return typeMapByNum[r.markingNum] || [];
+  }
+
   function updateRow(i: number, patch: Partial<EditDraftRow>) {
     setRows((prev) => prev.map((r, idx) => {
       if (idx !== i) return r;
       const n = { ...r, ...patch };
-      // Тип сбрасываем только если при смене № он больше не подходит к новому номеру
-      if (patch.markingNum !== undefined && patch.markingNum !== r.markingNum) {
-        const types = typeMap[patch.markingNum] || [];
+      if (patch.markingNumberId !== undefined) {
+        const meta = markingNumMeta[patch.markingNumberId];
+        n.markingNumberId = patch.markingNumberId;
+        n.markingNum = meta?.label ?? "";
+        const types = typesForRow(n);
+        if (n.markingType && !types.includes(n.markingType)) n.markingType = "";
+      } else if (patch.markingNum !== undefined && patch.markingNum !== r.markingNum) {
+        const types = typeMapByNum[patch.markingNum] || [];
         if (n.markingType && !types.includes(n.markingType)) n.markingType = "";
       }
       return n;
@@ -651,6 +674,7 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
     setRows((prev) => [...prev, {
       location: "",
       markingNum: "",
+      markingNumberId: "",
       markingType: "",
       volume: last?.volume ?? "",
       material: last?.material ?? "",
@@ -658,11 +682,16 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
     }]);
   }
 
+  const typeMapCombined = useMemo(
+    () => ({ ...typeMapByNum, ...typeMapById }),
+    [typeMapByNum, typeMapById],
+  );
+
   const canSave =
     !saving &&
     participants.length > 0 &&
     rows.length > 0 &&
-    rows.every((r) => isShiftRowComplete(r, typeMap));
+    rows.every((r) => isShiftRowComplete(r, typeMapCombined));
 
   async function handleSave() {
     if (!canSave) return;
@@ -674,6 +703,7 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
         rows: rows.map((r) => ({
           location: r.location,
           markingNum: r.markingNum,
+          markingNumberId: r.markingNumberId || undefined,
           markingType: r.markingType,
           volume: parseFloat(r.volume) || 0,
           material: r.material,
@@ -751,7 +781,7 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {rows.map((r, i) => {
-              const types = typeMap[r.markingNum] || [];
+              const types = typesForRow(r);
               const pay = (parseFloat(r.volume) || 0) * (parseFloat(r.tariff) || 0);
               return (
                 <div key={i} style={{
@@ -776,11 +806,15 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
                     />
                     <EditFieldSelect
                       label="№ разметки"
-                      value={r.markingNum}
-                      options={markingNums}
+                      value={
+                        r.markingNumberId
+                        || markingNumIds.find((id) => markingNumMeta[id]?.label === r.markingNum)
+                        || r.markingNum
+                      }
+                      options={markingNumIds}
                       withSearch
                       optionMeta={markingNumMeta}
-                      onChange={(v) => updateRow(i, { markingNum: v })}
+                      onChange={(v) => updateRow(i, { markingNumberId: v })}
                     />
                     {types.length > 0 ? (
                       <EditFieldSelect

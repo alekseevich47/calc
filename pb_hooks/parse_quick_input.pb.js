@@ -7,7 +7,7 @@
  */
 routerAdd(
   "POST",
-  "/parse-quick-input",
+  "/api/parse-quick-input",
   (e) => {
     const started = Date.now();
     const body = e.requestInfo().body || {};

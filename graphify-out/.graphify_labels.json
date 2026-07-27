@@ -42,6 +42,7 @@
   "40": "Radix Avatar",
   "41": "Radix Checkbox",
   "42": "Radix Collapsible",
+  "43": "AppShell.tsx",
   "44": "Radix Dialog",
   "45": "Radix Dropdown",
   "46": "Radix Hover Card",
@@ -55,6 +56,7 @@
   "54": "Radix Select",
   "55": "Radix Separator",
   "56": "Radix Slider",
+  "57": "DesktopHomePage",
   "58": "Radix Toggle",
   "59": "Radix Toggle Group",
   "60": "react-dom",
@@ -75,6 +77,8 @@
   "75": "@radix-ui/react-progress",
   "76": "toggle-group.tsx",
   "77": "PocketBase hook: ИИ-распознавание быстрого ввода",
+  "78": "select.tsx",
+  "79": "popover.tsx",
   "80": "clsx",
   "81": "parse_quick_input.pb.js"
 }

@@ -201,7 +201,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 ## Умный ввод текста
 
 - **Основной путь (офлайн):** regex-парсер `quickInputParser.ts` + `quickInputKeywords.ts`.
-- **Онлайн-fallback (ИИ):** `quickInputAi.ts` → `pb_hooks/parse_quick_input.pb.js` → DeepSeek. URL: `/api/parse-quick-input`. Таймаут клиента 90 с; этапы прогресса в UI. Логи hook: `journalctl -u pocketbase-calc | grep parse-quick-input`. Ключ `DEEPSEEK_API_KEY` на сервере.
+- **Онлайн-fallback (ИИ):** `quickInputAi.ts` → `pb_hooks/parse_quick_input.pb.js` → DeepSeek. Hook: `routerAdd("POST", "/api/parse-quick-input")` (префикс `/api/` обязателен — Nginx `location /calc/api/`). Таймаут клиента 90 с; этапы в UI. Логи: `journalctl -u pocketbase-calc | grep parse-quick-input`. Ключ `DEEPSEEK_API_KEY` на сервере. Hook на VPS копировать вручную (CI заливает только `dist/`).
 - **Не делать:** локальный LLM в браузере; API-ключ DeepSeek во фронтенде.
 - **Шаблон (локальный):** строки работ + последняя «материал, тариф». **Свободный (ИИ):** любой порядок; блок «Экипаж» → participants.
 - **Данные-справочник ключевых слов** (редактируется руками, без логики): `src/lib/quickInputKeywords.ts` — синонимы места (НП/Трасса), алиасы номеров (шум-полоса и т.п.), `MARKING_NUMBER_VARIANT_ALIASES` — несколько записей `marking_numbers` с одним `number` (напр. 1.18, 1.24.1, 1.24.2 → alias→`markingNumberId`), типоразмеры из `marking_types` (10/15/20/4/5/6 см·м), единицы количества (шт/м), материалы, ключевое слово «тариф» + ед. (руб/р).

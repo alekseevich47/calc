@@ -1165,13 +1165,29 @@ export function initSync(): void {
 
 // ─── Profile stats helpers ────────────────────────────────────────────────────
 
-export type StatsPeriod = "week" | "month" | "alltime";
+export type StatsPeriod = "week" | "month" | "alltime" | "custom";
+
+export type StatsDateRange = { from: Date | null; to: Date | null };
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function endOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
 
 export function computeUserStats(
   shifts: CachedShift[],
   _userName: string,
   period: StatsPeriod,
+  customRange?: StatsDateRange,
 ): { earned: number; volume: number; shifts: number } {
+  const empty = { earned: 0, volume: 0, shifts: 0 };
   const now = new Date();
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
@@ -1184,8 +1200,16 @@ export function computeUserStats(
     const d = fromIsoDate(s.date);
     if (period === "week") return d >= startOfWeek;
     if (period === "month") return d >= startOfMonth;
+    if (period === "custom") {
+      if (!customRange?.from) return false;
+      const from = startOfDay(customRange.from);
+      const to = endOfDay(customRange.to ?? customRange.from);
+      return d >= from && d <= to;
+    }
     return true;
   });
+
+  if (period === "custom" && !customRange?.from) return empty;
 
   let earned = 0;
   let volume = 0;

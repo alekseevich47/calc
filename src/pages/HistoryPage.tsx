@@ -19,6 +19,7 @@ import {
   useShifts,
 } from "../lib/sync";
 import { getCurrentUserFullName } from "../lib/session";
+import { MiniCalendar, type DateRange } from "../components/MiniCalendar";
 import type { ShellContext } from "./AppShell";
 
 type MarkingNumMeta = {
@@ -108,6 +109,19 @@ function fmtVol(n: number) {
   return `${Number(n.toFixed(3)).toLocaleString("ru-RU")} м²`;
 }
 
+/** Второстепенная строка: «Краска 12,5 м² · Пластик 3,2 м²». */
+function volumeByMaterialLabel(rows: { material: string; volume: number }[]): string {
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    const name = (r.material || "").trim() || "—";
+    map.set(name, (map.get(name) ?? 0) + r.volume);
+  }
+  return [...map.entries()]
+    .filter(([, v]) => Number.isFinite(v) && v > 0)
+    .map(([name, v]) => `${name} ${fmtVol(v)}`)
+    .join(" · ");
+}
+
 function rowPay(r: WorkRow) {
   if (typeof r.amount === "number" && Number.isFinite(r.amount)) return r.amount;
   return r.volume * r.tariff;
@@ -130,114 +144,6 @@ const DIRECTION_THRESHOLD = 12;
 /** Допуск дрожания пальца, пока ждём long-press (должен быть ≥ DIRECTION_THRESHOLD). */
 const LONG_PRESS_MOVE_PX = 16;
 const LONG_PRESS_MS = 480;
-
-// ─── Mini calendar (date-range picker) ───────────────────────────────────────
-
-interface DateRange { from: Date | null; to: Date | null }
-
-function MiniCalendar({ range, onChange, onClose, top, left }: {
-  range: DateRange;
-  onChange: (r: DateRange) => void;
-  onClose: () => void;
-  top: number;
-  left: number;
-}) {
-  const [viewDate, setViewDate] = useState(() => new Date(2025, 5, 1));
-
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
-  const monthName = viewDate.toLocaleString("ru-RU", { month: "long", year: "numeric" });
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const startOffset = (firstDay + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const cells: (Date | null)[] = [
-    ...Array(startOffset).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1)),
-  ];
-
-  function handleDay(d: Date) {
-    if (!range.from || (range.from && range.to)) {
-      onChange({ from: d, to: null });
-    } else {
-      if (d < range.from) onChange({ from: d, to: range.from });
-      else onChange({ from: range.from, to: d });
-    }
-  }
-
-  function inRange(d: Date) {
-    if (!range.from || !range.to) return false;
-    return d > range.from && d < range.to;
-  }
-
-  function isEdge(d: Date) {
-    return (range.from && d.toDateString() === range.from.toDateString()) ||
-      (range.to && d.toDateString() === range.to.toDateString());
-  }
-
-  const W = 280;
-  const [containerW, setContainerW] = useState(W + 16);
-
-  useEffect(() => {
-    const portal = document.getElementById("app-portal");
-    if (!portal) return;
-    const update = () => setContainerW(portal.getBoundingClientRect().width);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(portal);
-    return () => ro.disconnect();
-  }, []);
-
-  const clampedLeft = Math.max(8, Math.min(left, containerW - W - 8));
-
-  return createPortal(
-    <>
-      <div onClick={onClose} style={{ position: "absolute", inset: 0, zIndex: 300 }} />
-      <div style={{
-        position: "absolute", top, left: clampedLeft,
-        width: W, zIndex: 301, pointerEvents: "auto",
-        background: "rgba(255,255,255,0.97)", backdropFilter: "blur(24px)",
-        borderRadius: 18, boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
-        border: "1px solid rgba(0,0,0,0.07)", padding: "14px 14px 10px",
-        fontFamily: "Inter, sans-serif",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <button onClick={() => setViewDate(new Date(year, month - 1, 1))} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "rgba(0,0,0,0.05)", cursor: "pointer", color: "#374151", fontSize: 14 }}>‹</button>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#111827", textTransform: "capitalize" }}>{monthName}</span>
-          <button onClick={() => setViewDate(new Date(year, month + 1, 1))} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "rgba(0,0,0,0.05)", cursor: "pointer", color: "#374151", fontSize: 14 }}>›</button>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, marginBottom: 4 }}>
-          {["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(d => (
-            <div key={d} style={{ fontSize: 10, textAlign: "center", color: "#9ca3af", fontWeight: 600, padding: "2px 0", letterSpacing: "0.03em" }}>{d}</div>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 }}>
-          {cells.map((d, i) => {
-            if (!d) return <div key={i} />;
-            const edge = isEdge(d);
-            const inside = inRange(d);
-            return (
-              <button key={i} onClick={() => handleDay(d)} style={{
-                height: 30, borderRadius: 8, border: "none", cursor: "pointer",
-                fontSize: 12, fontWeight: edge ? 700 : 400,
-                background: edge ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : inside ? "rgba(255,107,0,0.10)" : "transparent",
-                color: edge ? "#fff" : inside ? "#FF6B00" : "#111827",
-              }}>
-                {d.getDate()}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ marginTop: 8, display: "flex", gap: 6 }}>
-          <button onClick={() => onChange({ from: null, to: null })} style={{ flex: 1, height: 32, borderRadius: 10, border: "1px solid rgba(0,0,0,0.10)", background: "transparent", fontSize: 12, color: "#6b7280", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Сбросить</button>
-          <button onClick={onClose} style={{ flex: 1, height: 32, borderRadius: 10, border: "none", background: "linear-gradient(135deg,#FF6B00,#FF9A00)", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Готово</button>
-        </div>
-      </div>
-    </>,
-    document.getElementById("app-portal")!,
-  );
-}
 
 // ─── Filter sheet ─────────────────────────────────────────────────────────────
 
@@ -944,8 +850,11 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
 
 // ─── Shift Card ───────────────────────────────────────────────────────────────
 
-function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
+function ShiftCard({ shift, swipeOpen, onSwipeOpenChange, onSwipeBegin, onRequestEdit, onRequestDelete }: {
   shift: Shift;
+  swipeOpen: boolean;
+  onSwipeOpenChange: (open: boolean) => void;
+  onSwipeBegin: () => void;
   onRequestEdit: (s: Shift) => void;
   onRequestDelete: (s: Shift) => void;
 }) {
@@ -970,6 +879,7 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
   const total = shiftTotal(shift);
   const pp = perPerson(shift);
   const totalVol = shift.rows.reduce((s, r) => s + r.volume, 0);
+  const materialVolLabel = volumeByMaterialLabel(shift.rows);
   const preview = shift.rows
     .map(r => `${r.markingNum}${r.markingType ? ` — ${r.markingType}` : ""} · ${fmtVol(r.volume)}`)
     .join("  ·  ");
@@ -982,6 +892,14 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
     el.addEventListener("scroll", close, { passive: true });
     return () => el.removeEventListener("scroll", close);
   }, [menu, phoneRef]);
+
+  useEffect(() => {
+    if (!swipeOpen && isSnapped) {
+      setIsSnapped(false);
+      setDx(0);
+      dxRef.current = 0;
+    }
+  }, [swipeOpen, isSnapped]);
 
   function clearLongPress() {
     if (longPressTimer.current) {
@@ -1002,6 +920,7 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
     setRemoving(true);
     setIsSnapped(false);
     setDx(0);
+    onSwipeOpenChange(false);
     setMenu(null);
     setTimeout(() => { onRequestDelete(shift); }, 280);
   }
@@ -1053,7 +972,10 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
     if (!directionLocked.current && (absDx > DIRECTION_THRESHOLD || absDy > DIRECTION_THRESHOLD)) {
       directionLocked.current = absDx > absDy ? "horizontal" : "vertical";
       clearLongPress();
-      if (directionLocked.current === "horizontal") setDragging(true);
+      if (directionLocked.current === "horizontal") {
+        setDragging(true);
+        onSwipeBegin();
+      }
       if (directionLocked.current === "vertical") skipToggle.current = true;
     }
 
@@ -1083,11 +1005,14 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
     } else if (directionLocked.current === "horizontal") {
       const committed = dxRef.current < -(SWIPE_SNAP / 2);
       setIsSnapped(committed);
+      onSwipeOpenChange(committed);
       setDx(0);
       dxRef.current = 0;
     } else if (directionLocked.current === null && !skipToggle.current && !scrolled) {
-      if (isSnapped) setIsSnapped(false);
-      else setOpen((o) => !o);
+      if (isSnapped) {
+        setIsSnapped(false);
+        onSwipeOpenChange(false);
+      } else setOpen((o) => !o);
     }
     skipToggle.current = false;
     setDragging(false);
@@ -1223,6 +1148,9 @@ function ShiftCard({ shift, onRequestEdit, onRequestDelete }: {
               <div style={{ background: "rgba(99,102,241,0.07)", borderRadius: 10, padding: "10px 12px" }}>
                 <div style={{ fontSize: 10, color: "#6366f1", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 4 }}>Объём</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "#6366f1", letterSpacing: "-0.03em" }}>{fmtVol(totalVol)}</div>
+                {materialVolLabel ? (
+                  <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500, marginTop: 4, lineHeight: 1.35 }}>{materialVolLabel}</div>
+                ) : null}
               </div>
             </div>
 
@@ -1279,6 +1207,7 @@ export default function HistoryPage() {
 
   const [showFilter, setShowFilter] = useState(false);
   const [filterParticipants, setFilterParticipants] = useState<string[]>([]);
+  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Shift | null>(null);
   /** Soft-delete: id → true, пока на экране History; flush при уходе/закрытии. */
   const [pendingDeletes, setPendingDeletes] = useState<Record<string, true>>({});
@@ -1324,16 +1253,23 @@ export default function HistoryPage() {
     [filtered, pendingDeletes],
   );
 
-  const { totalVol, totalPay, totalPerPerson } = useMemo(() => {
+  const { totalVol, totalPay, totalPerPerson, summaryMaterialVol } = useMemo(() => {
     let vol = 0;
     let pay = 0;
     let per = 0;
+    const allRows: WorkRow[] = [];
     for (const sh of activeFiltered) {
       vol += sh.rows.reduce((a, r) => a + r.volume, 0);
       pay += shiftTotal(sh);
       per += perPerson(sh);
+      allRows.push(...sh.rows);
     }
-    return { totalVol: vol, totalPay: pay, totalPerPerson: per };
+    return {
+      totalVol: vol,
+      totalPay: pay,
+      totalPerPerson: per,
+      summaryMaterialVol: volumeByMaterialLabel(allRows),
+    };
   }, [activeFiltered]);
 
   const virtualizer = useVirtualizer({
@@ -1452,6 +1388,9 @@ export default function HistoryPage() {
                   ) : (
                     <ShiftCard
                       shift={item.shift}
+                      swipeOpen={openSwipeId === item.shift.id}
+                      onSwipeOpenChange={(open) => setOpenSwipeId(open ? item.shift.id : null)}
+                      onSwipeBegin={() => setOpenSwipeId((prev) => (prev === item.shift.id ? prev : null))}
                       onRequestEdit={setEditing}
                       onRequestDelete={(s) => setPendingDeletes((prev) => ({ ...prev, [s.id]: true }))}
                     />
@@ -1477,6 +1416,9 @@ export default function HistoryPage() {
             <div>
               <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500, marginBottom: 2 }}>Всего объём</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: "#6366f1", letterSpacing: "-0.03em" }}>{fmtVol(totalVol)}</div>
+              {summaryMaterialVol ? (
+                <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500, marginTop: 4, lineHeight: 1.35 }}>{summaryMaterialVol}</div>
+              ) : null}
             </div>
             <div>
               <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500, marginBottom: 2 }}>Всего заработано</div>

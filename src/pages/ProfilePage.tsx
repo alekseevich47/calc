@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { User, LogOut, ChevronRight, Wifi, WifiOff, RefreshCw, CloudOff, Globe, Info, X, Check, Zap } from "lucide-react";
+import { User, LogOut, ChevronRight, Wifi, WifiOff, RefreshCw, CloudOff, Globe, Info, X, Check, Zap, Calendar } from "lucide-react";
 import { createPortal } from "react-dom";
+import { MiniCalendar, type DateRange } from "../components/MiniCalendar";
 import type { SyncStatus } from "../components/shared";
 import {
   setGraphicsQuality,
@@ -38,6 +39,14 @@ function fmt(n: number) {
 function fmtVol(n: number) {
   if (!Number.isFinite(n) || n <= 0) return "0 м²";
   return `${Number(n.toFixed(3)).toLocaleString("ru-RU")} м²`;
+}
+
+function formatCustomRange(range: DateRange): string {
+  if (!range.from) return "";
+  const fmt2 = (d: Date) =>
+    `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+  if (range.to) return `${fmt2(range.from)} – ${fmt2(range.to)}`;
+  return fmt2(range.from);
 }
 
 const SYNC_CFG: Record<SyncStatus, { label: string; color: string; bg: string; icon: typeof Wifi }> = {
@@ -227,6 +236,10 @@ export default function ProfilePage() {
   const graphics = useGraphicsQuality();
 
   const [period, setPeriod] = useState<Period>("month");
+  const [customRange, setCustomRange] = useState<DateRange>({ from: null, to: null });
+  const [showCal, setShowCal] = useState(false);
+  const [calPos, setCalPos] = useState({ top: 0, left: 0 });
+  const calBtnRef = useRef<HTMLButtonElement>(null);
   const [language, setLanguage] = useState("Русский");
   const [showLang, setShowLang] = useState(false);
   const [showGraphics, setShowGraphics] = useState(false);
@@ -240,8 +253,27 @@ export default function ProfilePage() {
   }, []);
 
   const displayName = userName || "Пользователь";
-  const stats = computeUserStats(shifts, displayName, period);
+  const stats = computeUserStats(
+    shifts,
+    displayName,
+    period,
+    period === "custom" ? customRange : undefined,
+  );
   const alltime = computeUserStats(shifts, displayName, "alltime");
+
+  function openCal() {
+    const portal = document.getElementById("app-portal");
+    if (!calBtnRef.current || !portal) return;
+    const pb = portal.getBoundingClientRect();
+    const bb = calBtnRef.current.getBoundingClientRect();
+    setCalPos({ top: bb.bottom - pb.top + 6, left: bb.right - pb.left - 280 });
+    setShowCal(true);
+  }
+
+  function handleCustomClick() {
+    setPeriod("custom");
+    openCal();
+  }
 
   function handleSync() {
     if (syncStatus === "synced") return;
@@ -312,9 +344,9 @@ export default function ProfilePage() {
           </div>
 
           {/* Period switcher */}
-          <div style={{ display: "flex", background: "rgba(0,0,0,0.05)", borderRadius: 10, padding: 3, marginBottom: 14 }}>
+          <div style={{ display: "flex", background: "rgba(0,0,0,0.05)", borderRadius: 10, padding: 3, marginBottom: period === "custom" && customRange.from ? 6 : 14 }}>
             {PERIOD_LABELS.map(({ key, label }) => (
-              <button key={key} onClick={() => setPeriod(key)} style={{
+              <button key={key} onClick={() => { setPeriod(key); setShowCal(false); }} style={{
                 flex: 1, height: 30, borderRadius: 8, border: "none",
                 background: period === key ? "#fff" : "transparent",
                 boxShadow: period === key ? "0 1px 6px rgba(0,0,0,0.10)" : "none",
@@ -326,7 +358,27 @@ export default function ProfilePage() {
                 {label}
               </button>
             ))}
+            <button
+              ref={calBtnRef}
+              onClick={handleCustomClick}
+              style={{
+                width: 30, height: 30, borderRadius: 8, border: "none", flexShrink: 0,
+                background: period === "custom" ? "#fff" : "transparent",
+                boxShadow: period === "custom" ? "0 1px 6px rgba(0,0,0,0.10)" : "none",
+                color: period === "custom" ? "#111827" : "#9ca3af",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "Inter, sans-serif", outline: "none",
+                transition: "background 0.15s, box-shadow 0.15s, color 0.15s",
+              }}
+            >
+              <Calendar size={14} strokeWidth={2} />
+            </button>
           </div>
+          {period === "custom" && customRange.from && (
+            <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500, textAlign: "center", marginBottom: 14 }}>
+              {formatCustomRange(customRange)}
+            </div>
+          )}
 
           {/* Period stats */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
@@ -427,6 +479,15 @@ export default function ProfilePage() {
         />
       )}
       {showAbout && <AboutSheet onClose={() => setShowAbout(false)} />}
+      {showCal && (
+        <MiniCalendar
+          range={customRange}
+          onChange={setCustomRange}
+          onClose={() => setShowCal(false)}
+          top={calPos.top}
+          left={calPos.left}
+        />
+      )}
     </div>
   );
 }

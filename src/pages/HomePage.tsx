@@ -337,12 +337,15 @@ function fmtVol(n: number) {
 const SWIPE_SNAP = 72;
 const DIRECTION_THRESHOLD = 6; // px before we lock direction
 
-function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol }: {
+function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol, swipeOpen, onSwipeOpenChange, onSwipeBegin }: {
   row: FilledRow;
   onDelete: () => void;
   onEdit: () => void;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   showTypeCol: boolean;
+  swipeOpen: boolean;
+  onSwipeOpenChange: (open: boolean) => void;
+  onSwipeBegin: () => void;
 }) {
   const [dx, setDx] = useState(0);
   const [isSnapped, setIsSnapped] = useState(false);
@@ -376,6 +379,13 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol }: {
     };
   }, [scrollRef]);
 
+  useEffect(() => {
+    if (!swipeOpen && isSnapped) {
+      setIsSnapped(false);
+      setDx(0);
+    }
+  }, [swipeOpen, isSnapped]);
+
   function onPointerDown(e: React.PointerEvent) {
     if (e.button !== 0 && e.pointerType === "mouse") return;
     startPos.current = { x: e.clientX, y: e.clientY };
@@ -392,7 +402,10 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol }: {
 
     if (!directionLocked.current && (absDx > DIRECTION_THRESHOLD || absDy > DIRECTION_THRESHOLD)) {
       directionLocked.current = absDx > absDy ? "horizontal" : "vertical";
-      if (directionLocked.current === "horizontal") setDragging(true);
+      if (directionLocked.current === "horizontal") {
+        setDragging(true);
+        onSwipeBegin();
+      }
     }
 
     if (directionLocked.current !== "horizontal") return;
@@ -411,11 +424,13 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol }: {
     if (directionLocked.current === "horizontal") {
       const committed = dxRef.current < -(SWIPE_SNAP / 2);
       setIsSnapped(committed);
+      onSwipeOpenChange(committed);
       setDx(0);
       dxRef.current = 0;
     } else if (directionLocked.current === null) {
       if (isSnapped) {
         setIsSnapped(false);
+        onSwipeOpenChange(false);
       } else {
         onEdit();
       }
@@ -448,7 +463,7 @@ function SwipeableRow({ row, onDelete, onEdit, scrollRef, showTypeCol }: {
       }}>
         <button
           type="button"
-          onClick={() => { setIsSnapped(false); setDx(0); onDelete(); }}
+          onClick={() => { onSwipeOpenChange(false); setIsSnapped(false); setDx(0); onDelete(); }}
           style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: "white", outline: "none", padding: 0 }}
         >
           <Trash2 size={16} strokeWidth={1.8} color="white" />
@@ -525,6 +540,8 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
   const [openCol, setOpenCol] = useState<ColKey | null>(null);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 240 });
   const [barWidth, setBarWidth] = useState<number | undefined>();
+  const cellRefs = useRef<Partial<Record<ColKey, HTMLTableCellElement | null>>>({});
+  const volumeInputRef = useRef<HTMLInputElement>(null);
   const dict = useDict();
   const shiftFields = useShiftFields();
 
@@ -572,18 +589,58 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
     setOpenCol(col);
   }
 
-  function setVal(col: ColKey, val: string) {
+  function applyVal(prev: EditRow, col: ColKey, val: string): EditRow {
     if (col === "markingNum") {
       const meta = dict.markingNumMeta[val];
-      setRow((p) => ({
-        ...p,
+      return {
+        ...prev,
         markingNumberId: val,
         markingNum: meta?.label ?? "",
         markingType: "",
-      }));
+      };
+    }
+    return { ...prev, [col]: val };
+  }
+
+  function setVal(col: ColKey, val: string) {
+    setRow((p) => applyVal(p, col, val));
+  }
+
+  function advanceAfterSelect(filled: EditRow, afterCol: ColKey) {
+    const types = typesForMarking(dict, filled.markingNum, filled.markingNumberId);
+    const seq: ColKey[] = ["location", "markingNum"];
+    if (types.length > 0) seq.push("markingType");
+    seq.push("volume");
+
+    const startIdx = seq.indexOf(afterCol) + 1;
+    if (startIdx <= 0) return;
+
+    function isEmpty(col: ColKey): boolean {
+      if (col === "volume") return !(parseFloat(filled.volume) > 0);
+      if (col === "markingNum") return !filled.markingNumberId;
+      return !(filled as Record<string, string>)[col];
+    }
+
+    function tryOpenDrop(col: ColKey, attempt: number) {
+      const td = cellRefs.current[col];
+      if (td) {
+        openDrop(col, td);
+        return;
+      }
+      if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
+    }
+
+    for (let i = startIdx; i < seq.length; i++) {
+      const col = seq[i];
+      if (!isEmpty(col)) continue;
+      if (col === "volume") {
+        setOpenCol(null);
+        requestAnimationFrame(() => volumeInputRef.current?.focus());
+      } else {
+        tryOpenDrop(col, 0);
+      }
       return;
     }
-    setRow((p) => ({ ...p, [col]: val }));
   }
 
   const vol = parseFloat(row.volume) || 0;
@@ -647,8 +704,8 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
               const isOpen = openCol === col;
               if (isNumeric) {
                 return (
-                  <td key={col} style={{ padding: "4px 6px", verticalAlign: "middle", background: "rgba(255,107,0,0.03)", borderBottom: "1.5px solid rgba(255,107,0,0.25)" }}>
-                    <input type="number" min="0" inputMode="decimal" placeholder="0" value={row.volume} onChange={(e) => setVal(col, e.target.value)}
+                  <td key={col} ref={(el) => { cellRefs.current[col] = el; }} style={{ padding: "4px 6px", verticalAlign: "middle", background: "rgba(255,107,0,0.03)", borderBottom: "1.5px solid rgba(255,107,0,0.25)" }}>
+                    <input ref={volumeInputRef} type="number" min="0" inputMode="decimal" placeholder="0" value={row.volume} onChange={(e) => setVal(col, e.target.value)}
                       style={{ width: "100%", height: 28, borderRadius: 6, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(255,255,255,0.8)", padding: "0 6px", fontSize: 12, color: "#111827", fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box" }} />
                   </td>
                 );
@@ -656,6 +713,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
               return (
                 <td
                   key={col}
+                  ref={(el) => { cellRefs.current[col] = el; }}
                   onPointerDown={(e) => { if (isOpen) e.stopPropagation(); }}
                   onClick={(e) => {
                     if (locked) return;
@@ -714,7 +772,13 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
         return createPortal(
           <DropdownCard
             options={getOptions(openCol)} value={dropdownValue}
-            onSelect={(v) => setVal(openCol, v)} onClose={() => setOpenCol(null)}
+            onSelect={(v) => {
+              const next = applyVal(row, openCol, v);
+              setRow(next);
+              if (openCol === "markingNum") onDraftMarkingKey(next.markingNumberId);
+              setTimeout(() => advanceAfterSelect(next, openCol), 0);
+            }}
+            onClose={() => setOpenCol(null)}
             withSearch={openCol === "location" || openCol === "markingNum"}
             top={dropPos.top} left={dropPos.left} width={dropPos.width}
             step={(["location","markingNum","markingType","volume"] as ColKey[]).indexOf(openCol) + 1}
@@ -750,6 +814,8 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
   const [openCol, setOpenCol] = useState<ColKey | null>(null);
   const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 240 });
   const [barWidth, setBarWidth] = useState<number | undefined>();
+  const cellRefs = useRef<Partial<Record<ColKey, HTMLTableCellElement | null>>>({});
+  const volumeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -797,18 +863,58 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
     setOpenCol(col);
   }
 
-  function setVal(col: ColKey, val: string) {
+  function applyVal(prev: EditRow, col: ColKey, val: string): EditRow {
     if (col === "markingNum") {
       const meta = dict.markingNumMeta[val];
-      setEditRow((p) => ({
-        ...p,
+      return {
+        ...prev,
         markingNumberId: val,
         markingNum: meta?.label ?? "",
         markingType: "",
-      }));
+      };
+    }
+    return { ...prev, [col]: val };
+  }
+
+  function setVal(col: ColKey, val: string) {
+    setEditRow((p) => applyVal(p, col, val));
+  }
+
+  function advanceAfterSelect(filled: EditRow, afterCol: ColKey) {
+    const types = typesForMarking(dict, filled.markingNum, filled.markingNumberId);
+    const seq: ColKey[] = ["location", "markingNum"];
+    if (types.length > 0) seq.push("markingType");
+    seq.push("volume");
+
+    const startIdx = seq.indexOf(afterCol) + 1;
+    if (startIdx <= 0) return;
+
+    function isEmpty(col: ColKey): boolean {
+      if (col === "volume") return !(parseFloat(filled.volume) > 0);
+      if (col === "markingNum") return !filled.markingNumberId;
+      return !(filled as Record<string, string>)[col];
+    }
+
+    function tryOpenDrop(col: ColKey, attempt: number) {
+      const td = cellRefs.current[col];
+      if (td) {
+        openDrop(col, td);
+        return;
+      }
+      if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
+    }
+
+    for (let i = startIdx; i < seq.length; i++) {
+      const col = seq[i];
+      if (!isEmpty(col)) continue;
+      if (col === "volume") {
+        setOpenCol(null);
+        requestAnimationFrame(() => volumeInputRef.current?.focus());
+      } else {
+        tryOpenDrop(col, 0);
+      }
       return;
     }
-    setEditRow((p) => ({ ...p, [col]: val }));
   }
 
   const vol = parseFloat(editRow.volume) || 0;
@@ -851,8 +957,8 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
               const isOpen = openCol === col;
               if (isNumeric) {
                 return (
-                  <td key={col} style={{ padding: "4px 6px", verticalAlign: "middle", background: "rgba(99,102,241,0.04)", borderBottom: "1.5px solid rgba(99,102,241,0.20)" }}>
-                    <input type="number" min="0" inputMode="decimal" value={editRow.volume} onChange={(e) => setVal(col, e.target.value)}
+                  <td key={col} ref={(el) => { cellRefs.current[col] = el; }} style={{ padding: "4px 6px", verticalAlign: "middle", background: "rgba(99,102,241,0.04)", borderBottom: "1.5px solid rgba(99,102,241,0.20)" }}>
+                    <input ref={volumeInputRef} type="number" min="0" inputMode="decimal" value={editRow.volume} onChange={(e) => setVal(col, e.target.value)}
                       style={{ width: "100%", height: 28, borderRadius: 6, border: "1px solid rgba(0,0,0,0.10)", background: "rgba(255,255,255,0.9)", padding: "0 6px", fontSize: 12, color: "#111827", fontFamily: "Inter, sans-serif", outline: "none", boxSizing: "border-box" }} />
                   </td>
                 );
@@ -860,6 +966,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
               return (
                 <td
                   key={col}
+                  ref={(el) => { cellRefs.current[col] = el; }}
                   onPointerDown={(e) => { if (isOpen) e.stopPropagation(); }}
                   onClick={(e) => {
                     if (locked) return;
@@ -925,7 +1032,13 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
         return createPortal(
           <DropdownCard
             options={getOptions(openCol)} value={dropdownValue}
-            onSelect={(v) => setVal(openCol, v)} onClose={() => setOpenCol(null)}
+            onSelect={(v) => {
+              const next = applyVal(editRow, openCol, v);
+              setEditRow(next);
+              if (openCol === "markingNum") onDraftMarkingKey(next.markingNumberId);
+              setTimeout(() => advanceAfterSelect(next, openCol), 0);
+            }}
+            onClose={() => setOpenCol(null)}
             withSearch={openCol === "location" || openCol === "markingNum"}
             top={dropPos.top} left={dropPos.left} width={dropPos.width}
             step={(["location","markingNum","markingType","volume"] as ColKey[]).indexOf(openCol) + 1}
@@ -946,6 +1059,7 @@ function WorkTable({ rows, setRows, phoneRef }: {
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [openSwipeId, setOpenSwipeId] = useState<number | null>(null);
   const [formMarkingKey, setFormMarkingKey] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const dict = useDict();
@@ -1006,6 +1120,9 @@ function WorkTable({ rows, setRows, phoneRef }: {
               row={row}
               scrollRef={scrollRef}
               showTypeCol={showTypeCol}
+              swipeOpen={openSwipeId === row.id}
+              onSwipeOpenChange={(open) => setOpenSwipeId(open ? row.id : null)}
+              onSwipeBegin={() => setOpenSwipeId((prev) => (prev === row.id ? prev : null))}
               onDelete={() => setRows((p) => p.filter((r) => r.id !== row.id))}
               onEdit={() => { setAdding(false); setEditingId(row.id); }}
             />
@@ -1561,6 +1678,8 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
   }));
   const [openCol, setOpenCol] = useState<string | null>(null);
   const [anchor, setAnchor] = useState({ top: 0, left: 0, width: 160 });
+  const cellRefs = useRef<Partial<Record<string, HTMLTableCellElement | null>>>({});
+  const volumeInputRef = useRef<HTMLInputElement>(null);
 
   const markingKey = resolveMarkingNumberId(dict, draft.markingNum, draft.markingNumberId);
 
@@ -1589,18 +1708,58 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
     setOpenCol(col);
   }
 
-  function set(col: string, val: string) {
+  function applyVal(prev: DesktopRowDraft, col: string, val: string): DesktopRowDraft {
     if (col === "markingNum") {
       const meta = dict.markingNumMeta[val];
-      setDraft((p) => ({
-        ...p,
+      return {
+        ...prev,
         markingNumberId: val,
         markingNum: meta?.label ?? "",
         markingType: "",
-      }));
+      };
+    }
+    return { ...prev, [col]: val };
+  }
+
+  function set(col: string, val: string) {
+    setDraft((p) => applyVal(p, col, val));
+  }
+
+  function advanceAfterSelect(filled: DesktopRowDraft, afterCol: string) {
+    const types = typesForMarking(dict, filled.markingNum, filled.markingNumberId);
+    const seq: string[] = ["location", "markingNum"];
+    if (types.length > 0) seq.push("markingType");
+    seq.push("volume");
+
+    const startIdx = seq.indexOf(afterCol) + 1;
+    if (startIdx <= 0) return;
+
+    function isEmpty(col: string): boolean {
+      if (col === "volume") return !(parseFloat(filled.volume) > 0);
+      if (col === "markingNum") return !filled.markingNumberId;
+      return !(filled as Record<string, string>)[col];
+    }
+
+    function tryOpenDrop(col: string, attempt: number) {
+      const td = cellRefs.current[col];
+      if (td) {
+        openDrop(col, td);
+        return;
+      }
+      if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
+    }
+
+    for (let i = startIdx; i < seq.length; i++) {
+      const col = seq[i];
+      if (!isEmpty(col)) continue;
+      if (col === "volume") {
+        setOpenCol(null);
+        requestAnimationFrame(() => volumeInputRef.current?.focus());
+      } else {
+        tryOpenDrop(col, 0);
+      }
       return;
     }
-    setDraft((p) => ({ ...p, [col]: val }));
   }
 
   const accent = isNew ? "rgba(255,107,0,0.04)" : "rgba(99,102,241,0.04)";
@@ -1622,6 +1781,7 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
 
           return (
             <td key={col}
+              ref={(el) => { cellRefs.current[col] = el; }}
               onPointerDown={e => { if (isOpen) e.stopPropagation(); }}
               onClick={e => {
                 if (locked || !options) return;
@@ -1641,6 +1801,7 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
                 <span style={{ color: "#d1d5db", fontSize: 13 }}>—</span>
               ) : isNumeric ? (
                 <input
+                  ref={volumeInputRef}
                   type="number" min="0" value={draft.volume}
                   onChange={e => set(col, e.target.value)}
                   style={{ width: "100%", border: "none", background: "transparent", fontSize: 13, color: "#111827", fontFamily: "Inter, sans-serif", outline: "none" }}
@@ -1653,7 +1814,13 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
               {options && !locked && openCol === col && (
                 <DesktopDropdown
                   options={options} value={cellValue}
-                  onSelect={v => set(col, v)} onClose={() => setOpenCol(null)}
+                  onSelect={v => {
+                    const next = applyVal(draft, col, v);
+                    setDraft(next);
+                    if (col === "markingNum") onDraftMarkingKey(next.markingNumberId);
+                    setTimeout(() => advanceAfterSelect(next, col), 0);
+                  }}
+                  onClose={() => setOpenCol(null)}
                   anchor={anchor}
                   optionMeta={col === "markingNum" ? dict.markingNumMeta : undefined}
                 />

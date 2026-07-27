@@ -300,8 +300,8 @@
     "semantic_hash": "7ccd30a0d205c524f3f4e91f6bbddd41"
   },
   "src/lib/sync.ts": {
-    "mtime": 1784828158.8384633,
-    "ast_hash": "d84b49158c4c34d0258db9aeadf46d53",
+    "mtime": 1785163102.8079467,
+    "ast_hash": "568c1b03132f5afb2f943919b18d820a",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -310,8 +310,8 @@
     "semantic_hash": ""
   },
   "src/pages/AppShell.tsx": {
-    "mtime": 1785157765.9094195,
-    "ast_hash": "56eb208a71f5289881ec91615ac2a0b0",
+    "mtime": 1785159801.6766987,
+    "ast_hash": "711a8adb11182f45f3f60721800923fe",
     "semantic_hash": ""
   },
   "src/pages/AuthPage.tsx": {
@@ -320,18 +320,18 @@
     "semantic_hash": ""
   },
   "src/pages/HistoryPage.tsx": {
-    "mtime": 1784827856.7061555,
-    "ast_hash": "9c3b0aab5ce2e861b77e03351f60129b",
+    "mtime": 1785163186.5670302,
+    "ast_hash": "b54887ed1fd7431905d5439dab4c781c",
     "semantic_hash": ""
   },
   "src/pages/HomePage.tsx": {
-    "mtime": 1785156182.545401,
-    "ast_hash": "9f2b52d0c8a7c407bae2b3e5dae2fef8",
+    "mtime": 1785163280.6715753,
+    "ast_hash": "bd5e34fc402e201863498a9e3d6e78b9",
     "semantic_hash": ""
   },
   "src/pages/ProfilePage.tsx": {
-    "mtime": 1784827138.4897091,
-    "ast_hash": "b34071abd4fd03af1d8f01e724cde27a",
+    "mtime": 1785163273.1534784,
+    "ast_hash": "4e286f5139be82d40eaecce2c15552c2",
     "semantic_hash": ""
   },
   "src/pages/RegisterPage.tsx": {
@@ -440,13 +440,13 @@
     "semantic_hash": ""
   },
   "src/lib/quickInputKeywords.ts": {
-    "mtime": 1785158624.739298,
-    "ast_hash": "742ef029adf49f4f088633b2183e5850",
+    "mtime": 1785159782.4657626,
+    "ast_hash": "05474a24aa68fb99f4db544404bcd2a6",
     "semantic_hash": ""
   },
   "src/lib/quickInputParser.ts": {
-    "mtime": 1785156086.5756273,
-    "ast_hash": "2597860d15062eaaff38e091ef52eaf9",
+    "mtime": 1785159786.3994634,
+    "ast_hash": "1814a3c28762a31d2a66c7a6c64ad825",
     "semantic_hash": ""
   },
   "src/pages/QuickInputHelp.tsx": {
@@ -480,13 +480,18 @@
     "semantic_hash": ""
   },
   "src/lib/quickInputAi.ts": {
-    "mtime": 1785158627.949557,
-    "ast_hash": "d4cf27e2413f4a5bf2841d826be9d6c6",
+    "mtime": 1785159840.235207,
+    "ast_hash": "f699a54f6349d52cc5850e381b9f2162",
     "semantic_hash": ""
   },
   "deploy/AI_QUICK_INPUT.md": {
     "mtime": 1785158090.9571943,
     "ast_hash": "af5b6b273f1ec0fc98dda45cd72f718b",
+    "semantic_hash": ""
+  },
+  "src/components/MiniCalendar.tsx": {
+    "mtime": 1785163102.8109248,
+    "ast_hash": "5a2d3614ed80cae23196c66c02f5904a",
     "semantic_hash": ""
   }
 }

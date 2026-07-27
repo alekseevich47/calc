@@ -310,8 +310,8 @@
     "semantic_hash": ""
   },
   "src/pages/AppShell.tsx": {
-    "mtime": 1785157765.9094195,
-    "ast_hash": "56eb208a71f5289881ec91615ac2a0b0",
+    "mtime": 1785159801.6766987,
+    "ast_hash": "711a8adb11182f45f3f60721800923fe",
     "semantic_hash": ""
   },
   "src/pages/AuthPage.tsx": {
@@ -440,13 +440,13 @@
     "semantic_hash": ""
   },
   "src/lib/quickInputKeywords.ts": {
-    "mtime": 1784823575.7516077,
-    "ast_hash": "f899abf6b303a08e89141ccb8a11d2c9",
+    "mtime": 1785159782.4657626,
+    "ast_hash": "05474a24aa68fb99f4db544404bcd2a6",
     "semantic_hash": ""
   },
   "src/lib/quickInputParser.ts": {
-    "mtime": 1785156086.5756273,
-    "ast_hash": "2597860d15062eaaff38e091ef52eaf9",
+    "mtime": 1785159786.3994634,
+    "ast_hash": "1814a3c28762a31d2a66c7a6c64ad825",
     "semantic_hash": ""
   },
   "src/pages/QuickInputHelp.tsx": {
@@ -480,8 +480,8 @@
     "semantic_hash": ""
   },
   "src/lib/quickInputAi.ts": {
-    "mtime": 1785157743.3896577,
-    "ast_hash": "429e6b4bf0d7e29588f85ced620795db",
+    "mtime": 1785159840.235207,
+    "ast_hash": "f699a54f6349d52cc5850e381b9f2162",
     "semantic_hash": ""
   },
   "deploy/AI_QUICK_INPUT.md": {

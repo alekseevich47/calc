@@ -13,6 +13,8 @@ import {
 } from "./db";
 import { locationZone } from "./markingValue";
 import {
+  DEFAULT_MARKING_TYPE_BY_NUMBER,
+  DEFAULT_MATERIAL_NAME,
   LOCATION_KEYWORDS,
   MARKING_NUM_ALIASES,
   MARKING_NUMBER_VARIANT_ALIASES,
@@ -381,6 +383,33 @@ function parseQuantity(working: string): { field: ParsedField<number>; working: 
   };
 }
 
+/** Материал «Краска», если в строке не указан. */
+export function applyMaterialDefault(
+  material: ParsedField<string>,
+  dicts: Dictionaries,
+): ParsedField<string> {
+  if (material.value) return material;
+  const hit = dicts.materials.find(
+    (m) => m.name.toLowerCase() === DEFAULT_MATERIAL_NAME.toLowerCase(),
+  );
+  return field(hit?.name ?? DEFAULT_MATERIAL_NAME, Boolean(hit));
+}
+
+/** Дефолтный типоразмер (напр. 1.14.1 → 4 м), если не распознан. */
+export function applyWorkRowDefaults(row: ParsedQuickRow, dicts: Dictionaries): ParsedQuickRow {
+  if (row.markingType.value) return row;
+
+  const num = row.markingNum.value.trim();
+  const defaultType = DEFAULT_MARKING_TYPE_BY_NUMBER[num];
+  if (!defaultType) return row;
+
+  const typeOpts = markingTypesByNumberId(dicts)[row.markingNumberId.value] ?? [];
+  const hit = typeOpts.find((t) => t.toLowerCase() === defaultType.toLowerCase());
+  if (!hit) return row;
+
+  return { ...row, markingType: field(hit, true) };
+}
+
 // ─── публичные функции ────────────────────────────────────────────────────────
 
 /** 4.1–4.4: одна строка работы. */
@@ -398,13 +427,16 @@ export function parseWorkLine(line: string, dicts: Dictionaries): ParsedQuickRow
 
   const qty = parseQuantity(working);
 
-  return {
-    location: loc.field,
-    markingNum: num.markingNum,
-    markingNumberId: num.markingNumberId,
-    markingType: typ.field,
-    volume: qty.field,
-  };
+  return applyWorkRowDefaults(
+    {
+      location: loc.field,
+      markingNum: num.markingNum,
+      markingNumberId: num.markingNumberId,
+      markingType: typ.field,
+      volume: qty.field,
+    },
+    dicts,
+  );
 }
 
 /** 4.5–4.6: строка «материал, тариф». */
@@ -467,7 +499,7 @@ export function parseMaterialTariffLine(
     }
   }
 
-  return { material, tariff };
+  return { material: applyMaterialDefault(material, dicts), tariff };
 }
 
 /**

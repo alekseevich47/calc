@@ -1,16 +1,16 @@
 # Graph Report - calc  (2026-07-27)
 
 ## Corpus Check
-- 87 files · ~64,377 words
+- 87 files · ~64,725 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 956 nodes · 1858 edges · 82 communities (45 shown, 37 thin omitted)
-- Extraction: 98% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 27 edges (avg confidence: 0.66)
+- 964 nodes · 1886 edges · 82 communities (45 shown, 37 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 27 edges (avg confidence: 0.66)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `82d4ac94`
+- Built from commit: `b2b63c14`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -98,7 +98,7 @@
 4. `compilerOptions` - 18 edges
 5. `isPocketBaseConfigured()` - 17 edges
 6. `react` - 16 edges
-7. `markingTypesByNumberId()` - 15 edges
+7. `markingTypesByNumberId()` - 16 edges
 8. `getCurrentUserFullName()` - 15 edges
 9. `pushQueueItem()` - 14 edges
 10. `getDb()` - 13 edges
@@ -127,11 +127,11 @@
 
 ### Community 0 - "IndexedDB Shift Cache"
 Cohesion: 0.07
-Nodes (81): CachedShift, CalcDB, deleteShift(), dequeue(), Dictionaries, DictItem, enqueue(), getDb() (+73 more)
+Nodes (75): CachedShift, CalcDB, deleteShift(), dequeue(), Dictionaries, DictItem, enqueue(), formatRuDate() (+67 more)
 
 ### Community 1 - "PocketBase Sync Layer"
-Cohesion: 0.09
-Nodes (20): DEFAULT_DICTIONARIES, buildParticipantOptions(), AddTeammateSheet(), COL_DEFS, ColKey, DESKTOP_COLS, DesktopRowDraft, DictContext (+12 more)
+Cohesion: 0.10
+Nodes (45): DEFAULT_DICTIONARIES, buildParticipantOptions(), getSnapshot(), hasShiftMaterialTariff(), isShiftRowComplete(), markingNumHasTypes(), subscribe(), useSyncSnapshot() (+37 more)
 
 ### Community 2 - "App Shell Routing"
 Cohesion: 0.20
@@ -174,8 +174,8 @@ Cohesion: 0.12
 Nodes (14): Command(), CommandGroup(), CommandInput(), CommandItem(), CommandList(), CommandSeparator(), CommandShortcut(), Dialog() (+6 more)
 
 ### Community 12 - "Menubar UI Kit"
-Cohesion: 0.10
-Nodes (25): applyStoredGraphicsQuality(), applyToDom(), emit(), getGraphicsQuality(), GraphicsQuality, listeners, readStored(), setGraphicsQuality() (+17 more)
+Cohesion: 0.13
+Nodes (20): DEFAULT_MARKING_TYPE_BY_NUMBER, formatMarkingNumWithDescription(), isMarkingNumberVisibleInQuickInput(), LOCATION_KEYWORDS, MARKING_NUM_ALIASES, MARKING_NUMBER_VARIANT_ALIASES, MARKING_NUMBERS_WITH_DESCRIPTION, MARKING_TYPE_SIZE_ALIASES (+12 more)
 
 ### Community 13 - "Context Menu UI"
 Cohesion: 0.12
@@ -190,8 +190,8 @@ Cohesion: 0.13
 Nodes (14): ES2023, vite.config.ts, compilerOptions, allowImportingTsExtensions, isolatedModules, lib, module, moduleDetection (+6 more)
 
 ### Community 16 - "Drawer UI Kit"
-Cohesion: 0.11
-Nodes (33): App(), RequireAuth(), router, clearUserScopedData(), ensureUserDataScope(), getPocketBaseUrl(), isPocketBaseConfigured(), pb (+25 more)
+Cohesion: 0.07
+Nodes (49): App(), RequireAuth(), router, clearUserScopedData(), ensureUserDataScope(), applyStoredGraphicsQuality(), applyToDom(), emit() (+41 more)
 
 ### Community 17 - "Select UI Kit"
 Cohesion: 0.18
@@ -199,7 +199,7 @@ Nodes (6): DrawerContent(), DrawerDescription(), DrawerFooter(), DrawerHeader(),
 
 ### Community 19 - "Radix Switch Tabs"
 Cohesion: 0.18
-Nodes (11): class-variance-authority, clsx, dependencies, class-variance-authority, clsx, @radix-ui/react-avatar, @radix-ui/react-slot, react-router (+3 more)
+Nodes (11): class-variance-authority, dependencies, class-variance-authority, @radix-ui/react-avatar, @radix-ui/react-slot, @radix-ui/react-toggle, react-router, @radix-ui/react-avatar (+3 more)
 
 ### Community 20 - "Apple Touch Icon"
 Cohesion: 0.40
@@ -230,20 +230,20 @@ Cohesion: 0.50
 Nodes (4): Alert(), AlertDescription(), AlertTitle(), alertVariants
 
 ### Community 27 - "Popover UI"
-Cohesion: 0.10
-Nodes (33): formatRuDate(), fromIsoDate(), isPinnedMarkingNumber(), markingTypesByNumberId(), markingTypesMap(), sortedMarkingNumbers(), quantityForEdit(), markingNumberImageUrl() (+25 more)
+Cohesion: 0.07
+Nodes (42): isPinnedMarkingNumber(), MarkingNumberItem, MarkingTypeItem, sortedMarkingNumbers(), draftRowMetrics(), finitePositive(), MarkingCoeffInput, pickZoneValue() (+34 more)
 
 ### Community 30 - "Portal Desktop Home"
 Cohesion: 0.67
 Nodes (3): #app-portal, DesktopHomePage, HomePcPage Dead Code
 
 ### Community 32 - "clsx Utility"
-Cohesion: 0.11
-Nodes (40): locationZone, LOCATION_KEYWORDS, MARKING_NUM_ALIASES, MARKING_NUMBER_VARIANT_ALIASES, MARKING_TYPE_SIZE_ALIASES, MATERIAL_KEYWORDS, QUANTITY_UNIT_WORDS, TARIFF_UNIT_WORDS (+32 more)
+Cohesion: 0.23
+Nodes (25): locationZone, applyMaterialDefault(), blankOut(), emptyNum(), emptyStr(), escapeRegExp(), field(), findKeyword() (+17 more)
 
 ### Community 34 - "idb Library"
 Cohesion: 0.17
-Nodes (20): AiDictionaryPayload, AiParseResult, AiParseStage, buildAiDictionaryPayload(), buildRowFromNumber(), fieldNum(), fieldStr(), isAiParseAvailable() (+12 more)
+Nodes (22): markingTypesByNumberId(), AiDictionaryPayload, AiParseResult, AiParseStage, buildAiDictionaryPayload(), buildRowFromNumber(), fieldNum(), fieldStr() (+14 more)
 
 ### Community 40 - "Radix Avatar"
 Cohesion: 0.12
@@ -258,8 +258,8 @@ Cohesion: 0.05
 Nodes (37): TASKS_graph — настройка «Графика» + производительность (виртуализация, memo, sync-стор, глобальные стили), Дизайн-решение, Дизайн-решение, Дизайн-решение, Дизайн-решение (что именно переносим и куда), Задача 1. Настройка «Графика»: Высокая / Низкая — в разделе Профиль, Задача 2. Виртуализация списка Истории (только видимые карточки), Задача 3. Мемоизация `filtered`/`totalVol`/`totalPay`/`totalPerPerson` (участники — уже мемоизированы) (+29 more)
 
 ### Community 57 - "DesktopHomePage"
-Cohesion: 0.30
-Nodes (21): hasShiftMaterialTariff(), isShiftRowComplete(), markingNumHasTypes(), ConfirmSheet(), DesktopEditRow(), DesktopHomePage(), draftMetricsFor(), EditRowForm() (+13 more)
+Cohesion: 0.67
+Nodes (3): hasUnrecognizedFields(), looksLikeFreeformInput(), shouldUseAiFallback()
 
 ### Community 71 - "idb"
 Cohesion: 0.12
@@ -292,14 +292,14 @@ _Questions this graph is uniquely positioned to answer:_
 - **What is the exact relationship between `Nginx SPA + PB Proxy` and `PB Path vs Subdomain Open Question`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **Why does `cn()` connect `Avatar Breadcrumb UI` to `App Shell Routing`, `shadcn Input Sheet`, `Carousel React Deps`, `Badge Checkbox UI`, `Radix Avatar`, `Alert Dialog UI`, `Command Palette UI`, `toggle-group.tsx`, `Context Menu UI`, `Dropdown Menu UI`, `popover.tsx`, `select.tsx`, `Select UI Kit`, `Accordion UI`, `Alert UI`?**
-  _High betweenness centrality (0.150) - this node is a cross-community bridge._
+  _High betweenness centrality (0.148) - this node is a cross-community bridge._
 - **Why does `dependencies` connect `Radix Switch Tabs` to `Carousel React Deps`, `ESLint Package Config`, `Navigation Menu UI`, `lucide-react Icons`, `pocketbase SDK`, `Radix Accordion`, `Radix Alert Dialog`, `Radix Aspect Ratio`, `Radix Checkbox`, `Radix Collapsible`, `Radix Dialog`, `Radix Dropdown`, `Radix Hover Card`, `Radix Label`, `Radix Menubar`, `Radix Nav Menu`, `Radix Popover`, `Radix Radio Group`, `Radix Scroll Area`, `Radix Select`, `Radix Separator`, `Radix Slider`, `Radix Toggle`, `Radix Toggle Group`, `react-dom`, `Resizable Panels`, `react-router`, `tailwind-merge`, `@radix-ui/react-alert-dialog`, `date-fns`, `idb`, `@tanstack/react-virtual`, `@radix-ui/react-progress`, `clsx`?**
-  _High betweenness centrality (0.090) - this node is a cross-community bridge._
+  _High betweenness centrality (0.089) - this node is a cross-community bridge._
 - **Why does `react` connect `Carousel React Deps` to `App Shell Routing`, `shadcn Input Sheet`, `toggle-group.tsx`, `Radix Switch Tabs`, `Accordion UI`?**
-  _High betweenness centrality (0.079) - this node is a cross-community bridge._
+  _High betweenness centrality (0.078) - this node is a cross-community bridge._
 - **What connects `fix-nginx-sw-cache.sh script`, `name`, `private` to the rest of the system?**
   _246 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `IndexedDB Shift Cache` be split into smaller, more focused modules?**
-  _Cohesion score 0.06750700280112044 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07459207459207459 - nodes in this community are weakly interconnected._
 - **Should `PocketBase Sync Layer` be split into smaller, more focused modules?**
-  _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10283687943262411 - nodes in this community are weakly interconnected._

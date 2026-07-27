@@ -4,8 +4,15 @@
  */
 
 import { markingTypesByNumberId, type Dictionaries } from "./db";
+import { MATERIAL_KEYWORDS } from "./quickInputKeywords";
 import { isPocketBaseConfigured, pb } from "./pocketbase";
-import type { ParsedField, ParsedMaterialTariff, ParsedQuickRow } from "./quickInputParser";
+import {
+  applyMaterialDefault,
+  applyWorkRowDefaults,
+  type ParsedField,
+  type ParsedMaterialTariff,
+  type ParsedQuickRow,
+} from "./quickInputParser";
 
 export type AiDictionaryPayload = {
   locations: string[];
@@ -74,9 +81,16 @@ function resolveLocationName(raw: string | null | undefined, dicts: Dictionaries
 }
 
 function resolveMaterialName(raw: string | null | undefined, dicts: Dictionaries): ParsedField<string> {
-  const t = String(raw ?? "").trim();
+  const t = String(raw ?? "").replace(/[«»""]/g, "").trim();
   if (!t) return fieldStr("", false);
-  const hit = dicts.materials.find((m) => m.name.toLowerCase() === t.toLowerCase());
+
+  const low = t.toLowerCase();
+  const aliasKey = Object.keys(MATERIAL_KEYWORDS)
+    .sort((a, b) => b.length - a.length || a.localeCompare(b, "ru"))
+    .find((k) => low === k || low.includes(k));
+  const canonical = aliasKey ? MATERIAL_KEYWORDS[aliasKey] : t;
+
+  const hit = dicts.materials.find((m) => m.name.toLowerCase() === canonical.toLowerCase());
   return fieldStr(hit?.name ?? t, Boolean(hit));
 }
 
@@ -112,13 +126,16 @@ function resolveMarkingRow(raw: RawAiRow, dicts: Dictionaries): ParsedQuickRow {
   const qty = Number(raw.quantity);
   const quantity = Number.isFinite(qty) && qty > 0 ? qty : 0;
 
-  return {
-    location: resolveLocationName(raw.location, dicts),
-    markingNum: fieldStr(markingNum, false),
-    markingNumberId: fieldStr(id, false),
-    markingType: fieldStr(typeHit?.name ?? typeName, Boolean(typeHit)),
-    volume: fieldNum(quantity, quantity > 0),
-  };
+  return applyWorkRowDefaults(
+    {
+      location: resolveLocationName(raw.location, dicts),
+      markingNum: fieldStr(markingNum, false),
+      markingNumberId: fieldStr(id, false),
+      markingType: fieldStr(typeHit?.name ?? typeName, Boolean(typeHit)),
+      volume: fieldNum(quantity, quantity > 0),
+    },
+    dicts,
+  );
 }
 
 function buildRowFromNumber(
@@ -150,13 +167,16 @@ function buildRowFromNumber(
   const quantity = Number.isFinite(qty) && qty > 0 ? qty : 0;
   const needsType = allowedTypes.length > 0;
 
-  return {
-    location: resolveLocationName(raw.location, dicts),
-    markingNum: fieldStr(num.number, true),
-    markingNumberId: fieldStr(num.id, true),
-    markingType: fieldStr(resolvedType, !needsType || typeRecognized),
-    volume: fieldNum(quantity, quantity > 0),
-  };
+  return applyWorkRowDefaults(
+    {
+      location: resolveLocationName(raw.location, dicts),
+      markingNum: fieldStr(num.number, true),
+      markingNumberId: fieldStr(num.id, true),
+      markingType: fieldStr(resolvedType, !needsType || typeRecognized),
+      volume: fieldNum(quantity, quantity > 0),
+    },
+    dicts,
+  );
 }
 
 /** Сопоставить имена участников с известными опциями (точное + по слову). */
@@ -182,7 +202,7 @@ export function matchParticipantNames(names: string[], options: string[]): strin
 function validateAiResult(raw: RawAiResult, dicts: Dictionaries): AiParseResult {
   const workRows = (raw.workRows ?? []).map((row) => resolveMarkingRow(row, dicts));
 
-  const material = resolveMaterialName(raw.material, dicts);
+  const material = applyMaterialDefault(resolveMaterialName(raw.material, dicts), dicts);
   const tariffNum = Number(raw.tariff);
   const tariff = fieldNum(
     Number.isFinite(tariffNum) && tariffNum > 0 ? tariffNum : 0,
@@ -195,7 +215,6 @@ function validateAiResult(raw: RawAiResult, dicts: Dictionaries): AiParseResult 
   const participants = matchParticipantNames(raw.participants ?? [], participantHints);
 
   const warnings = [...(raw.warnings ?? []).map((w) => String(w))];
-  if (!material.value) warnings.push("Материал не распознан");
   if (tariff.value <= 0) warnings.push("Тариф не указан");
   for (let i = 0; i < workRows.length; i++) {
     const row = workRows[i];

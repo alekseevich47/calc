@@ -9,7 +9,7 @@ import {
 } from "../components/shared";
 import { markingTypesByNumberId, sortedMarkingNumbers } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
-import { MARKING_NUMBER_VARIANT_ALIASES } from "../lib/quickInputKeywords";
+import { MARKING_NUMBER_VARIANT_ALIASES, formatMarkingNumWithDescription, isMarkingNumberVisibleInQuickInput } from "../lib/quickInputKeywords";
 import { isAiParseAvailable, parseQuickInputWithAi, type AiParseStage } from "../lib/quickInputAi";
 import {
   hasUnrecognizedFields,
@@ -112,6 +112,11 @@ function materialCardToLine(card: MaterialCard): string {
   if (card.material.trim()) parts.push(card.material.trim());
   if (card.tariff > 0) parts.push(`тариф ${card.tariff}`);
   return parts.join(", ");
+}
+
+function markingNumDisplay(card: WorkCard, meta: Record<string, MarkingNumMeta>): string {
+  const m = card.markingNumberId ? meta[card.markingNumberId] : undefined;
+  return formatMarkingNumWithDescription(card.markingNum, m?.description);
 }
 
 const AI_STAGE_LABELS: Record<AiParseStage, string> = {
@@ -222,6 +227,7 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
     const ids: string[] = [];
     if (!dicts) return { ids, meta, typesById: {} as Record<string, string[]> };
     for (const n of sortedMarkingNumbers(dicts)) {
+      if (!isMarkingNumberVisibleInQuickInput(n)) continue;
       ids.push(n.id);
       meta[n.id] = {
         label: n.number,
@@ -675,7 +681,7 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
                   />
                   <FieldRow
                     label="№ разметки"
-                    display={card.markingNum}
+                    display={markingNumDisplay(card, markingMeta.meta)}
                     hasVal={!!card.markingNum}
                     onTap={(el) => openDrop({ kind: "work", index, field: "markingNum" }, el)}
                   />

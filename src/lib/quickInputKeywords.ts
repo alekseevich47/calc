@@ -225,6 +225,46 @@ export const QUANTITY_UNIT_WORDS: string[] = [
 ];
 
 /**
+ * Материал по умолчанию, если в строке не указан.
+ */
+export const DEFAULT_MATERIAL_NAME = "Краска";
+
+/**
+ * Типоразмер по умолчанию для номера, если в строке не указан.
+ * Пример: 1.14.1 без размера → «4 м».
+ */
+export const DEFAULT_MARKING_TYPE_BY_NUMBER: Record<string, string> = {
+  "1.14.1": "4 м",
+};
+
+/**
+ * Варианты 1.18, видимые в dropdown быстрого ввода (порядок сохраняется).
+ * Остальные записи с number=1.18 скрыты из списка выбора.
+ */
+export const VISIBLE_1_18_MARKING_IDS: string[] = [
+  "qcnyjxj1f903pxt", // Стрелка прямая
+  "u4pup6s7e22i4jh", // Стрелка поворотная
+  "wr5004mse1dsl6g", // Стрелка прямо-поворотная
+];
+
+/** Номера, для которых в превью показываем «№ — описание». */
+export const MARKING_NUMBERS_WITH_DESCRIPTION = new Set(["1.18", "1.24.1", "1.24.2"]);
+
+export function isMarkingNumberVisibleInQuickInput(n: { id: string; number: string }): boolean {
+  if (String(n.number ?? "").trim() !== "1.18") return true;
+  return VISIBLE_1_18_MARKING_IDS.includes(n.id);
+}
+
+export function formatMarkingNumWithDescription(number: string, description?: string): string {
+  const num = String(number ?? "").trim();
+  if (!num) return "";
+  if (MARKING_NUMBERS_WITH_DESCRIPTION.has(num) && String(description ?? "").trim()) {
+    return `${num} — ${String(description).trim()}`;
+  }
+  return num;
+}
+
+/**
  * Алиас материала → materials.name из PB.
  * Пример: «хп, тариф 150» / «пластик, 150» → «Пластик».
  */
@@ -233,7 +273,7 @@ export const MATERIAL_KEYWORDS: Record<string, string> = {
   "кр.": "Краска",
   кр: "Краска",
   пластик: "Пластик",
-  "холодный пластик": "Пластик",
+  "холодный пластик": "Пластик", // «Холодный пластик» — регистр не важен
   "пл.": "Пластик",
   хп: "Пластик",
 };

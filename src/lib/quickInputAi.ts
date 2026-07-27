@@ -4,7 +4,7 @@
  */
 
 import { markingTypesByNumberId, type Dictionaries } from "./db";
-import { MATERIAL_KEYWORDS } from "./quickInputKeywords";
+import { MATERIAL_KEYWORDS, isMarkingNumberVisibleInPicker } from "./quickInputKeywords";
 import { isPocketBaseConfigured, pb } from "./pocketbase";
 import {
   applyMaterialDefault,
@@ -63,7 +63,9 @@ export function buildAiDictionaryPayload(dicts: Dictionaries): AiDictionaryPaylo
   return {
     locations: dicts.locations.map((x) => x.name),
     materials: dicts.materials.map((x) => x.name),
-    marking_numbers: dicts.markingNumbers.map((n) => ({
+    marking_numbers: dicts.markingNumbers
+      .filter(isMarkingNumberVisibleInPicker)
+      .map((n) => ({
       id: n.id,
       number: n.number,
       description: n.description || undefined,

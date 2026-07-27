@@ -6,6 +6,7 @@ import { StatusBadge, DropdownCard, DesktopDropdown, type MarkingNumMeta } from 
 import { DEFAULT_DICTIONARIES, markingTypesByNumberId, markingTypesMap, sortedMarkingNumbers, type Dictionaries } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
 import { draftRowMetrics } from "../lib/markingValue";
+import { isMarkingNumberVisibleInPicker } from "../lib/quickInputKeywords";
 import { getCurrentUserFullName, looksLikePbId, subscribeAuthStore } from "../lib/session";
 import { confirmShift, createTeammate, buildParticipantOptions, hasShiftMaterialTariff, isShiftRowComplete, markingNumHasTypes, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 import type { ShellContext } from "./AppShell";
@@ -32,12 +33,13 @@ function toDictOptions(dicts: Dictionaries): DictOptions {
   const markingNumMeta: Record<string, MarkingNumMeta> = {};
   const markingNumIds: string[] = [];
   for (const n of sortedMarkingNumbers(dicts)) {
-    markingNumIds.push(n.id);
+    // meta — все записи (для уже сохранённых скрытых №); ids — только видимые в picker
     markingNumMeta[n.id] = {
       label: n.number,
       description: n.description,
       imageUrls: (n.images ?? []).map((f) => markingNumberImageUrl(n.id, f)).filter(Boolean),
     };
+    if (isMarkingNumberVisibleInPicker(n)) markingNumIds.push(n.id);
   }
   return {
     dicts,
@@ -49,6 +51,12 @@ function toDictOptions(dicts: Dictionaries): DictOptions {
     materials: dicts.materials.map((x) => x.name),
     participants: dicts.participants.map((x) => x.name),
   };
+}
+
+/** Опции №: видимые + текущий id (если скрыт, но уже выбран в строке). */
+function markingNumOptionsWithCurrent(ids: string[], currentId?: string): string[] {
+  if (currentId && !ids.includes(currentId)) return [currentId, ...ids];
+  return ids;
 }
 
 function resolveMarkingNumberId(
@@ -568,7 +576,7 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
 
   function getOptions(col: ColKey): string[] {
     if (col === "location") return dict.locations;
-    if (col === "markingNum") return dict.markingNumIds;
+    if (col === "markingNum") return markingNumOptionsWithCurrent(dict.markingNumIds, row.markingNumberId);
     if (col === "markingType") return typeOptions;
     return [];
   }
@@ -606,41 +614,45 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
     setRow((p) => applyVal(p, col, val));
   }
 
-  function advanceAfterSelect(filled: EditRow, afterCol: ColKey) {
+  function nextEmptyCol(filled: EditRow, afterCol: ColKey): ColKey | null {
     const types = typesForMarking(dict, filled.markingNum, filled.markingNumberId);
     const seq: ColKey[] = ["location", "markingNum"];
     if (types.length > 0) seq.push("markingType");
     seq.push("volume");
-
     const startIdx = seq.indexOf(afterCol) + 1;
-    if (startIdx <= 0) return;
-
-    function isEmpty(col: ColKey): boolean {
-      if (col === "volume") return !(parseFloat(filled.volume) > 0);
-      if (col === "markingNum") return !filled.markingNumberId;
-      return !(filled as Record<string, string>)[col];
-    }
-
-    function tryOpenDrop(col: ColKey, attempt: number) {
-      const td = cellRefs.current[col];
-      if (td) {
-        openDrop(col, td);
-        return;
-      }
-      if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
-    }
-
+    if (startIdx <= 0) return null;
     for (let i = startIdx; i < seq.length; i++) {
       const col = seq[i];
-      if (!isEmpty(col)) continue;
       if (col === "volume") {
-        setOpenCol(null);
-        requestAnimationFrame(() => volumeInputRef.current?.focus());
-      } else {
-        tryOpenDrop(col, 0);
+        if (!(parseFloat(filled.volume) > 0)) return "volume";
+      } else if (col === "markingNum") {
+        if (!filled.markingNumberId) return col;
+      } else if (!(filled as Record<string, string>)[col]) {
+        return col;
       }
+    }
+    return null;
+  }
+
+  function tryOpenDrop(col: ColKey, attempt: number) {
+    const td = cellRefs.current[col];
+    if (td) {
+      openDrop(col, td);
       return;
     }
+    if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
+  }
+
+  /** iOS: focus() на input только синхронно в user gesture; dropdown можно отложить. */
+  function advanceAfterSelect(filled: EditRow, afterCol: ColKey) {
+    const nextCol = nextEmptyCol(filled, afterCol);
+    if (!nextCol) return;
+    if (nextCol === "volume") {
+      setOpenCol(null);
+      volumeInputRef.current?.focus();
+      return;
+    }
+    setTimeout(() => tryOpenDrop(nextCol, 0), 0);
   }
 
   const vol = parseFloat(row.volume) || 0;
@@ -776,7 +788,8 @@ function NewRowForm({ phoneRef, scrollRef, onAdd, onCancel, showTypeCol, onDraft
               const next = applyVal(row, openCol, v);
               setRow(next);
               if (openCol === "markingNum") onDraftMarkingKey(next.markingNumberId);
-              setTimeout(() => advanceAfterSelect(next, openCol), 0);
+              // focus «Кол-во» — синхронно (iOS); следующий dropdown — в advanceAfterSelect через setTimeout
+              advanceAfterSelect(next, openCol);
             }}
             onClose={() => setOpenCol(null)}
             withSearch={openCol === "location" || openCol === "markingNum"}
@@ -842,7 +855,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
 
   function getOptions(col: ColKey): string[] {
     if (col === "location") return dict.locations;
-    if (col === "markingNum") return dict.markingNumIds;
+    if (col === "markingNum") return markingNumOptionsWithCurrent(dict.markingNumIds, editRow.markingNumberId);
     if (col === "markingType") return typeOptions;
     return [];
   }
@@ -880,41 +893,44 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
     setEditRow((p) => applyVal(p, col, val));
   }
 
-  function advanceAfterSelect(filled: EditRow, afterCol: ColKey) {
+  function nextEmptyCol(filled: EditRow, afterCol: ColKey): ColKey | null {
     const types = typesForMarking(dict, filled.markingNum, filled.markingNumberId);
     const seq: ColKey[] = ["location", "markingNum"];
     if (types.length > 0) seq.push("markingType");
     seq.push("volume");
-
     const startIdx = seq.indexOf(afterCol) + 1;
-    if (startIdx <= 0) return;
-
-    function isEmpty(col: ColKey): boolean {
-      if (col === "volume") return !(parseFloat(filled.volume) > 0);
-      if (col === "markingNum") return !filled.markingNumberId;
-      return !(filled as Record<string, string>)[col];
-    }
-
-    function tryOpenDrop(col: ColKey, attempt: number) {
-      const td = cellRefs.current[col];
-      if (td) {
-        openDrop(col, td);
-        return;
-      }
-      if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
-    }
-
+    if (startIdx <= 0) return null;
     for (let i = startIdx; i < seq.length; i++) {
       const col = seq[i];
-      if (!isEmpty(col)) continue;
       if (col === "volume") {
-        setOpenCol(null);
-        requestAnimationFrame(() => volumeInputRef.current?.focus());
-      } else {
-        tryOpenDrop(col, 0);
+        if (!(parseFloat(filled.volume) > 0)) return "volume";
+      } else if (col === "markingNum") {
+        if (!filled.markingNumberId) return col;
+      } else if (!(filled as Record<string, string>)[col]) {
+        return col;
       }
+    }
+    return null;
+  }
+
+  function tryOpenDrop(col: ColKey, attempt: number) {
+    const td = cellRefs.current[col];
+    if (td) {
+      openDrop(col, td);
       return;
     }
+    if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
+  }
+
+  function advanceAfterSelect(filled: EditRow, afterCol: ColKey) {
+    const nextCol = nextEmptyCol(filled, afterCol);
+    if (!nextCol) return;
+    if (nextCol === "volume") {
+      setOpenCol(null);
+      volumeInputRef.current?.focus();
+      return;
+    }
+    setTimeout(() => tryOpenDrop(nextCol, 0), 0);
   }
 
   const vol = parseFloat(editRow.volume) || 0;
@@ -1036,7 +1052,7 @@ function EditRowForm({ phoneRef, scrollRef, row, onSave, onCancel, showTypeCol, 
               const next = applyVal(editRow, openCol, v);
               setEditRow(next);
               if (openCol === "markingNum") onDraftMarkingKey(next.markingNumberId);
-              setTimeout(() => advanceAfterSelect(next, openCol), 0);
+              advanceAfterSelect(next, openCol);
             }}
             onClose={() => setOpenCol(null)}
             withSearch={openCol === "location" || openCol === "markingNum"}
@@ -1725,41 +1741,44 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
     setDraft((p) => applyVal(p, col, val));
   }
 
-  function advanceAfterSelect(filled: DesktopRowDraft, afterCol: string) {
+  function nextEmptyCol(filled: DesktopRowDraft, afterCol: string): string | null {
     const types = typesForMarking(dict, filled.markingNum, filled.markingNumberId);
     const seq: string[] = ["location", "markingNum"];
     if (types.length > 0) seq.push("markingType");
     seq.push("volume");
-
     const startIdx = seq.indexOf(afterCol) + 1;
-    if (startIdx <= 0) return;
-
-    function isEmpty(col: string): boolean {
-      if (col === "volume") return !(parseFloat(filled.volume) > 0);
-      if (col === "markingNum") return !filled.markingNumberId;
-      return !(filled as Record<string, string>)[col];
-    }
-
-    function tryOpenDrop(col: string, attempt: number) {
-      const td = cellRefs.current[col];
-      if (td) {
-        openDrop(col, td);
-        return;
-      }
-      if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
-    }
-
+    if (startIdx <= 0) return null;
     for (let i = startIdx; i < seq.length; i++) {
       const col = seq[i];
-      if (!isEmpty(col)) continue;
       if (col === "volume") {
-        setOpenCol(null);
-        requestAnimationFrame(() => volumeInputRef.current?.focus());
-      } else {
-        tryOpenDrop(col, 0);
+        if (!(parseFloat(filled.volume) > 0)) return "volume";
+      } else if (col === "markingNum") {
+        if (!filled.markingNumberId) return col;
+      } else if (!(filled as Record<string, string>)[col]) {
+        return col;
       }
+    }
+    return null;
+  }
+
+  function tryOpenDrop(col: string, attempt: number) {
+    const td = cellRefs.current[col];
+    if (td) {
+      openDrop(col, td);
       return;
     }
+    if (attempt < 5) requestAnimationFrame(() => tryOpenDrop(col, attempt + 1));
+  }
+
+  function advanceAfterSelect(filled: DesktopRowDraft, afterCol: string) {
+    const nextCol = nextEmptyCol(filled, afterCol);
+    if (!nextCol) return;
+    if (nextCol === "volume") {
+      setOpenCol(null);
+      volumeInputRef.current?.focus();
+      return;
+    }
+    setTimeout(() => tryOpenDrop(nextCol, 0), 0);
   }
 
   const accent = isNew ? "rgba(255,107,0,0.04)" : "rgba(99,102,241,0.04)";
@@ -1774,7 +1793,7 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
           const isOpen = openCol === col;
           const options =
             col === "location"    ? dict.locations :
-            col === "markingNum"  ? dict.markingNumIds :
+            col === "markingNum"  ? markingNumOptionsWithCurrent(dict.markingNumIds, draft.markingNumberId) :
             col === "markingType" ? typeOptions : null;
           const locked = col === "markingType" && !typeSelectable;
           const cellValue = col === "markingNum" ? markingKey : (draft as any)[col];
@@ -1818,7 +1837,7 @@ function DesktopEditRow({ initial, onSave, onCancel, isNew, showTypeCol, onDraft
                     const next = applyVal(draft, col, v);
                     setDraft(next);
                     if (col === "markingNum") onDraftMarkingKey(next.markingNumberId);
-                    setTimeout(() => advanceAfterSelect(next, col), 0);
+                    advanceAfterSelect(next, col);
                   }}
                   onClose={() => setOpenCol(null)}
                   anchor={anchor}

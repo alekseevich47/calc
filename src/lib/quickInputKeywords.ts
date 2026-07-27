@@ -238,7 +238,7 @@ export const DEFAULT_MARKING_TYPE_BY_NUMBER: Record<string, string> = {
 };
 
 /**
- * Варианты 1.18, видимые в dropdown быстрого ввода (порядок сохраняется).
+ * Варианты 1.18, видимые в dropdown (таблица смены + быстрый ввод; порядок сохраняется).
  * Остальные записи с number=1.18 скрыты из списка выбора.
  */
 export const VISIBLE_1_18_MARKING_IDS: string[] = [
@@ -247,13 +247,22 @@ export const VISIBLE_1_18_MARKING_IDS: string[] = [
   "wr5004mse1dsl6g", // Стрелка прямо-поворотная
 ];
 
+/** Номера разметки, скрытые из dropdown (таблица + быстрый ввод). */
+export const HIDDEN_MARKING_NUMBERS = new Set(["1.14.2", "1.14.3"]);
+
 /** Номера, для которых в превью показываем «№ — описание». */
 export const MARKING_NUMBERS_WITH_DESCRIPTION = new Set(["1.18", "1.24.1", "1.24.2"]);
 
-export function isMarkingNumberVisibleInQuickInput(n: { id: string; number: string }): boolean {
-  if (String(n.number ?? "").trim() !== "1.18") return true;
-  return VISIBLE_1_18_MARKING_IDS.includes(n.id);
+/** Видимость № в picker'ах (Главная / История / Quick Input). */
+export function isMarkingNumberVisibleInPicker(n: { id: string; number: string }): boolean {
+  const num = String(n.number ?? "").trim();
+  if (HIDDEN_MARKING_NUMBERS.has(num)) return false;
+  if (num === "1.18") return VISIBLE_1_18_MARKING_IDS.includes(n.id);
+  return true;
 }
+
+/** @deprecated alias — то же, что isMarkingNumberVisibleInPicker */
+export const isMarkingNumberVisibleInQuickInput = isMarkingNumberVisibleInPicker;
 
 export function formatMarkingNumWithDescription(number: string, description?: string): string {
   const num = String(number ?? "").trim();

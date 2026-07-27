@@ -1,7 +1,7 @@
 # Graph Report - calc  (2026-07-27)
 
 ## Corpus Check
-- 88 files · ~65,264 words
+- 88 files · ~65,853 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -199,7 +199,7 @@ Nodes (6): DrawerContent(), DrawerDescription(), DrawerFooter(), DrawerHeader(),
 
 ### Community 19 - "Radix Switch Tabs"
 Cohesion: 0.18
-Nodes (11): class-variance-authority, clsx, dependencies, class-variance-authority, clsx, @radix-ui/react-avatar, @radix-ui/react-slot, react-router (+3 more)
+Nodes (11): class-variance-authority, date-fns, dependencies, class-variance-authority, date-fns, @radix-ui/react-avatar, @radix-ui/react-slot, react-router (+3 more)
 
 ### Community 20 - "Apple Touch Icon"
 Cohesion: 0.40

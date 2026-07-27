@@ -7,6 +7,7 @@ import type { CachedShift } from "../lib/db";
 import { markingTypesByNumberId, markingTypesMap, sortedMarkingNumbers } from "../lib/db";
 import { draftRowMetrics, quantityForEdit } from "../lib/markingValue";
 import { markingNumberImageUrl } from "../lib/pocketbase";
+import { isMarkingNumberVisibleInPicker } from "../lib/quickInputKeywords";
 import {
   buildParticipantOptions,
   formatRuDate,
@@ -534,7 +535,7 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
   const typeMapByNum = useMemo(() => (dicts ? markingTypesMap(dicts) : {}), [dicts]);
   const locations = dicts?.locations.map((x) => x.name) ?? [];
   const markingNumIds = useMemo(
-    () => (dicts ? sortedMarkingNumbers(dicts).map((n) => n.id) : []),
+    () => (dicts ? sortedMarkingNumbers(dicts).filter(isMarkingNumberVisibleInPicker).map((n) => n.id) : []),
     [dicts],
   );
   const markingNumMeta = useMemo(() => {
@@ -778,7 +779,11 @@ function EditShiftSheet({ shift, participantOptions, onClose }: {
                         || markingNumIds.find((id) => markingNumMeta[id]?.label === r.markingNum)
                         || r.markingNum
                       }
-                      options={markingNumIds}
+                      options={
+                        r.markingNumberId && !markingNumIds.includes(r.markingNumberId)
+                          ? [r.markingNumberId, ...markingNumIds]
+                          : markingNumIds
+                      }
                       withSearch
                       optionMeta={markingNumMeta}
                       onChange={(v) => updateRow(i, { markingNumberId: v })}

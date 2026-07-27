@@ -1,16 +1,16 @@
 # Graph Report - calc  (2026-07-27)
 
 ## Corpus Check
-- 88 files · ~65,853 words
+- 88 files · ~66,075 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 970 nodes · 1903 edges · 82 communities (45 shown, 37 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 27 edges (avg confidence: 0.66)
+- 973 nodes · 1915 edges · 82 communities (45 shown, 37 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 29 edges (avg confidence: 0.67)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4891bc0a`
+- Built from commit: `4181a34f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -101,7 +101,7 @@
 7. `markingTypesByNumberId()` - 16 edges
 8. `getCurrentUserFullName()` - 15 edges
 9. `pushQueueItem()` - 14 edges
-10. `getDb()` - 13 edges
+10. `EditShiftSheet()` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `calc` --semantically_similar_to--> `Учёт разметки`  [INFERRED] [semantically similar]
@@ -126,12 +126,12 @@
 ## Communities (82 total, 37 thin omitted)
 
 ### Community 0 - "IndexedDB Shift Cache"
-Cohesion: 0.07
-Nodes (77): CachedShift, CalcDB, deleteShift(), dequeue(), Dictionaries, DictItem, enqueue(), formatRuDate() (+69 more)
+Cohesion: 0.05
+Nodes (87): CachedShift, CalcDB, DEFAULT_DICTIONARIES, deleteShift(), dequeue(), Dictionaries, DictItem, enqueue() (+79 more)
 
 ### Community 1 - "PocketBase Sync Layer"
-Cohesion: 0.06
-Nodes (71): DEFAULT_DICTIONARIES, isPinnedMarkingNumber(), markingTypesByNumberId(), markingTypesMap(), sortedMarkingNumbers(), draftRowMetrics(), markingNumberImageUrl(), buildParticipantOptions() (+63 more)
+Cohesion: 0.07
+Nodes (73): markingTypesByNumberId(), markingTypesMap(), putShift(), sortedMarkingNumbers(), markingNumberImageUrl(), getCurrentUserFullName(), looksLikePbId(), buildParticipantOptions() (+65 more)
 
 ### Community 2 - "App Shell Routing"
 Cohesion: 0.22
@@ -175,7 +175,7 @@ Nodes (14): Command(), CommandGroup(), CommandInput(), CommandItem(), CommandLis
 
 ### Community 12 - "Menubar UI Kit"
 Cohesion: 0.13
-Nodes (19): DEFAULT_MARKING_TYPE_BY_NUMBER, formatMarkingNumWithDescription(), isMarkingNumberVisibleInQuickInput(), LOCATION_KEYWORDS, MARKING_NUM_ALIASES, MARKING_NUMBER_VARIANT_ALIASES, MARKING_NUMBERS_WITH_DESCRIPTION, MARKING_TYPE_SIZE_ALIASES (+11 more)
+Nodes (20): DEFAULT_MARKING_TYPE_BY_NUMBER, formatMarkingNumWithDescription(), HIDDEN_MARKING_NUMBERS, isMarkingNumberVisibleInPicker(), LOCATION_KEYWORDS, MARKING_NUM_ALIASES, MARKING_NUMBER_VARIANT_ALIASES, MARKING_NUMBERS_WITH_DESCRIPTION (+12 more)
 
 ### Community 13 - "Context Menu UI"
 Cohesion: 0.12
@@ -190,8 +190,8 @@ Cohesion: 0.13
 Nodes (14): ES2023, vite.config.ts, compilerOptions, allowImportingTsExtensions, isolatedModules, lib, module, moduleDetection (+6 more)
 
 ### Community 16 - "Drawer UI Kit"
-Cohesion: 0.06
-Nodes (58): App(), RequireAuth(), router, DateRange, MiniCalendar(), clearUserScopedData(), ensureUserDataScope(), applyStoredGraphicsQuality() (+50 more)
+Cohesion: 0.11
+Nodes (33): App(), RequireAuth(), router, clearUserScopedData(), ensureUserDataScope(), getPocketBaseUrl(), isPocketBaseConfigured(), pb (+25 more)
 
 ### Community 17 - "Select UI Kit"
 Cohesion: 0.18
@@ -199,7 +199,7 @@ Nodes (6): DrawerContent(), DrawerDescription(), DrawerFooter(), DrawerHeader(),
 
 ### Community 19 - "Radix Switch Tabs"
 Cohesion: 0.18
-Nodes (11): class-variance-authority, date-fns, dependencies, class-variance-authority, date-fns, @radix-ui/react-avatar, @radix-ui/react-slot, react-router (+3 more)
+Nodes (11): class-variance-authority, dependencies, class-variance-authority, @radix-ui/react-avatar, @radix-ui/react-slot, react-dom, react-router, @radix-ui/react-avatar (+3 more)
 
 ### Community 20 - "Apple Touch Icon"
 Cohesion: 0.40
@@ -230,8 +230,8 @@ Cohesion: 0.50
 Nodes (4): Alert(), AlertDescription(), AlertTitle(), alertVariants
 
 ### Community 27 - "Popover UI"
-Cohesion: 0.24
-Nodes (12): MarkingNumberItem, MarkingTypeItem, finitePositive(), MarkingCoeffInput, pickZoneValue(), quantityForEdit(), resolveMarkingCoeff(), resolveNumberItem() (+4 more)
+Cohesion: 0.09
+Nodes (27): DateRange, MiniCalendar(), applyStoredGraphicsQuality(), applyToDom(), emit(), getGraphicsQuality(), GraphicsQuality, listeners (+19 more)
 
 ### Community 30 - "Portal Desktop Home"
 Cohesion: 0.67
@@ -292,14 +292,14 @@ _Questions this graph is uniquely positioned to answer:_
 - **What is the exact relationship between `Nginx SPA + PB Proxy` and `PB Path vs Subdomain Open Question`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
 - **Why does `cn()` connect `Avatar Breadcrumb UI` to `App Shell Routing`, `shadcn Input Sheet`, `Carousel React Deps`, `Badge Checkbox UI`, `Radix Avatar`, `Alert Dialog UI`, `Command Palette UI`, `Context Menu UI`, `Dropdown Menu UI`, `popover.tsx`, `select.tsx`, `Select UI Kit`, `Radix Slider`, `Accordion UI`, `Alert UI`?**
-  _High betweenness centrality (0.146) - this node is a cross-community bridge._
+  _High betweenness centrality (0.145) - this node is a cross-community bridge._
 - **Why does `dependencies` connect `Radix Switch Tabs` to `Carousel React Deps`, `ESLint Package Config`, `Navigation Menu UI`, `lucide-react Icons`, `pocketbase SDK`, `Radix Accordion`, `Radix Alert Dialog`, `Radix Aspect Ratio`, `Radix Checkbox`, `Radix Collapsible`, `Radix Dialog`, `Radix Dropdown`, `Radix Hover Card`, `Radix Label`, `Radix Menubar`, `Radix Nav Menu`, `Radix Popover`, `Radix Radio Group`, `Radix Scroll Area`, `Radix Select`, `Radix Separator`, `Radix Toggle`, `Radix Toggle Group`, `react-dom`, `Resizable Panels`, `react-router`, `tailwind-merge`, `@radix-ui/react-alert-dialog`, `date-fns`, `idb`, `@tanstack/react-virtual`, `@radix-ui/react-progress`, `toggle-group.tsx`, `clsx`?**
-  _High betweenness centrality (0.088) - this node is a cross-community bridge._
+  _High betweenness centrality (0.087) - this node is a cross-community bridge._
 - **Why does `react` connect `Carousel React Deps` to `shadcn Input Sheet`, `Badge Checkbox UI`, `Alert Dialog UI`, `Radix Switch Tabs`, `Accordion UI`?**
   _High betweenness centrality (0.077) - this node is a cross-community bridge._
 - **What connects `fix-nginx-sw-cache.sh script`, `name`, `private` to the rest of the system?**
   _246 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `IndexedDB Shift Cache` be split into smaller, more focused modules?**
-  _Cohesion score 0.07120253164556962 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05347985347985348 - nodes in this community are weakly interconnected._
 - **Should `PocketBase Sync Layer` be split into smaller, more focused modules?**
-  _Cohesion score 0.06493506493506493 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06613924050632912 - nodes in this community are weakly interconnected._

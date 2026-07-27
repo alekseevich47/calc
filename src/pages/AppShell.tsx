@@ -10,7 +10,7 @@ import {
 import { markingTypesByNumberId, sortedMarkingNumbers } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
 import { MARKING_NUMBER_VARIANT_ALIASES } from "../lib/quickInputKeywords";
-import { isAiParseAvailable, parseQuickInputWithAi } from "../lib/quickInputAi";
+import { isAiParseAvailable, parseQuickInputWithAi, type AiParseStage } from "../lib/quickInputAi";
 import {
   hasUnrecognizedFields,
   parseMaterialTariffLine,
@@ -114,6 +114,38 @@ function materialCardToLine(card: MaterialCard): string {
   return parts.join(", ");
 }
 
+const AI_STAGE_LABELS: Record<AiParseStage, string> = {
+  sending: "Отправляем текст…",
+  analyzing: "Анализируем с помощью ИИ…",
+  validating: "Проверяем по справочникам…",
+};
+
+function AiParseProgress({ stage }: { stage: AiParseStage }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "12px 14px",
+        borderRadius: 12,
+        background: "rgba(255,107,0,0.06)",
+        border: "1px solid rgba(255,107,0,0.14)",
+      }}
+    >
+      <RefreshCw
+        size={18}
+        strokeWidth={2.2}
+        color="#FF6B00"
+        style={{ animation: "spin 1s linear infinite", flexShrink: 0 }}
+      />
+      <span style={{ fontSize: 13, fontWeight: 600, color: "#FF6B00", lineHeight: 1.4 }}>
+        {AI_STAGE_LABELS[stage]}
+      </span>
+    </div>
+  );
+}
+
 // ─── Quick Input (mobile = bottom sheet, desktop = centered modal) ────────────
 
 function FieldRow({
@@ -174,6 +206,7 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
   const [dirty, setDirty] = useState(false);
   const [recognizedOnce, setRecognizedOnce] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [parseStage, setParseStage] = useState<AiParseStage | null>(null);
   const [aiMode, setAiMode] = useState(false);
   const [offerAi, setOfferAi] = useState(false);
   const [usedAi, setUsedAi] = useState(false);
@@ -214,6 +247,7 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
     setWarnings([]);
     setUsedAi(false);
     setOfferAi(false);
+    setParseStage(null);
     setDirty(false);
     setParseError(undefined);
     setEdit(null);
@@ -251,10 +285,11 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
   async function recognizeWithAi() {
     if (!dicts) return;
     setParsing(true);
+    setParseStage("sending");
     setParseError(undefined);
     setOfferAi(false);
     try {
-      const ai = await parseQuickInputWithAi(text, dicts);
+      const ai = await parseQuickInputWithAi(text, dicts, setParseStage);
       applyParseResult(
         ai.workRows,
         ai.materialTariff,
@@ -268,6 +303,7 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
       clearCards();
     } finally {
       setParsing(false);
+      setParseStage(null);
     }
   }
 
@@ -571,6 +607,10 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
           >
             {parsing ? "Распознаём…" : "Распознать"}
           </button>
+        )}
+
+        {parsing && parseStage && (
+          <AiParseProgress stage={parseStage} />
         )}
 
         {parseError && (

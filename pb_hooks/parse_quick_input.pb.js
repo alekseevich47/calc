@@ -9,18 +9,29 @@ routerAdd(
   "POST",
   "/parse-quick-input",
   (e) => {
+    const started = Date.now();
     const body = e.requestInfo().body || {};
     const text = String(body.text || "").trim();
     if (!text) {
+      console.error("parse-quick-input reject: empty text");
       throw new BadRequestError("Пустой текст");
     }
 
+    const dictionaries = body.dictionaries || {};
+    const dictNums = dictionaries.marking_numbers;
+    const numCount = Array.isArray(dictNums) ? dictNums.length : 0;
+    console.log(
+      "parse-quick-input start",
+      "chars=" + text.length,
+      "marking_numbers=" + numCount,
+    );
+
     const apiKey = $os.getenv("DEEPSEEK_API_KEY");
     if (!apiKey) {
+      console.error("parse-quick-input reject: DEEPSEEK_API_KEY missing");
       throw new BadRequestError("ИИ не настроен на сервере (DEEPSEEK_API_KEY)");
     }
 
-    const dictionaries = body.dictionaries || {};
     const model = String($os.getenv("DEEPSEEK_MODEL") || "deepseek-v4-flash");
 
     const systemPrompt = [
@@ -61,7 +72,12 @@ routerAdd(
     });
 
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      console.error("DeepSeek error", res.statusCode, res.raw);
+      console.error(
+        "parse-quick-input DeepSeek error",
+        "status=" + res.statusCode,
+        "ms=" + (Date.now() - started),
+        res.raw,
+      );
       throw new BadRequestError("Ошибка ИИ-сервиса (" + res.statusCode + ")");
     }
 
@@ -71,6 +87,7 @@ routerAdd(
       : "";
 
     if (!content) {
+      console.error("parse-quick-input reject: empty AI content", "ms=" + (Date.now() - started));
       throw new BadRequestError("Пустой ответ ИИ");
     }
 
@@ -78,9 +95,21 @@ routerAdd(
     try {
       ai = JSON.parse(content);
     } catch (err) {
-      console.error("DeepSeek JSON parse failed", content);
+      console.error(
+        "parse-quick-input JSON parse failed",
+        "ms=" + (Date.now() - started),
+        content,
+      );
       throw new BadRequestError("ИИ вернул невалидный JSON");
     }
+
+    const rowCount = Array.isArray(ai.workRows) ? ai.workRows.length : 0;
+    console.log(
+      "parse-quick-input ok",
+      "ms=" + (Date.now() - started),
+      "rows=" + rowCount,
+      "model=" + model,
+    );
 
     return e.json(200, { ok: true, result: ai });
   },

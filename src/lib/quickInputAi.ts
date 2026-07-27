@@ -216,10 +216,34 @@ export function isAiParseAvailable(): boolean {
   return isPocketBaseConfigured() && typeof navigator !== "undefined" && navigator.onLine;
 }
 
+export const AI_PARSE_TIMEOUT_MS = 90_000;
+
+export type AiParseStage = "sending" | "analyzing" | "validating";
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("Превышено время ожидания")),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 /** Вызов DeepSeek через PocketBase hook. */
 export async function parseQuickInputWithAi(
   text: string,
   dicts: Dictionaries,
+  onStage?: (stage: AiParseStage) => void,
 ): Promise<AiParseResult> {
   if (!isPocketBaseConfigured()) {
     throw new Error("PocketBase не настроен");
@@ -228,16 +252,25 @@ export async function parseQuickInputWithAi(
     throw new Error("Нет сети для ИИ-распознавания");
   }
 
-  const res = await pb.send<{ ok?: boolean; result?: RawAiResult; message?: string }>(
-    "/parse-quick-input",
-    {
-      method: "POST",
-      body: {
-        text,
-        dictionaries: buildAiDictionaryPayload(dicts),
+  onStage?.("sending");
+  await new Promise((r) => setTimeout(r, 0));
+  onStage?.("analyzing");
+
+  const res = await withTimeout(
+    pb.send<{ ok?: boolean; result?: RawAiResult; message?: string }>(
+      "/api/parse-quick-input",
+      {
+        method: "POST",
+        body: {
+          text,
+          dictionaries: buildAiDictionaryPayload(dicts),
+        },
       },
-    },
+    ),
+    AI_PARSE_TIMEOUT_MS,
   );
+
+  onStage?.("validating");
 
   if (!res?.result) {
     throw new Error("Пустой ответ сервера ИИ");

@@ -8,7 +8,7 @@ import { markingNumberImageUrl } from "../lib/pocketbase";
 import { draftRowMetrics } from "../lib/markingValue";
 import { getCurrentUserFullName, looksLikePbId, subscribeAuthStore } from "../lib/session";
 import { confirmShift, createTeammate, buildParticipantOptions, hasShiftMaterialTariff, isShiftRowComplete, markingNumHasTypes, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
-import type { QuickRow, ShellContext } from "./AppShell";
+import type { ShellContext } from "./AppShell";
 
 // ─── Dictionaries context (из IndexedDB / PocketBase) ─────────────────────────
 
@@ -2127,11 +2127,22 @@ export default function HomePage() {
   }, [userName]);
 
   useEffect(() => {
-    registerAddRow((rows: QuickRow[]) => {
+    registerAddRow((payload) => {
+      const { rows, participants: parsedParticipants } = payload;
       const withMat = rows.find((r) => r.material);
       const withTar = rows.find((r) => r.tariff);
       if (withMat?.material) setMaterial((prev) => prev || withMat.material);
       if (withTar?.tariff) setTariff((prev) => prev || String(withTar.tariff));
+      if (parsedParticipants?.length) {
+        setParticipants((prev) => {
+          const me = getCurrentUserFullName();
+          const merged = new Set<string>();
+          if (me) merged.add(me);
+          for (const p of prev) if (p) merged.add(p);
+          for (const p of parsedParticipants) if (p) merged.add(p);
+          return [...merged];
+        });
+      }
       setRows((prev) => [
         ...prev,
         ...rows.map((quick, i) => ({

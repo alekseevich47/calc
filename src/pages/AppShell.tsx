@@ -10,12 +10,15 @@ import {
 import { markingTypesByNumberId, sortedMarkingNumbers } from "../lib/db";
 import { markingNumberImageUrl } from "../lib/pocketbase";
 import { MARKING_NUMBER_VARIANT_ALIASES } from "../lib/quickInputKeywords";
+import { isAiParseAvailable, parseQuickInputWithAi } from "../lib/quickInputAi";
 import {
+  hasUnrecognizedFields,
   parseMaterialTariffLine,
   parseQuickInput,
   parseWorkLine,
 } from "../lib/quickInputParser";
-import { peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
+import { buildParticipantOptions, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
+import { getCurrentUserFullName } from "../lib/session";
 
 // ─── Types shared with pages ──────────────────────────────────────────────────
 
@@ -29,9 +32,14 @@ export interface QuickRow {
   tariff: number;
 }
 
+export interface QuickInputAddPayload {
+  rows: QuickRow[];
+  participants?: string[];
+}
+
 export interface ShellContext {
   phoneRef: React.RefObject<HTMLDivElement | null>;
-  registerAddRow: (fn: (rows: QuickRow[]) => void) => void;
+  registerAddRow: (fn: (payload: QuickInputAddPayload) => void) => void;
   isDesktop: boolean;
 }
 
@@ -154,15 +162,21 @@ function FieldRow({
 
 function QuickInputContent({ onClose, onAdd, isDesktop }: {
   onClose: () => void;
-  onAdd: (rows: QuickRow[]) => void;
+  onAdd: (payload: QuickInputAddPayload) => void;
   isDesktop: boolean;
 }) {
   const dicts = useDictionaries();
   const [text, setText] = useState("");
   const [workCards, setWorkCards] = useState<WorkCard[]>([]);
   const [materialCard, setMaterialCard] = useState<MaterialCard | null>(null);
+  const [participantNames, setParticipantNames] = useState<string[]>([]);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [dirty, setDirty] = useState(false);
   const [recognizedOnce, setRecognizedOnce] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [aiMode, setAiMode] = useState(false);
+  const [offerAi, setOfferAi] = useState(false);
+  const [usedAi, setUsedAi] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [parseError, setParseError] = useState<string | undefined>();
   const [edit, setEdit] = useState<EditTarget | null>(null);
@@ -187,35 +201,119 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
 
   const locations = dicts?.locations.map((x) => x.name) ?? [];
   const materials = dicts?.materials.map((x) => x.name) ?? [];
+  const participantOptions = useMemo(
+    () => buildParticipantOptions(dicts?.participants.map((x) => x.name) ?? [], getCurrentUserFullName()),
+    [dicts],
+  );
   const hasCards = workCards.length > 0 && materialCard !== null;
 
   function clearCards() {
     setWorkCards([]);
     setMaterialCard(null);
+    setParticipantNames([]);
+    setWarnings([]);
+    setUsedAi(false);
+    setOfferAi(false);
     setDirty(false);
     setParseError(undefined);
     setEdit(null);
   }
 
-  function handleRecognize() {
+  function applyParseResult(
+    workRows: ReturnType<typeof parseWorkLine>[],
+    materialTariff: ReturnType<typeof parseMaterialTariffLine> | null,
+    nextParticipants: string[],
+    nextWarnings: string[],
+    ai: boolean,
+  ) {
+    if (workRows.length === 0) {
+      setParseError("Не удалось распознать строки работы");
+      setWorkCards([]);
+      setMaterialCard(null);
+      setParticipantNames([]);
+      setWarnings([]);
+      return;
+    }
+    setParseError(undefined);
+    setWorkCards(workRows.map(workCardFromParsed));
+    setMaterialCard(
+      materialTariff
+        ? materialCardFromParsed(materialTariff)
+        : { material: "", tariff: 0 },
+    );
+    setParticipantNames(nextParticipants);
+    setWarnings(nextWarnings);
+    setUsedAi(ai);
+    setDirty(false);
+    setEdit(null);
+  }
+
+  async function recognizeWithAi() {
+    if (!dicts) return;
+    setParsing(true);
+    setParseError(undefined);
+    setOfferAi(false);
+    try {
+      const ai = await parseQuickInputWithAi(text, dicts);
+      applyParseResult(
+        ai.workRows,
+        ai.materialTariff,
+        ai.participants,
+        ai.warnings,
+        true,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Ошибка ИИ-распознавания";
+      setParseError(msg);
+      clearCards();
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  async function handleRecognize() {
     if (!dicts) {
       setParseError("Справочники ещё не загружены");
       return;
     }
     setRecognizedOnce(true);
-    const result = parseQuickInput(text, dicts);
-    if (result.error) {
-      setParseError(result.error);
-      setWorkCards([]);
-      setMaterialCard(null);
-      setDirty(false);
+    setParseError(undefined);
+    setOfferAi(false);
+
+    if (aiMode) {
+      if (!isAiParseAvailable()) {
+        setParseError("Нет сети для ИИ-распознавания");
+        clearCards();
+        return;
+      }
+      await recognizeWithAi();
       return;
     }
-    setParseError(undefined);
-    setWorkCards(result.workRows.map(workCardFromParsed));
-    setMaterialCard(result.materialTariff ? materialCardFromParsed(result.materialTariff) : null);
-    setDirty(false);
-    setEdit(null);
+
+    setParsing(true);
+    const local = parseQuickInput(text, dicts);
+
+    if (local.error) {
+      setParseError(local.error);
+      setOfferAi(isAiParseAvailable());
+      clearCards();
+      setParsing(false);
+      return;
+    }
+
+    const partial = hasUnrecognizedFields(local, dicts);
+    applyParseResult(local.workRows, local.materialTariff, [], [], false);
+
+    if (partial) {
+      setOfferAi(isAiParseAvailable());
+      if (!isAiParseAvailable()) {
+        setWarnings((prev) => [
+          ...prev,
+          "Не все поля распознаны — для свободного формата нужна сеть и режим ИИ",
+        ]);
+      }
+    }
+    setParsing(false);
   }
 
   function handleVerify() {
@@ -241,7 +339,10 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
       material: materialCard.material,
       tariff: materialCard.tariff,
     }));
-    onAdd(rows);
+    onAdd({
+      rows,
+      participants: participantNames.length > 0 ? participantNames : undefined,
+    });
     onClose();
   }
 
@@ -389,6 +490,31 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
         <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
           <button
             type="button"
+            onClick={() => {
+              setAiMode((v) => !v);
+              setOfferAi(false);
+            }}
+            aria-label={aiMode ? "Режим ИИ включён" : "Режим ИИ выключен"}
+            aria-pressed={aiMode}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px 6px",
+              color: aiMode ? "#FF6B00" : "#9ca3af",
+              outline: "none",
+              display: "flex",
+              alignItems: "center",
+              fontFamily: "Inter, sans-serif",
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: "0.02em",
+            }}
+          >
+            AI
+          </button>
+          <button
+            type="button"
             onClick={() => setShowHelp(true)}
             aria-label="Справка по ключевым словам"
             style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#9ca3af", outline: "none", display: "flex" }}
@@ -413,42 +539,79 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
           onChange={(e) => {
             setText(e.target.value);
             setRecognizedOnce(false);
+            setOfferAi(false);
             clearCards();
           }}
         />
         <div style={{ margin: 0, fontSize: 11, color: "#9ca3af", lineHeight: 1.55, display: "flex", flexDirection: "column", gap: 6 }}>
           <p style={{ margin: 0 }}>
-            Шаблон:{" "}
-            <span style={{ color: "#6b7280", whiteSpace: "pre-line" }}>
-              {"Место, № разметки, тип разметки (если имеется), количество\nМатериал, тариф"}
-            </span>
+            {aiMode
+              ? "Режим ИИ: вставьте текст из мессенджера — порядок полей не важен."
+              : "Шаблонный ввод — по ключевым словам. Для свободного текста включите AI."}
           </p>
           <p style={{ margin: 0 }}>
-            Пример:{" "}
+            Шаблон:{" "}
             <span style={{ color: "#6b7280", whiteSpace: "pre-line" }}>
-              {"Трасса, 1.24.2 обгон, 2\nкраска, 150"}
+              {"Место, № разметки, тип (если есть), количество\nМатериал, тариф"}
             </span>
           </p>
         </div>
         {!recognizedOnce && (
           <button
-            onClick={handleRecognize}
-            disabled={!text.trim()}
+            onClick={() => void handleRecognize()}
+            disabled={!text.trim() || parsing}
             style={{
               height: 44, borderRadius: 12, border: "none",
-              background: text.trim() ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.07)",
-              color: text.trim() ? "#fff" : "#b0b7c3",
+              background: text.trim() && !parsing ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.07)",
+              color: text.trim() && !parsing ? "#fff" : "#b0b7c3",
               fontSize: 14, fontWeight: 600, fontFamily: "Inter, sans-serif",
-              cursor: text.trim() ? "pointer" : "not-allowed", outline: "none",
-              boxShadow: text.trim() ? "0 4px 14px rgba(255,107,0,0.26)" : "none",
+              cursor: text.trim() && !parsing ? "pointer" : "not-allowed", outline: "none",
+              boxShadow: text.trim() && !parsing ? "0 4px 14px rgba(255,107,0,0.26)" : "none",
             }}
           >
-            Распознать
+            {parsing ? "Распознаём…" : "Распознать"}
           </button>
         )}
 
         {parseError && (
           <p style={{ margin: 0, fontSize: 12, color: "#ef4444", lineHeight: 1.4 }}>{parseError}</p>
+        )}
+
+        {offerAi && !aiMode && (
+          <button
+            type="button"
+            onClick={() => void recognizeWithAi()}
+            disabled={parsing}
+            style={{
+              alignSelf: "flex-start",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: parsing ? "not-allowed" : "pointer",
+              fontSize: 12,
+              fontWeight: 600,
+              fontFamily: "Inter, sans-serif",
+              color: "#FF6B00",
+              outline: "none",
+              opacity: parsing ? 0.6 : 1,
+            }}
+          >
+            {parsing ? "Распознаём…" : "Распознать с помощью ИИ"}
+          </button>
+        )}
+
+        {usedAi && hasCards && (
+          <p style={{ margin: 0, fontSize: 11, color: "#6366f1", lineHeight: 1.4 }}>
+            Распознано с помощью ИИ — проверьте поля перед добавлением
+          </p>
+        )}
+
+        {warnings.length > 0 && hasCards && (
+          <div style={{ margin: 0, fontSize: 11, color: "#d97706", lineHeight: 1.45, display: "flex", flexDirection: "column", gap: 4 }}>
+            {warnings.map((w) => (
+              <p key={w} style={{ margin: 0 }}>{w}</p>
+            ))}
+          </div>
         )}
 
         {hasCards && (
@@ -505,6 +668,26 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
                 </div>
               );
             })}
+
+            {participantNames.length > 0 && (
+              <div style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+                <div style={{ padding: "10px 14px 6px", borderBottom: "1px solid rgba(0,0,0,0.05)" }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                    Участники
+                  </span>
+                </div>
+                <FieldRow
+                  label="Экипаж"
+                  display={participantNames.join(", ")}
+                  hasVal={participantNames.length > 0}
+                />
+                {participantNames.some((n) => !participantOptions.includes(n)) && (
+                  <p style={{ margin: 0, padding: "0 14px 10px", fontSize: 11, color: "#d97706", lineHeight: 1.4 }}>
+                    Некоторые имена не найдены в списке — проверьте на главной
+                  </p>
+                )}
+              </div>
+            )}
 
             {materialCard && (
               <div style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 1px 6px rgba(0,0,0,0.05)", overflow: "hidden" }}>
@@ -594,7 +777,7 @@ function QuickInputContent({ onClose, onAdd, isDesktop }: {
 }
 
 // Mobile bottom sheet
-function QuickInputSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (rows: QuickRow[]) => void }) {
+function QuickInputSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (payload: QuickInputAddPayload) => void }) {
   const portal = document.getElementById("app-portal");
   if (!portal) return null;
   return createPortal(
@@ -620,7 +803,7 @@ function QuickInputSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (rows
 }
 
 // Desktop centered modal
-function QuickInputModal({ onClose, onAdd }: { onClose: () => void; onAdd: (rows: QuickRow[]) => void }) {
+function QuickInputModal({ onClose, onAdd }: { onClose: () => void; onAdd: (payload: QuickInputAddPayload) => void }) {
   return createPortal(
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{
       position: "fixed", inset: 0, zIndex: 1000,
@@ -865,13 +1048,13 @@ function DesktopSidebar({ syncStatus, onSyncClick, onQuickInput, collapsed, onTo
 export default function AppShell() {
   const isDesktop = useIsDesktop();
   const phoneRef = useRef<HTMLDivElement>(null);
-  const addRowRef = useRef<((rows: QuickRow[]) => void) | null>(null);
+  const addRowRef = useRef<((payload: QuickInputAddPayload) => void) | null>(null);
   const [showQuickInput, setShowQuickInput] = useState(false);
   const syncStatus = useSyncStatus();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  function registerAddRow(fn: (rows: QuickRow[]) => void) { addRowRef.current = fn; }
-  function handleQuickAdd(rows: QuickRow[]) { addRowRef.current?.(rows); }
+  function registerAddRow(fn: (payload: QuickInputAddPayload) => void) { addRowRef.current = fn; }
+  function handleQuickAdd(payload: QuickInputAddPayload) { addRowRef.current?.(payload); }
   function handleSync() {
     if (syncStatus === "synced") return;
     void (async () => {

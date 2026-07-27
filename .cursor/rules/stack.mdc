@@ -33,7 +33,7 @@ alwaysApply: true
 | Tailwind / shadcn-ui (`src/app/components/ui/*`) | подключены как инфраструктура, но страницы их **не используют** — не подключать к новым экранам без явного решения, не удалять пока не мешает |
 | Неиспользуемое в deps | `motion`, MUI, Emotion, recharts, react-dnd, sonner, vaul, cmdk, react-hook-form — артефакты Figma Make, не использовать без причины |
 | PWA / офлайн / IndexedDB / API | `vite-plugin-pwa` (`autoUpdate`, precache+`navigateFallback`), `registerSW` в `main.tsx`, `src/lib/{pocketbase,db,sync,session}.ts`; офлайн shell + обновление — см. «PWA: офлайн shell и обновление версии» |
-| Умный ввод | Парсер `src/lib/quickInputParser.ts` + справочник `src/lib/quickInputKeywords.ts`, вызывается из `AppShell.tsx` — без fuzzy match по справочнику |
+| Умный ввод | Локальный парсер `src/lib/quickInputParser.ts` + `quickInputKeywords.ts`; онлайн-fallback DeepSeek через PB hook `pb_hooks/parse_quick_input.pb.js` → `src/lib/quickInputAi.ts` |
 
 **Правило работы с этим кодом:** это Figma Make прототип — все стили/анимации/иконки/переходы уже сделаны и **сохраняются как есть**; добираем реальную логику (state/persist/PWA/API) вокруг существующей вёрстки, не переписывая визуал.
 
@@ -73,7 +73,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - **Навигация**: bottom glass-пилюля `position: absolute` в shell + FAB «+» (mobile) / sidebar (desktop). Sheet'ы (участник, история, quick input) → `#app-portal` поверх nav. **Свайп вкладок** — только по пилюле BottomNav (не по FAB, не по контенту страниц: там swipe-delete / гориз. скролл таблицы); влево → следующая, вправо → предыдущая; порог ≥48px по X, |dy|≤36.
 - **Авторизация**: при наличии PB URL — `authWithPassword` (email); stub только если URL не задан. Full-bleed, без скролла. Под кнопкой «Войти» — ссылка на `/register`. После первого успешного входа — офлайн-доступ по локальной сессии (`hasLocalPbSession`); сеть нужна только для первичного логина / refresh JWT при синке.
 - **Регистрация**: `RegisterPage` — почта, пароль (≥6), фамилия, имя; без email-подтверждения; `create` + сразу вход. При сабмите невалидные поля подсвечиваются красным + подсказка: почта без `@`, пароль короче 6, пустые фамилия/имя.
-- **Умный ввод**: bottom sheet → мультистрочный regex-парсер по ключевым словам (шаблон: N строк работы + последняя строка «материал, тариф») → карточки-превью на каждую строку (тappable поля, ручная правка через dropdown/инпут, «Проверить» при правке) → подтверждение всех карточек за раз — без fuzzy match. Справочник ключевых слов — `src/lib/quickInputKeywords.ts`; справка по вводу — кнопка `?` в шапке шита.
+- **Умный ввод**: bottom sheet → переключатель **AI** в шапке (оранжевый = ИИ, серый = только парсер); при ошибке парсера — кнопка «Распознать с помощью ИИ». См. `deploy/AI_QUICK_INPUT.md`.
 - **Главная (ввод строк)**: после «Добавить» форма остаётся; **все поля следующей строки пустые** (место/№/тип/кол-во). «Добавить»/«Сохранить» строку — при заполненных месте, №, кол-во>0; **тип обязателен только если у выбранного № есть типы в справочнике**. **Материал и тариф — общие на всю смену** (карточка/поля вне таблицы; на PB пишутся в каждую `shift_rows` при confirm). Колонка «Тип» скрыта, пока ни у одной строки (и черновика) нет № с привязанными типами; при смешанных строках у № без типов ячейка светло-серая и недоступна. После «Кол-во» — read-only **«Объём, м²»** (`кол-во × V`, округление до **тысячных** в `roundVolumeM2` / `workVolumeM2`, стиль как у «Оплата»). Повторный тап по открытому dropdown (по полю) закрывает его (`onPointerDown` stopPropagation на ячейке, иначе outside-close + click снова открывают). Swipe-delete строки клипит к видимой ширине скролла (не тянет всю minWidth-таблицу), «Удалить» появляется плавно. Оплата в UI: `кол-во × V(место) × тариф_смены` (`markingValue.ts`). `confirmShift` валидирует строки с картой типов из справочников; ошибки сохранения → `alert`. **ConfirmSheet** («Проверьте данные смены»): скролл контента при длинном списке строк/сводке — `flex:1; minHeight:0; overflowY:auto` внутри sheet `maxHeight:85dvh` (без `minHeight:0` flex блокирует скролл до сводки).
 ## Известные баги десктопа и роутинга (см. `Tasks/TASKS_start.md`, Блок 1)
 
@@ -200,13 +200,13 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 
 ## Умный ввод текста
 
-- Основной путь: парсер + fuzzy match по справочнику (быстро, офлайн, 0 МБ).
-- Fallback: маленькая OSS-модель в браузере — опционально, не блокер MVP.
-- На iOS локальный LLM рискованнее → приоритет парсера.
-- **Шаблон:** «Место, № разметки, тип разметки (если есть у номера), количество» — по одной строке на позицию работ; **последняя строка ввода всегда** «Материал, тариф» (минимум 2 строки суммарно). Поля внутри строки — по ключевым словам, порядок не важен (не позиционный CSV).
+- **Основной путь (офлайн):** regex-парсер `quickInputParser.ts` + `quickInputKeywords.ts`.
+- **Онлайн-fallback (ИИ):** `quickInputAi.ts` → `pb_hooks/parse_quick_input.pb.js` → DeepSeek. Триггер: `shouldUseAiFallback()`. Ключ `DEEPSEEK_API_KEY` на сервере. См. `deploy/AI_QUICK_INPUT.md`.
+- **Не делать:** локальный LLM в браузере; API-ключ DeepSeek во фронтенде.
+- **Шаблон (локальный):** строки работ + последняя «материал, тариф». **Свободный (ИИ):** любой порядок; блок «Экипаж» → participants.
 - **Данные-справочник ключевых слов** (редактируется руками, без логики): `src/lib/quickInputKeywords.ts` — синонимы места (НП/Трасса), алиасы номеров (шум-полоса и т.п.), `MARKING_NUMBER_VARIANT_ALIASES` — несколько записей `marking_numbers` с одним `number` (напр. 1.18, 1.24.1, 1.24.2 → alias→`markingNumberId`), типоразмеры из `marking_types` (10/15/20/4/5/6 см·м), единицы количества (шт/м), материалы, ключевое слово «тариф» + ед. (руб/р).
 - **Логика парсера:** `src/lib/quickInputParser.ts` — `parseWorkLine`/`parseMaterialTariffLine`/`parseQuickInput`, каждое поле — `{ value, recognized }`; использует `Dictionaries` из `src/lib/db.ts` для резолва id номера/типа (не только строку `number`/`name`).
-- **UI (`src/pages/AppShell.tsx`, `QuickInputContent`):** без autoFocus на textarea (клавиатура только по тапу); кнопка «Распознать» скрывается после первого нажатия до правки текста/переоткрытия окна; после распознавания — карточка(и) на каждую строку работы + отдельная карточка материал/тариф; каждое поле карточки — тappable (кастомный dropdown из справочника для место/№/тип/материал, текст-инпут для кол-во/тариф, компоненты `DropdownCard`/`DesktopDropdown` — в `src/components/shared.tsx`); ручная правка поля → кнопка «Добавить в таблицу» превращается в «Проверить» (повторный прогон через тот же парсер/валидатор) до следующей успешной проверки. Множественные карточки добавляются в таблицу Главной за один вызов (`ShellContext.registerAddRow: (rows: QuickRow[]) => void`, `QuickRow` включает `markingNumberId`). Справка по ключевым словам — кнопка `HelpCircle` слева от крестика закрытия → `src/pages/QuickInputHelp.tsx`, контент генерируется из `quickInputKeywords.ts`.
+- **UI (`src/pages/AppShell.tsx`, `QuickInputContent`):** без autoFocus на textarea (клавиатура только по тапу); кнопка «Распознать» скрывается после первого нажатия до правки текста/переоткрытия окна; после распознавания — карточка(и) на каждую строку работы + отдельная карточка материал/тариф; каждое поле карточки — тappable (кастомный dropdown из справочника для место/№/тип/материал, текст-инпут для кол-во/тариф, компоненты `DropdownCard`/`DesktopDropdown` — в `src/components/shared.tsx`); ручная правка поля → кнопка «Добавить в таблицу» превращается в «Проверить» (повторный прогон через тот же парсер/валидатор) до следующей успешной проверки. Множественные карточки добавляются в таблицу Главной за один вызов (`ShellContext.registerAddRow(QuickInputAddPayload)` — `rows` + `participants?`). Справка по ключевым словам — кнопка `HelpCircle` слева от крестика закрытия → `src/pages/QuickInputHelp.tsx`, контент генерируется из `quickInputKeywords.ts`.
 
 ## Синхронизация
 
@@ -237,7 +237,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
   - `location /calc/` → `alias /var/www/calc/dist/;` + `try_files` (статика SPA)
   - `location /calc/api/` → proxy на `pocketbase_calc/api/`
   - `location /calc/_/` → proxy на админку PocketBase calc
-- **PocketBase calc:** systemd `pocketbase-calc.service`, слушает `127.0.0.1:8095` (не наружу). CORS не нужен при том же origin (`VITE_POCKETBASE_URL=https://urban42.online/calc`).
+- **PocketBase calc:** systemd `pocketbase-calc.service`, слушает `127.0.0.1:8095` (не наружу). CORS не нужен при том же origin (`VITE_POCKETBASE_URL=https://urban42.online/calc`). JS-hooks: `pb_hooks/parse_quick_input.pb.js` (ИИ-ввод; env `DEEPSEEK_API_KEY`, опц. `DEEPSEEK_MODEL`).
 - **Код на сервере:** `/var/www/calc` (git clone `main`, есть `dist/`, Node 20 + pnpm). Продовый `.env` на сервере может отсутствовать — задавать `VITE_POCKETBASE_URL` при сборке.
 - **Обязательная сборка под подпуть** (иначе чёрный экран):
   - Vite `base: '/calc/'`
@@ -271,6 +271,6 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 - Desktop-раскладка (sidebar) **частично реализована** (`AppShell.tsx` + `DesktopHomePage` в `HomePage.tsx`).
 - **Прод:** домен `urban42.online`, приложение под `/calc/`, PocketBase calc на `:8095` через `/calc/api/` — инфраструктура на VPS есть; сайт сейчас отдаёт HTML, но UI пустой из‑за base/SW/basename (см. «Прод и Nginx»).
 - **Блок 3 (деплой):** 3.1–3.2 на VPS готовы; Nginx: `/calc`→`/calc/`, статика + `/calc/api/` + `/calc/_/` + **no-cache для sw.js/index.html/workbox/manifest** (2026-07-23); сборка с `base/basename '/calc/'`; референс `deploy/nginx.conf.example`; CI `.github/workflows/deploy.yml` (нужны секреты `SSH_HOST`/`SSH_USER`/`SSH_KEY`).
-- Не закрыто относительно спеки: стабильный прод под `/calc/`, CI-деплой, онбординг «На экран Домой», fuzzy match в парсере.
+- Не закрыто относительно спеки: стабильный прод под `/calc/`, CI-деплой, онбординг «На экран Домой».
 - PWA: офлайн shell (precache+`navigateFallback`) + обновление через SW/`registerSW` + nginx no-cache на `sw.js` (см. «PWA: офлайн shell и обновление версии»).
 - Технический долг Figma Make: неиспользуемые deps (motion, MUI, shadcn kit и др.) — не трогать без причины.

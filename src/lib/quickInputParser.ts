@@ -495,3 +495,48 @@ export function parseQuickInput(
   const workRows = lines.slice(0, -1).map((l) => parseWorkLine(l, dicts));
   return { workRows, materialTariff };
 }
+
+/** Есть ли нераспознанные или пустые обязательные поля после локального парсера. */
+export function hasUnrecognizedFields(
+  result: ParseQuickInputResult,
+  dicts: Dictionaries,
+): boolean {
+  if (!result.materialTariff) return true;
+  const mt = result.materialTariff;
+  if (!mt.material.recognized) return true;
+
+  const typesById = markingTypesByNumberId(dicts);
+
+  for (const row of result.workRows) {
+    if (!row.location.recognized || !row.markingNum.recognized || !row.markingNumberId.recognized) {
+      return true;
+    }
+    if (!row.volume.recognized || row.volume.value <= 0) return true;
+    const typeOpts = typesById[row.markingNumberId.value] ?? [];
+    if (typeOpts.length > 0 && (!row.markingType.recognized || !row.markingType.value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Свободный формат: экипаж, мессенджерный стиль, дефисные строки работ. */
+export function looksLikeFreeformInput(text: string): boolean {
+  const t = String(text ?? "");
+  if (/экипаж|участник|бригада|смена\s*:/i.test(t)) return true;
+  if (/^\s*[\d]+(?:\.\d+)+-\d/i.test(t)) return true;
+  if (/[«»""]/.test(t) && /\d/.test(t)) return true;
+  return false;
+}
+
+/** Нужен ли онлайн-fallback на ИИ после локального парсера. */
+export function shouldUseAiFallback(
+  text: string,
+  result: ParseQuickInputResult,
+  dicts: Dictionaries,
+): boolean {
+  if (looksLikeFreeformInput(text)) return true;
+  if (result.error) return true;
+  if (hasUnrecognizedFields(result, dicts)) return true;
+  return false;
+}

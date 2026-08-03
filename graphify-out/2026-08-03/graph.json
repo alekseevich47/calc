@@ -232,8 +232,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "package_dependencies_radix_ui_react_accordion",
-      "community": 19,
-      "community_name": "Radix Switch Tabs",
+      "community": 37,
+      "community_name": "Radix Accordion",
       "norm_label": "@radix-ui/react-accordion"
     },
     {
@@ -243,8 +243,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "radix_ui_react_accordion",
-      "community": 19,
-      "community_name": "Radix Switch Tabs",
+      "community": 37,
+      "community_name": "Radix Accordion",
       "norm_label": "@radix-ui/react-accordion"
     },
     {
@@ -980,8 +980,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "package_dependencies_react_dom",
-      "community": 37,
-      "community_name": "Radix Accordion",
+      "community": 19,
+      "community_name": "Radix Switch Tabs",
       "norm_label": "react-dom"
     },
     {
@@ -991,8 +991,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "react_dom",
-      "community": 37,
-      "community_name": "Radix Accordion",
+      "community": 19,
+      "community_name": "Radix Switch Tabs",
       "norm_label": "react-dom"
     },
     {
@@ -29427,7 +29427,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/HistoryPage.tsx",
-      "source_location": "L1433",
+      "source_location": "L1430",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_historypage_historypage",
@@ -29463,7 +29463,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/HistoryPage.tsx",
-      "source_location": "L1426",
+      "source_location": "L1423",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_historypage_historypage",
@@ -29499,7 +29499,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/HistoryPage.tsx",
-      "source_location": "L1279",
+      "source_location": "L1276",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_historypage_historypage",
@@ -29547,7 +29547,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/HistoryPage.tsx",
-      "source_location": "L1271",
+      "source_location": "L1268",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_historypage_historypage",
@@ -29583,7 +29583,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/HistoryPage.tsx",
-      "source_location": "L1272",
+      "source_location": "L1269",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_historypage_historypage",
@@ -32915,5 +32915,5 @@
       "source_file": "Tasks/TASKS_start.md"
     }
   ],
-  "built_at_commit": "45b2c79c05406ee9f2007bb23383ba0b27c423c7"
+  "built_at_commit": "4181a34f4a537bad87b09bbe2e693fe5c940d038"
 }

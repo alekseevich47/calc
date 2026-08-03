@@ -1203,7 +1203,10 @@ export default function HistoryPage() {
     return [...set];
   }, [dicts, shifts]);
 
-  const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null });
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const now = new Date();
+    return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: null };
+  });
   const [showCal, setShowCal] = useState(false);
   const [calPos, setCalPos] = useState({ top: 0, left: 0 });
   const calBtnRef = useRef<HTMLButtonElement>(null);

@@ -1,7 +1,7 @@
-# Graph Report - calc  (2026-08-03)
+# Graph Report - calc  (2026-07-27)
 
 ## Corpus Check
-- 88 files · ~66,088 words
+- 88 files · ~66,075 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `45b2c79c`
+- Built from commit: `4181a34f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -199,7 +199,7 @@ Nodes (6): DrawerContent(), DrawerDescription(), DrawerFooter(), DrawerHeader(),
 
 ### Community 19 - "Radix Switch Tabs"
 Cohesion: 0.18
-Nodes (11): class-variance-authority, dependencies, class-variance-authority, @radix-ui/react-accordion, @radix-ui/react-avatar, @radix-ui/react-slot, react-router, @radix-ui/react-accordion (+3 more)
+Nodes (11): class-variance-authority, dependencies, class-variance-authority, @radix-ui/react-avatar, @radix-ui/react-slot, react-dom, react-router, @radix-ui/react-avatar (+3 more)
 
 ### Community 20 - "Apple Touch Icon"
 Cohesion: 0.40

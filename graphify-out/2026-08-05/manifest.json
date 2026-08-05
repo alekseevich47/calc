@@ -5,8 +5,8 @@
     "semantic_hash": "e53dae0db76969bd5a631254c44ffc13"
   },
   "package.json": {
-    "mtime": 1785947216.3870053,
-    "ast_hash": "47a62623a4cbb4197333f1eba70269d7",
+    "mtime": 1784827722.3991828,
+    "ast_hash": "a26df4108f9361bc06b6f49ce866bf3e",
     "semantic_hash": ""
   },
   "postcss.config.mjs": {
@@ -15,8 +15,8 @@
     "semantic_hash": "512ddfe3175b0d294ec1e4789f27885f"
   },
   "schema.json": {
-    "mtime": 1785947970.454245,
-    "ast_hash": "2a3d29f7a81dde72acb1edf603407d89",
+    "mtime": 1784811427.293682,
+    "ast_hash": "15a99e409899511646e3048631cda1fa",
     "semantic_hash": ""
   },
   "src/app/App.tsx": {
@@ -310,8 +310,8 @@
     "semantic_hash": ""
   },
   "src/pages/AppShell.tsx": {
-    "mtime": 1785947905.6790404,
-    "ast_hash": "23ab78843445e06564679e5ba8dfa6f7",
+    "mtime": 1785159801.6766987,
+    "ast_hash": "711a8adb11182f45f3f60721800923fe",
     "semantic_hash": ""
   },
   "src/pages/AuthPage.tsx": {
@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "src/pages/ProfilePage.tsx": {
-    "mtime": 1785947879.7341127,
-    "ast_hash": "db24a9cb67f740a4340f38396e453cf1",
+    "mtime": 1785163273.1534784,
+    "ast_hash": "4e286f5139be82d40eaecce2c15552c2",
     "semantic_hash": ""
   },
   "src/pages/RegisterPage.tsx": {
@@ -355,8 +355,8 @@
     "semantic_hash": "b84a00cad3da1546ce9db508961f650b"
   },
   "vite.config.ts": {
-    "mtime": 1785947835.7544792,
-    "ast_hash": "99ba865cf771a2a2cfc8a25b13ff9930",
+    "mtime": 1784816450.0678704,
+    "ast_hash": "e3ac80251d86eb2c8b666db0391dc09e",
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
@@ -492,31 +492,6 @@
   "src/components/MiniCalendar.tsx": {
     "mtime": 1785163102.8109248,
     "ast_hash": "5a2d3614ed80cae23196c66c02f5904a",
-    "semantic_hash": ""
-  },
-  "pb_hooks/send_notification_push.pb.js": {
-    "mtime": 1785947259.453694,
-    "ast_hash": "d44c26fec51dcc32a58c7b7143db9e9c",
-    "semantic_hash": ""
-  },
-  "public/push-handler.js": {
-    "mtime": 1785947246.6224668,
-    "ast_hash": "6670f64e9261b7bbaa1f8b6bb86f79cc",
-    "semantic_hash": ""
-  },
-  "scripts/send-web-push.mjs": {
-    "mtime": 1785947258.5935552,
-    "ast_hash": "6234762f8baa4653faec14fcba220809",
-    "semantic_hash": ""
-  },
-  "src/lib/pushNotifications.ts": {
-    "mtime": 1785947834.0386698,
-    "ast_hash": "855d3317525321559659a26310bca546",
-    "semantic_hash": ""
-  },
-  "deploy/PUSH_NOTIFICATIONS.md": {
-    "mtime": 1785947890.9219904,
-    "ast_hash": "8f80cf4f9e0c6c6bf1e78fb07ceb2d34",
     "semantic_hash": ""
   }
 }

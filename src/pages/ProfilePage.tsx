@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { User, LogOut, ChevronRight, Wifi, WifiOff, RefreshCw, CloudOff, Globe, Info, X, Check, Zap, Calendar } from "lucide-react";
+import { User, LogOut, ChevronRight, Wifi, WifiOff, RefreshCw, CloudOff, Globe, Info, X, Check, Zap, Calendar, Bell } from "lucide-react";
 import { createPortal } from "react-dom";
 import { MiniCalendar, type DateRange } from "../components/MiniCalendar";
 import type { SyncStatus } from "../components/shared";
@@ -9,6 +9,12 @@ import {
   useGraphicsQuality,
   type GraphicsQuality,
 } from "../lib/graphicsPreference";
+import {
+  ensurePushSubscription,
+  listNotifyUsers,
+  sendAppNotification,
+  type NotifyUser,
+} from "../lib/pushNotifications";
 import { clearSession, getCurrentUserFullName, subscribeAuthStore } from "../lib/session";
 import {
   computeUserStats,
@@ -55,6 +61,167 @@ const SYNC_CFG: Record<SyncStatus, { label: string; color: string; bg: string; i
   pending: { label: "Не синхронизировано", color: "#ef4444", bg: "rgba(239,68,68,0.10)",   icon: CloudOff  },
   synced:  { label: "Синхронизировано",    color: "#22c55e", bg: "rgba(34,197,94,0.10)",   icon: Wifi     },
 };
+
+// ─── Notify sheet (пробный Web Push) ──────────────────────────────────────────
+
+function NotifySheet({ onClose }: { onClose: () => void }) {
+  const portal = document.getElementById("app-portal");
+  const [users, setUsers] = useState<NotifyUser[]>([]);
+  const [toId, setToId] = useState("");
+  const [text, setText] = useState("");
+  const [loadingUsers, setLoadingUsers] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [subHint, setSubHint] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const sub = await ensurePushSubscription();
+      if (!cancelled) {
+        setSubHint(
+          sub.ok
+            ? "Подписка на уведомления активна"
+            : (sub.reason || "Не удалось включить уведомления"),
+        );
+      }
+      try {
+        const list = await listNotifyUsers();
+        if (!cancelled) setUsers(list);
+      } catch {
+        if (!cancelled) setUsers([]);
+      } finally {
+        if (!cancelled) setLoadingUsers(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!portal) return null;
+
+  const selected = users.find((u) => u.id === toId);
+  const canSend = Boolean(toId && text.trim() && !sending);
+
+  async function handleSend() {
+    if (!canSend) return;
+    setSending(true);
+    try {
+      await sendAppNotification(toId, text);
+      window.alert("Уведомление отправлено");
+      onClose();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err ?? "");
+      window.alert(msg || "Не удалось отправить");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return createPortal(
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{
+      position: "absolute", inset: 0, zIndex: 200, pointerEvents: "auto",
+      background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "flex-end",
+    }}>
+      <div style={{
+        width: "100%", maxHeight: "85dvh", display: "flex", flexDirection: "column",
+        background: "rgba(248,249,252,0.98)",
+        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+        borderRadius: "24px 24px 0 0", padding: "16px 20px 28px",
+        boxShadow: "0 -8px 40px rgba(0,0,0,0.15)", fontFamily: "Inter, sans-serif",
+        animation: "sheetUp 0.28s cubic-bezier(0.22,1,0.36,1) forwards",
+      }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 99, background: "rgba(0,0,0,0.12)" }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>Уведомление</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", outline: "none", display: "flex" }}><X size={18} /></button>
+        </div>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#9ca3af", lineHeight: 1.4, flexShrink: 0 }}>
+          Пробный Web Push. Получатель: PWA на экран Домой + разрешение. {subHint}
+        </p>
+
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>Кому</div>
+            <button
+              type="button"
+              onClick={() => setPickerOpen((v) => !v)}
+              style={{
+                width: "100%", textAlign: "left", padding: "12px 14px", borderRadius: 12,
+                border: "1px solid rgba(0,0,0,0.08)", background: "#fff",
+                fontFamily: "Inter, sans-serif", fontSize: 14, color: selected ? "#111827" : "#9ca3af",
+                cursor: "pointer", outline: "none",
+              }}
+            >
+              {loadingUsers ? "Загрузка…" : selected ? selected.label : "Выберите пользователя"}
+            </button>
+            {pickerOpen && !loadingUsers && (
+              <div style={{
+                marginTop: 6, borderRadius: 12, border: "1px solid rgba(0,0,0,0.08)",
+                background: "#fff", maxHeight: 180, overflowY: "auto",
+              }}>
+                {users.length === 0 ? (
+                  <div style={{ padding: "12px 14px", fontSize: 13, color: "#9ca3af" }}>Нет других пользователей</div>
+                ) : users.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => { setToId(u.id); setPickerOpen(false); }}
+                    style={{
+                      width: "100%", textAlign: "left", padding: "12px 14px", border: "none",
+                      borderBottom: "1px solid rgba(0,0,0,0.05)",
+                      background: u.id === toId ? "rgba(255,107,0,0.08)" : "transparent",
+                      fontFamily: "Inter, sans-serif", fontSize: 14, color: "#111827",
+                      cursor: "pointer", outline: "none",
+                    }}
+                  >
+                    {u.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>Текст</div>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value.slice(0, 500))}
+              rows={4}
+              placeholder="Текст уведомления"
+              style={{
+                width: "100%", boxSizing: "border-box", padding: "12px 14px", borderRadius: 12,
+                border: "1px solid rgba(0,0,0,0.08)", background: "#fff",
+                fontFamily: "Inter, sans-serif", fontSize: 14, color: "#111827",
+                outline: "none", resize: "vertical", minHeight: 96,
+              }}
+            />
+            <div style={{ fontSize: 11, color: "#9ca3af", textAlign: "right", marginTop: 4 }}>{text.length}/500</div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={!canSend}
+          onClick={() => void handleSend()}
+          style={{
+            marginTop: 14, flexShrink: 0, height: 48, borderRadius: 14, border: "none",
+            background: canSend ? "linear-gradient(135deg,#FF6B00,#FF9A00)" : "rgba(0,0,0,0.08)",
+            color: canSend ? "#fff" : "#9ca3af",
+            fontFamily: "Inter, sans-serif", fontSize: 15, fontWeight: 600,
+            cursor: canSend ? "pointer" : "default", outline: "none",
+            boxShadow: canSend ? "0 4px 14px rgba(255,107,0,0.28)" : "none",
+          }}
+        >
+          {sending ? "Отправка…" : "Отправить"}
+        </button>
+      </div>
+    </div>,
+    portal,
+  );
+}
 
 // ─── Language sheet ───────────────────────────────────────────────────────────
 
@@ -244,6 +411,7 @@ export default function ProfilePage() {
   const [showLang, setShowLang] = useState(false);
   const [showGraphics, setShowGraphics] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showNotify, setShowNotify] = useState(false);
   const [userName, setUserName] = useState(() => getCurrentUserFullName());
 
   useEffect(() => {
@@ -331,6 +499,30 @@ export default function ProfilePage() {
               {syncStatus === "offline" ? "Подключиться" : syncStatus === "pending" ? "Синхронизировать" : "..."}
             </span>
           )}
+        </button>
+
+        {/* Пробные Web Push-уведомления */}
+        <button
+          type="button"
+          onClick={() => setShowNotify(true)}
+          style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "rgba(255,255,255,0.68)",
+            backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+            border: "1px solid rgba(255,255,255,0.6)",
+            borderRadius: 16, padding: "13px 16px",
+            cursor: "pointer", outline: "none", fontFamily: "Inter, sans-serif", width: "100%",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+          }}
+        >
+          <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(255,107,0,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Bell size={18} strokeWidth={1.8} color="#FF6B00" />
+          </div>
+          <div style={{ flex: 1, textAlign: "left" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", letterSpacing: "-0.02em" }}>Уведомление</div>
+            <div style={{ fontSize: 12, color: "#9ca3af", fontWeight: 500, marginTop: 1 }}>Пробный Web Push другому пользователю</div>
+          </div>
+          <ChevronRight size={16} strokeWidth={2} color="#c4c9d4" />
         </button>
 
         {/* Stats block */}
@@ -470,6 +662,7 @@ export default function ProfilePage() {
         <div style={{ height: 8, flexShrink: 0 }} />
       </div>
 
+      {showNotify && <NotifySheet onClose={() => setShowNotify(false)} />}
       {showLang  && <LangSheet current={language} onChange={setLanguage} onClose={() => setShowLang(false)} />}
       {showGraphics && (
         <GraphicsSheet

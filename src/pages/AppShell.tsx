@@ -19,6 +19,7 @@ import {
 } from "../lib/quickInputParser";
 import { buildParticipantOptions, peekSyncSnapshot, syncNow, useDictionaries, useSyncStatus } from "../lib/sync";
 import { getCurrentUserFullName } from "../lib/session";
+import { ensurePushSubscription, isPushSupported } from "../lib/pushNotifications";
 
 // ─── Types shared with pages ──────────────────────────────────────────────────
 
@@ -1098,6 +1099,13 @@ export default function AppShell() {
   const [showQuickInput, setShowQuickInput] = useState(false);
   const syncStatus = useSyncStatus();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Если разрешение уже выдано — обновить push_subscriptions (без повторного prompt)
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    if (Notification.permission !== "granted") return;
+    void ensurePushSubscription();
+  }, []);
 
   function registerAddRow(fn: (payload: QuickInputAddPayload) => void) { addRowRef.current = fn; }
   function handleQuickAdd(payload: QuickInputAddPayload) { addRowRef.current?.(payload); }

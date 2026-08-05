@@ -80,14 +80,5 @@
   "78": "select.tsx",
   "79": "popover.tsx",
   "80": "clsx",
-  "81": "parse_quick_input.pb.js",
-  "82": "send-web-push.mjs",
-  "83": "toggle-group.tsx",
-  "84": "pocketbase.ts",
-  "85": "send_notification_push.pb.js",
-  "86": "@radix-ui/react-accordion",
-  "87": "@radix-ui/react-avatar",
-  "88": "react-router",
-  "89": "web-push",
-  "90": "push-handler.js"
+  "81": "parse_quick_input.pb.js"
 }

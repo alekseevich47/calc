@@ -87,6 +87,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2}'],
         navigateFallback: `${BASE}index.html`,
         navigateFallbackDenylist: [/^\/calc\/api\//, /^\/calc\/_\//],
+        // Web Push: push / notificationclick (public/push-handler.js → /calc/push-handler.js)
+        importScripts: ['push-handler.js'],
       },
       devOptions: {
         enabled: false,

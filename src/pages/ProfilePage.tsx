@@ -162,7 +162,7 @@ function NotifySheet({ onClose }: { onClose: () => void }) {
                 background: "#fff", maxHeight: 180, overflowY: "auto",
               }}>
                 {users.length === 0 ? (
-                  <div style={{ padding: "12px 14px", fontSize: 13, color: "#9ca3af" }}>Нет других пользователей</div>
+                  <div style={{ padding: "12px 14px", fontSize: 13, color: "#9ca3af" }}>Нет пользователей</div>
                 ) : users.map((u) => (
                   <button
                     key={u.id}

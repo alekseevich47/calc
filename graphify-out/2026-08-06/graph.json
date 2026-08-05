@@ -6092,7 +6092,7 @@
       "label": "sendAppNotification()",
       "file_type": "code",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L143",
+      "source_location": "L138",
       "_origin": "ast",
       "id": "src_lib_pushnotifications_sendappnotification",
       "community": 72,
@@ -23445,7 +23445,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L147",
+      "source_location": "L142",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_sendappnotification",
@@ -23774,7 +23774,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L143",
+      "source_location": "L138",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications",
@@ -24025,7 +24025,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L129",
+      "source_location": "L130",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_listnotifyusers",
@@ -24073,7 +24073,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L147",
+      "source_location": "L142",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_sendappnotification",
@@ -33950,5 +33950,5 @@
       "source_file": "Tasks/TASKS_start.md"
     }
   ],
-  "built_at_commit": "a19d6abf5f61903e69613c8fc6e11c0c423fca71"
+  "built_at_commit": "10d0eae32a7d7db1f3c6ccf01e1d42590458030f"
 }

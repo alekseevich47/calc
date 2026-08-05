@@ -115,7 +115,7 @@ export async function ensurePushSubscription(): Promise<{ ok: boolean; reason?: 
   return { ok: true };
 }
 
-/** Список пользователей PB для выбора получателя (без себя). */
+/** Список пользователей PB для выбора получателя (включая себя — для теста). */
 export async function listNotifyUsers(): Promise<NotifyUser[]> {
   if (!isPocketBaseConfigured() || !hasLocalPbSession()) return [];
   const me = String(pb.authStore.record?.id ?? "").trim();
@@ -124,13 +124,18 @@ export async function listNotifyUsers(): Promise<NotifyUser[]> {
     sort: "surname,name",
   });
   return rows
-    .filter((u) => u.id !== me)
     .map((u) => {
-      const label =
+      const base =
         formatUserName(u as { surname?: string; name?: string }) ||
         String((u as { email?: string }).email ?? "").trim() ||
         u.id;
+      const label = u.id === me ? `${base} (я)` : base;
       return { id: u.id, label };
+    })
+    .sort((a, b) => {
+      if (a.id === me) return -1;
+      if (b.id === me) return 1;
+      return a.label.localeCompare(b.label, "ru");
     });
 }
 

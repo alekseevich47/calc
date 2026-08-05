@@ -71,7 +71,8 @@ function NotifySheet({ onClose }: { onClose: () => void }) {
   const [text, setText] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [sending, setSending] = useState(false);
-  const [subHint, setSubHint] = useState("");
+  const [subOk, setSubOk] = useState(false);
+  const [subHint, setSubHint] = useState("Проверка подписки…");
   const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -79,6 +80,7 @@ function NotifySheet({ onClose }: { onClose: () => void }) {
     void (async () => {
       const sub = await ensurePushSubscription();
       if (!cancelled) {
+        setSubOk(sub.ok);
         setSubHint(
           sub.ok
             ? "Подписка на уведомления активна"
@@ -100,14 +102,20 @@ function NotifySheet({ onClose }: { onClose: () => void }) {
   if (!portal) return null;
 
   const selected = users.find((u) => u.id === toId);
-  const canSend = Boolean(toId && text.trim() && !sending);
+  const canSend = Boolean(toId && text.trim() && !sending && subOk);
 
   async function handleSend() {
-    if (!canSend) return;
+    if (!toId || !text.trim() || sending) return;
+    if (!subOk) {
+      window.alert(subHint || "Сначала нужна подписка на уведомления");
+      return;
+    }
     setSending(true);
     try {
       await sendAppNotification(toId, text);
-      window.alert("Уведомление отправлено");
+      window.alert(
+        "Запись создана. Если баннер не пришёл — смотрите push_subscriptions и journalctl (send-notification-push).",
+      );
       onClose();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err ?? "");
@@ -137,8 +145,13 @@ function NotifySheet({ onClose }: { onClose: () => void }) {
           <span style={{ fontSize: 16, fontWeight: 700, color: "#111827", letterSpacing: "-0.03em" }}>Уведомление</span>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", outline: "none", display: "flex" }}><X size={18} /></button>
         </div>
-        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#9ca3af", lineHeight: 1.4, flexShrink: 0 }}>
-          Пробный Web Push. Получатель: PWA на экран Домой + разрешение. {subHint}
+        <p style={{
+          margin: "0 0 14px", fontSize: 12, lineHeight: 1.4, flexShrink: 0,
+          color: subOk ? "#059669" : "#ef4444",
+        }}>
+          {subOk
+            ? "Подписка OK. Получатель: PWA «На экран Домой» + разрешение."
+            : `Подписка не активна: ${subHint}`}
         </p>
 
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>

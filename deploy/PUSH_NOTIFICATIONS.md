@@ -45,10 +45,25 @@ Nginx менять не нужно — `/calc/api/push-vapid-public-key` идё�
 
 ## Поведение
 
-- Профиль → «Уведомление» → текст + один получатель из `users` → запись в `notifications`.
+- Профиль → «Уведомление» → текст + получатель из `users` (можно себе) → запись в `notifications`.
 - Hook `onRecordAfterCreateSuccess` → `node scripts/send-web-push.mjs` → Web Push.
 - SW (`public/push-handler.js`, `importScripts` в vite PWA) показывает баннер ОС.
-- Подписка устройства пишется в `push_subscriptions` (при открытии sheet и при входе в AppShell, если permission уже granted).
+- Подписка устройства пишется в `push_subscriptions` (при открытии sheet; без подписки «Отправить» disabled).
+
+## Если запись в notifications есть, а баннера нет
+
+1. **Админка PB → `push_subscriptions`**: есть ли запись с вашим `user`? Нет → клиент не подписался (смотрите красный текст в sheet: VAPID / разрешение / SW).
+2. **Логи hook:**
+   ```bash
+   sudo journalctl -u pocketbase-calc -n 100 --no-pager | grep send-notification-push
+   ```
+   - нет строк вообще → hook не на сервере или PB не перезапущен (`cp pb_hooks/send_notification_push.pb.js` + `restart`).
+   - `no subscriptions` → нет `push_subscriptions` для получателя.
+   - `vapidPublic=NO` → нет `Environment=VAPID_*` в unit.
+   - `fail` → нет `node`/`web-push` (`pnpm install` в `/var/www/calc`) или ошибка FCM/APNs.
+3. **Сборка фронта** должна содержать `VITE_VAPID_PUBLIC_KEY` (тот же public, что на сервере). После смены ключа — пересобрать + переустановить PWA / обновить SW.
+4. **iPhone:** только установленный PWA, iOS 16.4+; в Safari-вкладке push не работает.
+5. Закройте приложение полностью и подождите 2–3 с — баннер при закрытом PWA.
 
 ## Ограничения платформ
 

@@ -42,6 +42,21 @@ export function isPushSupported(): boolean {
   );
 }
 
+/** Есть ли у текущего пользователя запись в push_subscriptions. */
+export async function hasOwnPushSubscription(): Promise<boolean> {
+  if (!isPocketBaseConfigured() || !hasLocalPbSession()) return false;
+  const userId = String(pb.authStore.record?.id ?? "").trim();
+  if (!userId) return false;
+  try {
+    const list = await pb.collection("push_subscriptions").getList(1, 1, {
+      filter: `user = "${userId}"`,
+    });
+    return list.items.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** Запросить разрешение и сохранить подписку в PB (для приёма при закрытом PWA). */
 export async function ensurePushSubscription(): Promise<{ ok: boolean; reason?: string }> {
   if (!isPocketBaseConfigured() || !hasLocalPbSession()) {
@@ -59,7 +74,10 @@ export async function ensurePushSubscription(): Promise<{ ok: boolean; reason?: 
 
   const vapidKey = await resolveVapidPublicKey();
   if (!vapidKey) {
-    return { ok: false, reason: "VAPID-ключ не настроен" };
+    return {
+      ok: false,
+      reason: "VAPID-ключ не настроен (VITE_VAPID_PUBLIC_KEY при сборке или API на сервере)",
+    };
   }
 
   let permission = Notification.permission;
@@ -71,12 +89,24 @@ export async function ensurePushSubscription(): Promise<{ ok: boolean; reason?: 
   }
 
   const reg = await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
+
+  // Всегда пересоздаём подписку под текущий VAPID (старая с другим ключом ломает push)
+  try {
+    const existingSub = await reg.pushManager.getSubscription();
+    if (existingSub) await existingSub.unsubscribe();
+  } catch {
+    /* ignore */
+  }
+
+  let sub: PushSubscription;
+  try {
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
     });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err ?? "");
+    return { ok: false, reason: msg || "subscribe() не удался" };
   }
 
   const json = sub.toJSON();
@@ -88,17 +118,21 @@ export async function ensurePushSubscription(): Promise<{ ok: boolean; reason?: 
   }
 
   try {
-    const existing = await pb.collection("push_subscriptions").getList(1, 1, {
-      filter: `endpoint = "${endpoint.replace(/"/g, '\\"')}"`,
+    const existing = await pb.collection("push_subscriptions").getList(1, 50, {
+      filter: `user = "${userId}"`,
     });
+    // Одна актуальная подписка на пользователя: обновляем первую / создаём, лишние удаляем
     if (existing.items.length > 0) {
-      const id = existing.items[0].id;
-      await pb.collection("push_subscriptions").update(id, {
+      const [primary, ...rest] = existing.items;
+      await pb.collection("push_subscriptions").update(primary.id, {
         user: userId,
         endpoint,
         p256dh,
         auth,
       });
+      await Promise.all(
+        rest.map((r) => pb.collection("push_subscriptions").delete(r.id).catch(() => undefined)),
+      );
     } else {
       await pb.collection("push_subscriptions").create({
         user: userId,
@@ -109,7 +143,7 @@ export async function ensurePushSubscription(): Promise<{ ok: boolean; reason?: 
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err ?? "");
-    return { ok: false, reason: msg || "Не удалось сохранить подписку" };
+    return { ok: false, reason: msg || "Не удалось сохранить подписку в PB" };
   }
 
   return { ok: true };
@@ -154,6 +188,18 @@ export async function sendAppNotification(
   if (!to) throw new Error("Выберите получателя");
   if (!body) throw new Error("Введите текст");
   if (body.length > 500) throw new Error("Текст длиннее 500 символов");
+
+  // Себе — без активной подписки push точно не уйдёт
+  if (to === from) {
+    const sub = await ensurePushSubscription();
+    if (!sub.ok) {
+      throw new Error(sub.reason || "Сначала разрешите уведомления");
+    }
+    const saved = await hasOwnPushSubscription();
+    if (!saved) {
+      throw new Error("Подписка не сохранена в push_subscriptions — проверьте права коллекции");
+    }
+  }
 
   await pb.collection("notifications").create({
     from,

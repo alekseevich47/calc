@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "src/pages/ProfilePage.tsx": {
-    "mtime": 1785949251.6478443,
-    "ast_hash": "8f7f67c11c3985a0d5dd54c7adde52a1",
+    "mtime": 1785949795.2655127,
+    "ast_hash": "7a1370090840584676daba3d76f31b76",
     "semantic_hash": ""
   },
   "src/pages/RegisterPage.tsx": {
@@ -495,8 +495,8 @@
     "semantic_hash": ""
   },
   "pb_hooks/send_notification_push.pb.js": {
-    "mtime": 1785947259.453694,
-    "ast_hash": "d44c26fec51dcc32a58c7b7143db9e9c",
+    "mtime": 1785949791.0059788,
+    "ast_hash": "81508e681a48bccbae59643ef28e998e",
     "semantic_hash": ""
   },
   "public/push-handler.js": {
@@ -510,13 +510,13 @@
     "semantic_hash": ""
   },
   "src/lib/pushNotifications.ts": {
-    "mtime": 1785949251.2450724,
-    "ast_hash": "ea21f7a608cbb106fc46403e9bbb6f74",
+    "mtime": 1785949780.7181208,
+    "ast_hash": "dd4512844913c6a21ea8450f733c9a26",
     "semantic_hash": ""
   },
   "deploy/PUSH_NOTIFICATIONS.md": {
-    "mtime": 1785947890.9219904,
-    "ast_hash": "8f80cf4f9e0c6c6bf1e78fb07ceb2d34",
+    "mtime": 1785949806.596984,
+    "ast_hash": "f5f65e6d28a66bfff20ca97128f45603",
     "semantic_hash": ""
   }
 }

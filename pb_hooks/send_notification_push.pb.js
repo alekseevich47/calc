@@ -6,6 +6,13 @@
  * См. deploy/PUSH_NOTIFICATIONS.md
  */
 
+function relationId(record, field) {
+  const raw = record.get(field);
+  if (raw == null || raw === "") return "";
+  if (Array.isArray(raw)) return String(raw[0] || "").trim();
+  return String(raw).trim();
+}
+
 function writeTempJson(obj) {
   const dir = $os.tempDir();
   const name = "calc-push-" + $security.randomString(12) + ".json";
@@ -16,23 +23,37 @@ function writeTempJson(obj) {
 
 function sendOnePush(sub, title, body) {
   const script = __hooks + "/../scripts/send-web-push.mjs";
+  const endpoint = sub.getString("endpoint");
+  const p256dh = sub.getString("p256dh");
+  const auth = sub.getString("auth");
+  if (!endpoint || !p256dh || !auth) {
+    console.error("send-notification-push bad sub keys", sub.id);
+    return;
+  }
+
   const tmp = writeTempJson({
-    endpoint: sub.getString("endpoint"),
-    p256dh: sub.getString("p256dh"),
-    auth: sub.getString("auth"),
+    endpoint: endpoint,
+    p256dh: p256dh,
+    auth: auth,
     title: title,
     body: body,
     url: "/calc/",
   });
 
   try {
+    // WorkingDirectory проекта — чтобы node нашёл web-push в node_modules
+    const root = __hooks + "/..";
     const cmd = $os.cmd("node", script, tmp);
+    try {
+      cmd.dir = root;
+    } catch (_) {
+      /* older PB without .dir */
+    }
     const out = toString(cmd.output());
     console.log("send-notification-push ok", "sub=" + sub.id, out);
   } catch (err) {
     const msg = String(err || "");
     console.error("send-notification-push fail", "sub=" + sub.id, msg);
-    // exit 2 → GONE: удаляем мёртвую подписку
     if (msg.indexOf("exit status 2") >= 0 || msg.indexOf("exit code 2") >= 0) {
       try {
         $app.delete(sub);
@@ -51,16 +72,34 @@ function sendOnePush(sub, title, body) {
 }
 
 onRecordAfterCreateSuccess((e) => {
-  const record = e.record;
-  if (!record || record.collection().name !== "notifications") return;
+  console.log("send-notification-push hook fired");
 
-  const toId = record.getString("to");
+  const record = e.record;
+  if (!record) {
+    console.error("send-notification-push no record");
+    return;
+  }
+
+  const colName = record.collection().name;
+  if (colName !== "notifications") {
+    console.log("send-notification-push skip collection", colName);
+    return;
+  }
+
+  const toId = relationId(record, "to");
   const text = String(record.getString("text") || "").trim();
-  if (!toId || !text) return;
+  if (!toId || !text) {
+    console.error(
+      "send-notification-push empty to/text",
+      "to=" + toId,
+      "textLen=" + text.length,
+    );
+    return;
+  }
 
   let fromName = "";
   try {
-    const fromId = record.getString("from");
+    const fromId = relationId(record, "from");
     if (fromId) {
       const fromUser = $app.findRecordById("users", fromId);
       const surname = String(fromUser.getString("surname") || "").trim();
@@ -97,6 +136,8 @@ onRecordAfterCreateSuccess((e) => {
     "send-notification-push start",
     "to=" + toId,
     "subs=" + subs.length,
+    "vapidPublic=" + ($os.getenv("VAPID_PUBLIC_KEY") ? "yes" : "NO"),
+    "vapidPrivate=" + ($os.getenv("VAPID_PRIVATE_KEY") ? "yes" : "NO"),
   );
 
   for (let i = 0; i < subs.length; i++) {

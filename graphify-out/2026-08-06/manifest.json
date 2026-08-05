@@ -330,8 +330,8 @@
     "semantic_hash": ""
   },
   "src/pages/ProfilePage.tsx": {
-    "mtime": 1785947879.7341127,
-    "ast_hash": "db24a9cb67f740a4340f38396e453cf1",
+    "mtime": 1785949251.6478443,
+    "ast_hash": "8f7f67c11c3985a0d5dd54c7adde52a1",
     "semantic_hash": ""
   },
   "src/pages/RegisterPage.tsx": {
@@ -510,8 +510,8 @@
     "semantic_hash": ""
   },
   "src/lib/pushNotifications.ts": {
-    "mtime": 1785947834.0386698,
-    "ast_hash": "855d3317525321559659a26310bca546",
+    "mtime": 1785949251.2450724,
+    "ast_hash": "ea21f7a608cbb106fc46403e9bbb6f74",
     "semantic_hash": ""
   },
   "deploy/PUSH_NOTIFICATIONS.md": {

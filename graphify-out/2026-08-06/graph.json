@@ -254,8 +254,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "package_dependencies_radix_ui_react_alert_dialog",
-      "community": 58,
-      "community_name": "Radix Toggle",
+      "community": 19,
+      "community_name": "Radix Switch Tabs",
       "norm_label": "@radix-ui/react-alert-dialog"
     },
     {
@@ -265,8 +265,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "radix_ui_react_alert_dialog",
-      "community": 58,
-      "community_name": "Radix Toggle",
+      "community": 19,
+      "community_name": "Radix Switch Tabs",
       "norm_label": "@radix-ui/react-alert-dialog"
     },
     {
@@ -848,8 +848,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "package_dependencies_clsx",
-      "community": 19,
-      "community_name": "Radix Switch Tabs",
+      "community": 40,
+      "community_name": "Radix Avatar",
       "norm_label": "clsx"
     },
     {
@@ -859,8 +859,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "clsx",
-      "community": 19,
-      "community_name": "Radix Switch Tabs",
+      "community": 40,
+      "community_name": "Radix Avatar",
       "norm_label": "clsx"
     },
     {
@@ -1447,10 +1447,21 @@
       "norm_label": "send_notification_push.pb.js"
     },
     {
-      "label": "writeTempJson()",
+      "label": "relationId()",
       "file_type": "code",
       "source_file": "pb_hooks/send_notification_push.pb.js",
       "source_location": "L9",
+      "_origin": "ast",
+      "id": "pb_hooks_send_notification_push_pb_relationid",
+      "community": 85,
+      "community_name": "send_notification_push.pb.js",
+      "norm_label": "relationid()"
+    },
+    {
+      "label": "writeTempJson()",
+      "file_type": "code",
+      "source_file": "pb_hooks/send_notification_push.pb.js",
+      "source_location": "L16",
       "_origin": "ast",
       "id": "pb_hooks_send_notification_push_pb_writetempjson",
       "community": 85,
@@ -1461,7 +1472,7 @@
       "label": "sendOnePush()",
       "file_type": "code",
       "source_file": "pb_hooks/send_notification_push.pb.js",
-      "source_location": "L17",
+      "source_location": "L24",
       "_origin": "ast",
       "id": "pb_hooks_send_notification_push_pb_sendonepush",
       "community": 85,
@@ -1574,8 +1585,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_app",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "app.tsx"
     },
     {
@@ -1585,8 +1596,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_app_app_app",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "app()"
     },
     {
@@ -1596,8 +1607,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_requireauth",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "requireauth.tsx"
     },
     {
@@ -1607,8 +1618,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_app_requireauth_requireauth",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "requireauth()"
     },
     {
@@ -1640,8 +1651,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordion.tsx"
     },
     {
@@ -1651,8 +1662,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion_accordion",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordion()"
     },
     {
@@ -1662,8 +1673,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion_accordionitem",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordionitem()"
     },
     {
@@ -1673,8 +1684,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion_accordiontrigger",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordiontrigger()"
     },
     {
@@ -1684,8 +1695,8 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "src_app_components_ui_accordion_accordioncontent",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "accordioncontent()"
     },
     {
@@ -2212,8 +2223,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carousel.tsx"
     },
     {
@@ -2223,8 +2234,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselapi",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselapi"
     },
     {
@@ -2234,8 +2245,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_usecarouselparameters",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "usecarouselparameters"
     },
     {
@@ -2245,8 +2256,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouseloptions",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouseloptions"
     },
     {
@@ -2256,8 +2267,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselplugin",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselplugin"
     },
     {
@@ -2267,8 +2278,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselprops",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselprops"
     },
     {
@@ -2278,8 +2289,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontextprops",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselcontextprops"
     },
     {
@@ -2289,8 +2300,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontext",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselcontext"
     },
     {
@@ -2300,8 +2311,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_usecarousel",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "usecarousel()"
     },
     {
@@ -2311,8 +2322,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carousel",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carousel()"
     },
     {
@@ -2322,8 +2333,8 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselcontent",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselcontent()"
     },
     {
@@ -2333,8 +2344,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselitem",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselitem()"
     },
     {
@@ -2344,8 +2355,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselprevious",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselprevious()"
     },
     {
@@ -2355,8 +2366,8 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "src_app_components_ui_carousel_carouselnext",
-      "community": 56,
-      "community_name": "Radix Slider",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "carouselnext()"
     },
     {
@@ -2960,8 +2971,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawer.tsx"
     },
     {
@@ -2971,8 +2982,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawer",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawer()"
     },
     {
@@ -2982,8 +2993,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawertrigger",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawertrigger()"
     },
     {
@@ -2993,8 +3004,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerportal",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawerportal()"
     },
     {
@@ -3004,8 +3015,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerclose",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawerclose()"
     },
     {
@@ -3015,8 +3026,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_draweroverlay",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "draweroverlay()"
     },
     {
@@ -3026,8 +3037,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawercontent",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawercontent()"
     },
     {
@@ -3037,8 +3048,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerheader",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawerheader()"
     },
     {
@@ -3048,8 +3059,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerfooter",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawerfooter()"
     },
     {
@@ -3059,8 +3070,8 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawertitle",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawertitle()"
     },
     {
@@ -3070,8 +3081,8 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "src_app_components_ui_drawer_drawerdescription",
-      "community": 17,
-      "community_name": "Select UI Kit",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "drawerdescription()"
     },
     {
@@ -3257,8 +3268,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_form",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "form.tsx"
     },
     {
@@ -3268,8 +3279,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formfieldcontextvalue",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formfieldcontextvalue"
     },
     {
@@ -3279,8 +3290,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formfieldcontext",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formfieldcontext"
     },
     {
@@ -3290,8 +3301,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formfield",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formfield()"
     },
     {
@@ -3301,8 +3312,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "src_app_components_ui_form_useformfield",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "useformfield()"
     },
     {
@@ -3312,8 +3323,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formitemcontextvalue",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formitemcontextvalue"
     },
     {
@@ -3323,8 +3334,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formitemcontext",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formitemcontext"
     },
     {
@@ -3345,8 +3356,8 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formlabel",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formlabel()"
     },
     {
@@ -3356,8 +3367,8 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formcontrol",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formcontrol()"
     },
     {
@@ -3367,8 +3378,8 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formdescription",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formdescription()"
     },
     {
@@ -3378,8 +3389,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "src_app_components_ui_form_formmessage",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "formmessage()"
     },
     {
@@ -3433,8 +3444,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "input-otp.tsx"
     },
     {
@@ -3444,8 +3455,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp_inputotp",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "inputotp()"
     },
     {
@@ -3455,8 +3466,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp_inputotpgroup",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "inputotpgroup()"
     },
     {
@@ -3466,8 +3477,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp_inputotpslot",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "inputotpslot()"
     },
     {
@@ -3477,8 +3488,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_app_components_ui_input_otp_inputotpseparator",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 17,
+      "community_name": "Select UI Kit",
       "norm_label": "inputotpseparator()"
     },
     {
@@ -3510,8 +3521,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_label",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "label.tsx"
     },
     {
@@ -3521,8 +3532,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_label_label",
-      "community": 25,
-      "community_name": "Accordion UI",
+      "community": 4,
+      "community_name": "Carousel React Deps",
       "norm_label": "label()"
     },
     {
@@ -3719,8 +3730,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigation-menu.tsx"
     },
     {
@@ -3730,8 +3741,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenu",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenu()"
     },
     {
@@ -3741,8 +3752,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenulist",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenulist()"
     },
     {
@@ -3752,8 +3763,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenuitem",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenuitem()"
     },
     {
@@ -3763,8 +3774,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenutriggerstyle",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenutriggerstyle"
     },
     {
@@ -3774,8 +3785,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenutrigger",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenutrigger()"
     },
     {
@@ -3785,8 +3796,8 @@
       "source_location": "L85",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenucontent",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenucontent()"
     },
     {
@@ -3796,8 +3807,8 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenuviewport",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenuviewport()"
     },
     {
@@ -3807,8 +3818,8 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenulink",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenulink()"
     },
     {
@@ -3818,8 +3829,8 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "src_app_components_ui_navigation_menu_navigationmenuindicator",
-      "community": 5,
-      "community_name": "Avatar Breadcrumb UI",
+      "community": 16,
+      "community_name": "Drawer UI Kit",
       "norm_label": "navigationmenuindicator()"
     },
     {
@@ -3928,8 +3939,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_popover",
-      "community": 79,
-      "community_name": "popover.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popover.tsx"
     },
     {
@@ -3939,8 +3950,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_popover_popover",
-      "community": 79,
-      "community_name": "popover.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popover()"
     },
     {
@@ -3950,8 +3961,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_app_components_ui_popover_popovertrigger",
-      "community": 79,
-      "community_name": "popover.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popovertrigger()"
     },
     {
@@ -3961,8 +3972,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_app_components_ui_popover_popovercontent",
-      "community": 79,
-      "community_name": "popover.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popovercontent()"
     },
     {
@@ -3972,8 +3983,8 @@
       "source_location": "L42",
       "_origin": "ast",
       "id": "src_app_components_ui_popover_popoveranchor",
-      "community": 79,
-      "community_name": "popover.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "popoveranchor()"
     },
     {
@@ -4038,8 +4049,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_resizable",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "resizable.tsx"
     },
     {
@@ -4049,8 +4060,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_app_components_ui_resizable_resizablepanelgroup",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "resizablepanelgroup()"
     },
     {
@@ -4060,8 +4071,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_app_components_ui_resizable_resizablepanel",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "resizablepanel()"
     },
     {
@@ -4071,8 +4082,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_app_components_ui_resizable_resizablehandle",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 25,
+      "community_name": "Accordion UI",
       "norm_label": "resizablehandle()"
     },
     {
@@ -4423,8 +4434,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_app_components_ui_sidebar_sidebarprovider",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 3,
+      "community_name": "shadcn Input Sheet",
       "norm_label": "sidebarprovider()"
     },
     {
@@ -4643,8 +4654,8 @@
       "source_location": "L602",
       "_origin": "ast",
       "id": "src_app_components_ui_sidebar_sidebarmenuskeleton",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 3,
+      "community_name": "shadcn Input Sheet",
       "norm_label": "sidebarmenuskeleton()"
     },
     {
@@ -4709,8 +4720,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_slider",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "slider.tsx"
     },
     {
@@ -4720,8 +4731,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_app_components_ui_slider_slider",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "slider()"
     },
     {
@@ -4929,8 +4940,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_textarea",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "textarea.tsx"
     },
     {
@@ -4940,8 +4951,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_app_components_ui_textarea_textarea",
-      "community": 8,
-      "community_name": "Badge Checkbox UI",
+      "community": 5,
+      "community_name": "Avatar Breadcrumb UI",
       "norm_label": "textarea()"
     },
     {
@@ -4951,8 +4962,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_group",
-      "community": 83,
-      "community_name": "toggle-group.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "toggle-group.tsx"
     },
     {
@@ -4962,8 +4973,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_group_togglegroupcontext",
-      "community": 83,
-      "community_name": "toggle-group.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "togglegroupcontext"
     },
     {
@@ -4973,8 +4984,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_group_togglegroup",
-      "community": 83,
-      "community_name": "toggle-group.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "togglegroup()"
     },
     {
@@ -4984,8 +4995,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_group_togglegroupitem",
-      "community": 83,
-      "community_name": "toggle-group.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "togglegroupitem()"
     },
     {
@@ -4995,8 +5006,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle",
-      "community": 83,
-      "community_name": "toggle-group.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "toggle.tsx"
     },
     {
@@ -5006,8 +5017,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_togglevariants",
-      "community": 83,
-      "community_name": "toggle-group.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "togglevariants"
     },
     {
@@ -5017,8 +5028,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "src_app_components_ui_toggle_toggle",
-      "community": 83,
-      "community_name": "toggle-group.tsx",
+      "community": 8,
+      "community_name": "Badge Checkbox UI",
       "norm_label": "toggle()"
     },
     {
@@ -5083,8 +5094,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_components_ui_use_mobile",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 3,
+      "community_name": "shadcn Input Sheet",
       "norm_label": "use-mobile.ts"
     },
     {
@@ -5094,8 +5105,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_app_components_ui_use_mobile_useismobile",
-      "community": 4,
-      "community_name": "Carousel React Deps",
+      "community": 3,
+      "community_name": "shadcn Input Sheet",
       "norm_label": "useismobile()"
     },
     {
@@ -5127,8 +5138,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_routes",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "routes.ts"
     },
     {
@@ -5138,8 +5149,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_app_routes_router",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "router"
     },
     {
@@ -5534,8 +5545,8 @@
       "source_location": "L251",
       "_origin": "ast",
       "id": "src_lib_db_clearuserscopeddata",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "clearuserscopeddata()"
     },
     {
@@ -5545,8 +5556,8 @@
       "source_location": "L273",
       "_origin": "ast",
       "id": "src_lib_db_ensureuserdatascope",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "ensureuserdatascope()"
     },
     {
@@ -5633,8 +5644,8 @@
       "source_location": "L327",
       "_origin": "ast",
       "id": "src_lib_db_fromisodate",
-      "community": 1,
-      "community_name": "PocketBase Sync Layer",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "fromisodate()"
     },
     {
@@ -5644,8 +5655,8 @@
       "source_location": "L332",
       "_origin": "ast",
       "id": "src_lib_db_formatrudate",
-      "community": 1,
-      "community_name": "PocketBase Sync Layer",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "formatrudate()"
     },
     {
@@ -5655,8 +5666,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_graphicspreference",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "graphicspreference.ts"
     },
     {
@@ -5666,8 +5677,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_graphicsquality",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "graphicsquality"
     },
     {
@@ -5677,8 +5688,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_listeners",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "listeners"
     },
     {
@@ -5688,8 +5699,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_emit",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "emit()"
     },
     {
@@ -5699,8 +5710,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_subscribe",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "subscribe()"
     },
     {
@@ -5710,8 +5721,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_readstored",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "readstored()"
     },
     {
@@ -5721,8 +5732,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_applytodom",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "applytodom()"
     },
     {
@@ -5732,8 +5743,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_applystoredgraphicsquality",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "applystoredgraphicsquality()"
     },
     {
@@ -5743,8 +5754,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_getgraphicsquality",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "getgraphicsquality()"
     },
     {
@@ -5754,8 +5765,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_setgraphicsquality",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "setgraphicsquality()"
     },
     {
@@ -5765,8 +5776,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_lib_graphicspreference_usegraphicsquality",
-      "community": 73,
-      "community_name": "idb",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "usegraphicsquality()"
     },
     {
@@ -5919,8 +5930,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_pocketbase",
-      "community": 84,
-      "community_name": "pocketbase.ts",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "pocketbase.ts"
     },
     {
@@ -5930,8 +5941,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_lib_pocketbase_resolvepocketbaseurl",
-      "community": 84,
-      "community_name": "pocketbase.ts",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "resolvepocketbaseurl()"
     },
     {
@@ -5941,8 +5952,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "src_lib_pocketbase_url",
-      "community": 84,
-      "community_name": "pocketbase.ts",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "url"
     },
     {
@@ -5952,8 +5963,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_pocketbase_pb",
-      "community": 84,
-      "community_name": "pocketbase.ts",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "pb"
     },
     {
@@ -5963,8 +5974,8 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "src_lib_pocketbase_ispocketbaseconfigured",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "ispocketbaseconfigured()"
     },
     {
@@ -5974,8 +5985,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_lib_pocketbase_getpocketbaseurl",
-      "community": 84,
-      "community_name": "pocketbase.ts",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "getpocketbaseurl()"
     },
     {
@@ -5985,8 +5996,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_lib_pocketbase_pbfileurl",
-      "community": 84,
-      "community_name": "pocketbase.ts",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "pbfileurl()"
     },
     {
@@ -6007,8 +6018,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_pushnotifications",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "pushnotifications.ts"
     },
     {
@@ -6029,8 +6040,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_lib_pushnotifications_urlbase64touint8array",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "urlbase64touint8array()"
     },
     {
@@ -6040,8 +6051,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_lib_pushnotifications_vapidpublickeyfromenv",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "vapidpublickeyfromenv()"
     },
     {
@@ -6051,8 +6062,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_lib_pushnotifications_resolvevapidpublickey",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "resolvevapidpublickey()"
     },
     {
@@ -6062,41 +6073,52 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_lib_pushnotifications_ispushsupported",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 43,
+      "community_name": "AppShell.tsx",
       "norm_label": "ispushsupported()"
+    },
+    {
+      "label": "hasOwnPushSubscription()",
+      "file_type": "code",
+      "source_file": "src/lib/pushNotifications.ts",
+      "source_location": "L46",
+      "_origin": "ast",
+      "id": "src_lib_pushnotifications_hasownpushsubscription",
+      "community": 27,
+      "community_name": "Popover UI",
+      "norm_label": "hasownpushsubscription()"
     },
     {
       "label": "ensurePushSubscription()",
       "file_type": "code",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L46",
+      "source_location": "L61",
       "_origin": "ast",
       "id": "src_lib_pushnotifications_ensurepushsubscription",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "ensurepushsubscription()"
     },
     {
       "label": "listNotifyUsers()",
       "file_type": "code",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L119",
+      "source_location": "L153",
       "_origin": "ast",
       "id": "src_lib_pushnotifications_listnotifyusers",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "listnotifyusers()"
     },
     {
       "label": "sendAppNotification()",
       "file_type": "code",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L143",
+      "source_location": "L177",
       "_origin": "ast",
       "id": "src_lib_pushnotifications_sendappnotification",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "sendappnotification()"
     },
     {
@@ -6777,8 +6799,8 @@
       "source_location": "L532",
       "_origin": "ast",
       "id": "src_lib_quickinputparser_hasunrecognizedfields",
-      "community": 57,
-      "community_name": "DesktopHomePage",
+      "community": 32,
+      "community_name": "clsx Utility",
       "norm_label": "hasunrecognizedfields()"
     },
     {
@@ -6788,8 +6810,8 @@
       "source_location": "L556",
       "_origin": "ast",
       "id": "src_lib_quickinputparser_lookslikefreeforminput",
-      "community": 57,
-      "community_name": "DesktopHomePage",
+      "community": 32,
+      "community_name": "clsx Utility",
       "norm_label": "lookslikefreeforminput()"
     },
     {
@@ -6799,8 +6821,8 @@
       "source_location": "L565",
       "_origin": "ast",
       "id": "src_lib_quickinputparser_shoulduseaifallback",
-      "community": 57,
-      "community_name": "DesktopHomePage",
+      "community": 32,
+      "community_name": "clsx Utility",
       "norm_label": "shoulduseaifallback()"
     },
     {
@@ -6810,8 +6832,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_session",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "session.ts"
     },
     {
@@ -6821,8 +6843,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_lib_session_usernamefields",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "usernamefields"
     },
     {
@@ -6832,8 +6854,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_lib_session_formatusername",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "formatusername()"
     },
     {
@@ -6854,8 +6876,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "src_lib_session_haslocalpbsession",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "haslocalpbsession()"
     },
     {
@@ -6865,8 +6887,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_lib_session_statusof",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "statusof()"
     },
     {
@@ -6876,8 +6898,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_lib_session_isauthrejected",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "isauthrejected()"
     },
     {
@@ -6887,8 +6909,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "src_lib_session_isnetworkerror",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "isnetworkerror()"
     },
     {
@@ -6898,8 +6920,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_lib_session_authfailuremessage",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "authfailuremessage()"
     },
     {
@@ -6909,8 +6931,8 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "src_lib_session_restoresession",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "restoresession()"
     },
     {
@@ -6920,8 +6942,8 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_lib_session_isauthenticated",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "isauthenticated()"
     },
     {
@@ -6931,8 +6953,8 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_lib_session_setsession",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "setsession()"
     },
     {
@@ -6942,8 +6964,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "src_lib_session_clearstubsession",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "clearstubsession()"
     },
     {
@@ -6953,8 +6975,8 @@
       "source_location": "L110",
       "_origin": "ast",
       "id": "src_lib_session_clearsession",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "clearsession()"
     },
     {
@@ -6964,8 +6986,8 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "src_lib_session_scopeafterauth",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "scopeafterauth()"
     },
     {
@@ -6975,8 +6997,8 @@
       "source_location": "L128",
       "_origin": "ast",
       "id": "src_lib_session_ensureserversession",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "ensureserversession()"
     },
     {
@@ -6986,8 +7008,8 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "src_lib_session_ensureauthprofile",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "ensureauthprofile()"
     },
     {
@@ -6997,8 +7019,8 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "src_lib_session_getcurrentuserfullname",
-      "community": 1,
-      "community_name": "PocketBase Sync Layer",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "getcurrentuserfullname()"
     },
     {
@@ -7008,8 +7030,8 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "src_lib_session_subscribeauthstore",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "subscribeauthstore()"
     },
     {
@@ -7019,8 +7041,8 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "src_lib_session_persistremember",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "persistremember()"
     },
     {
@@ -7030,8 +7052,8 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_lib_session_loginwithpassword",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "loginwithpassword()"
     },
     {
@@ -7041,8 +7063,8 @@
       "source_location": "L229",
       "_origin": "ast",
       "id": "src_lib_session_registerwithpassword",
-      "community": 16,
-      "community_name": "Drawer UI Kit",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "registerwithpassword()"
     },
     {
@@ -7250,8 +7272,8 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_lib_sync_subscribe",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "subscribe()"
     },
     {
@@ -7261,8 +7283,8 @@
       "source_location": "L216",
       "_origin": "ast",
       "id": "src_lib_sync_getsnapshot",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "getsnapshot()"
     },
     {
@@ -7283,8 +7305,8 @@
       "source_location": "L224",
       "_origin": "ast",
       "id": "src_lib_sync_usesyncstatus",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 1,
+      "community_name": "PocketBase Sync Layer",
       "norm_label": "usesyncstatus()"
     },
     {
@@ -7294,8 +7316,8 @@
       "source_location": "L228",
       "_origin": "ast",
       "id": "src_lib_sync_usesyncsnapshot",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "usesyncsnapshot()"
     },
     {
@@ -7734,8 +7756,8 @@
       "source_location": "L1172",
       "_origin": "ast",
       "id": "src_lib_sync_startofday",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "startofday()"
     },
     {
@@ -7745,8 +7767,8 @@
       "source_location": "L1178",
       "_origin": "ast",
       "id": "src_lib_sync_endofday",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "endofday()"
     },
     {
@@ -7756,8 +7778,8 @@
       "source_location": "L1184",
       "_origin": "ast",
       "id": "src_lib_sync_computeuserstats",
-      "community": 27,
-      "community_name": "Popover UI",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "computeuserstats()"
     },
     {
@@ -7767,8 +7789,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_main",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "main.tsx"
     },
     {
@@ -7778,8 +7800,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_main_onregisteredsw",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "onregisteredsw()"
     },
     {
@@ -7822,8 +7844,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_pages_appshell_shellcontext",
-      "community": 43,
-      "community_name": "AppShell.tsx",
+      "community": 1,
+      "community_name": "PocketBase Sync Layer",
       "norm_label": "shellcontext"
     },
     {
@@ -8042,8 +8064,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_authpage",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "authpage.tsx"
     },
     {
@@ -8053,8 +8075,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_pages_authpage_authpage",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "authpage()"
     },
     {
@@ -8130,8 +8152,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "src_pages_historypage_cachedtoshift",
-      "community": 1,
-      "community_name": "PocketBase Sync Layer",
+      "community": 0,
+      "community_name": "IndexedDB Shift Cache",
       "norm_label": "cachedtoshift()"
     },
     {
@@ -8856,15 +8878,15 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_pages_profilepage_notifysheet",
-      "community": 72,
-      "community_name": "date-fns",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "notifysheet()"
     },
     {
       "label": "LangSheet()",
       "file_type": "code",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L228",
+      "source_location": "L241",
       "_origin": "ast",
       "id": "src_pages_profilepage_langsheet",
       "community": 27,
@@ -8875,7 +8897,7 @@
       "label": "GraphicsSheet()",
       "file_type": "code",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L283",
+      "source_location": "L296",
       "_origin": "ast",
       "id": "src_pages_profilepage_graphicssheet",
       "community": 27,
@@ -8886,7 +8908,7 @@
       "label": "AboutSheet()",
       "file_type": "code",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L338",
+      "source_location": "L351",
       "_origin": "ast",
       "id": "src_pages_profilepage_aboutsheet",
       "community": 27,
@@ -8897,7 +8919,7 @@
       "label": "ProfilePage()",
       "file_type": "code",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L399",
+      "source_location": "L412",
       "_origin": "ast",
       "id": "src_pages_profilepage_profilepage",
       "community": 27,
@@ -8988,8 +9010,8 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "src_pages_quickinputhelp_quickinputhelpsheet",
-      "community": 43,
-      "community_name": "AppShell.tsx",
+      "community": 12,
+      "community_name": "Menubar UI Kit",
       "norm_label": "quickinputhelpsheet()"
     },
     {
@@ -9010,8 +9032,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_pages_registerpage",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "registerpage.tsx"
     },
     {
@@ -9021,8 +9043,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_pages_registerpage_fielderrors",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "fielderrors"
     },
     {
@@ -9032,8 +9054,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_pages_registerpage_validatefields",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "validatefields()"
     },
     {
@@ -9043,8 +9065,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_pages_registerpage_registerpage",
-      "community": 40,
-      "community_name": "Radix Avatar",
+      "community": 27,
+      "community_name": "Popover UI",
       "norm_label": "registerpage()"
     },
     {
@@ -10269,10 +10291,21 @@
       "norm_label": "\u043f\u043e\u0432\u0435\u0434\u0435\u043d\u0438\u0435"
     },
     {
-      "label": "\u041e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u044f \u043f\u043b\u0430\u0442\u0444\u043e\u0440\u043c",
+      "label": "\u0415\u0441\u043b\u0438 \u0437\u0430\u043f\u0438\u0441\u044c \u0432 notifications \u0435\u0441\u0442\u044c, \u0430 \u0431\u0430\u043d\u043d\u0435\u0440\u0430 \u043d\u0435\u0442",
       "file_type": "document",
       "source_file": "deploy/PUSH_NOTIFICATIONS.md",
       "source_location": "L53",
+      "_origin": "ast",
+      "id": "deploy_push_notifications_\u0435\u0441\u043b\u0438_\u0437\u0430\u043f\u0438\u0441\u044c_\u0432_notifications_\u0435\u0441\u0442\u044c_\u0430_\u0431\u0430\u043d\u043d\u0435\u0440\u0430_\u043d\u0435\u0442",
+      "community": 74,
+      "community_name": "@tanstack/react-virtual",
+      "norm_label": "\u0435\u0441\u043b\u0438 \u0437\u0430\u043f\u0438\u0441\u044c \u0432 notifications \u0435\u0441\u0442\u044c, \u0430 \u0431\u0430\u043d\u043d\u0435\u0440\u0430 \u043d\u0435\u0442"
+    },
+    {
+      "label": "\u041e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u044f \u043f\u043b\u0430\u0442\u0444\u043e\u0440\u043c",
+      "file_type": "document",
+      "source_file": "deploy/PUSH_NOTIFICATIONS.md",
+      "source_location": "L68",
       "_origin": "ast",
       "id": "deploy_push_notifications_\u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u044f_\u043f\u043b\u0430\u0442\u0444\u043e\u0440\u043c",
       "community": 74,
@@ -10283,7 +10316,7 @@
       "label": "\u041b\u043e\u0433\u0438",
       "file_type": "document",
       "source_file": "deploy/PUSH_NOTIFICATIONS.md",
-      "source_location": "L59",
+      "source_location": "L74",
       "_origin": "ast",
       "id": "deploy_push_notifications_\u043b\u043e\u0433\u0438",
       "community": 74,
@@ -10294,7 +10327,7 @@
       "label": "\u041e\u0442\u043a\u0430\u0442",
       "file_type": "document",
       "source_file": "deploy/PUSH_NOTIFICATIONS.md",
-      "source_location": "L65",
+      "source_location": "L80",
       "_origin": "ast",
       "id": "deploy_push_notifications_\u043e\u0442\u043a\u0430\u0442",
       "community": 74,
@@ -12816,7 +12849,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "pb_hooks/send_notification_push.pb.js",
-      "source_location": "L17",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "pb_hooks_send_notification_push_pb",
+      "target": "pb_hooks_send_notification_push_pb_relationid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "pb_hooks/send_notification_push.pb.js",
+      "source_location": "L24",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pb_hooks_send_notification_push_pb",
@@ -12827,7 +12871,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "pb_hooks/send_notification_push.pb.js",
-      "source_location": "L9",
+      "source_location": "L16",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pb_hooks_send_notification_push_pb",
@@ -12839,7 +12883,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "pb_hooks/send_notification_push.pb.js",
-      "source_location": "L19",
+      "source_location": "L34",
       "weight": 1.0,
       "_origin": "ast",
       "source": "pb_hooks_send_notification_push_pb_sendonepush",
@@ -22720,7 +22764,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L403",
+      "source_location": "L416",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -23409,7 +23453,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L47",
+      "source_location": "L62",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_ensurepushsubscription",
@@ -23421,7 +23465,19 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L120",
+      "source_location": "L47",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_pushnotifications_hasownpushsubscription",
+      "target": "src_lib_pocketbase_ispocketbaseconfigured"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/pushNotifications.ts",
+      "source_location": "L154",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_listnotifyusers",
@@ -23445,7 +23501,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L147",
+      "source_location": "L181",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_sendappnotification",
@@ -23719,11 +23775,22 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L46",
+      "source_location": "L61",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications",
       "target": "src_lib_pushnotifications_ensurepushsubscription",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/pushNotifications.ts",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_pushnotifications",
+      "target": "src_lib_pushnotifications_hasownpushsubscription",
       "confidence_score": 1.0
     },
     {
@@ -23741,7 +23808,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L119",
+      "source_location": "L153",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications",
@@ -23774,7 +23841,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L143",
+      "source_location": "L177",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications",
@@ -23880,7 +23947,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L78",
+      "source_location": "L105",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_ensurepushsubscription",
@@ -23904,7 +23971,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L60",
+      "source_location": "L75",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_ensurepushsubscription",
@@ -23928,7 +23995,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L50",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_ensurepushsubscription",
@@ -23968,8 +24035,44 @@
       "source_location": "L47",
       "weight": 1.0,
       "_origin": "ast",
+      "source": "src_lib_pushnotifications_hasownpushsubscription",
+      "target": "src_lib_session_haslocalpbsession"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/pushNotifications.ts",
+      "source_location": "L198",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_pushnotifications_sendappnotification",
+      "target": "src_lib_pushnotifications_hasownpushsubscription",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/pushNotifications.ts",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_origin": "ast",
       "source": "src_lib_pushnotifications_ensurepushsubscription",
       "target": "src_lib_session_haslocalpbsession"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/pushNotifications.ts",
+      "source_location": "L194",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_lib_pushnotifications_sendappnotification",
+      "target": "src_lib_pushnotifications_ensurepushsubscription",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -24013,7 +24116,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_notifysheet",
@@ -24025,7 +24128,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L129",
+      "source_location": "L163",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_listnotifyusers",
@@ -24037,7 +24140,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L120",
+      "source_location": "L154",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_listnotifyusers",
@@ -24061,7 +24164,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L89",
+      "source_location": "L91",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_notifysheet",
@@ -24073,7 +24176,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/pushNotifications.ts",
-      "source_location": "L147",
+      "source_location": "L181",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_lib_pushnotifications_sendappnotification",
@@ -26967,7 +27070,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L651",
+      "source_location": "L664",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -27183,7 +27286,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L415",
+      "source_location": "L428",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -27231,7 +27334,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L420",
+      "source_location": "L433",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -28823,7 +28926,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L401",
+      "source_location": "L414",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -29363,7 +29466,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L402",
+      "source_location": "L415",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -29699,7 +29802,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L424",
+      "source_location": "L437",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -31700,7 +31803,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L338",
+      "source_location": "L351",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage",
@@ -31755,7 +31858,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L283",
+      "source_location": "L296",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage",
@@ -31777,7 +31880,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L228",
+      "source_location": "L241",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage",
@@ -31821,7 +31924,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L399",
+      "source_location": "L412",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage",
@@ -31844,7 +31947,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L534",
+      "source_location": "L547",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -31856,7 +31959,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L579",
+      "source_location": "L592",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -31868,7 +31971,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/pages/ProfilePage.tsx",
-      "source_location": "L571",
+      "source_location": "L584",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_pages_profilepage_profilepage",
@@ -33142,7 +33245,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy/PUSH_NOTIFICATIONS.md",
-      "source_location": "L59",
+      "source_location": "L53",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "deploy_push_notifications_web_push_\u043f\u0440\u043e\u0431\u043d\u044b\u0439",
+      "target": "deploy_push_notifications_\u0435\u0441\u043b\u0438_\u0437\u0430\u043f\u0438\u0441\u044c_\u0432_notifications_\u0435\u0441\u0442\u044c_\u0430_\u0431\u0430\u043d\u043d\u0435\u0440\u0430_\u043d\u0435\u0442",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy/PUSH_NOTIFICATIONS.md",
+      "source_location": "L74",
       "weight": 1.0,
       "_origin": "ast",
       "source": "deploy_push_notifications_web_push_\u043f\u0440\u043e\u0431\u043d\u044b\u0439",
@@ -33153,7 +33267,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy/PUSH_NOTIFICATIONS.md",
-      "source_location": "L53",
+      "source_location": "L68",
       "weight": 1.0,
       "_origin": "ast",
       "source": "deploy_push_notifications_web_push_\u043f\u0440\u043e\u0431\u043d\u044b\u0439",
@@ -33164,7 +33278,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy/PUSH_NOTIFICATIONS.md",
-      "source_location": "L65",
+      "source_location": "L80",
       "weight": 1.0,
       "_origin": "ast",
       "source": "deploy_push_notifications_web_push_\u043f\u0440\u043e\u0431\u043d\u044b\u0439",
@@ -33950,5 +34064,5 @@
       "source_file": "Tasks/TASKS_start.md"
     }
   ],
-  "built_at_commit": "a19d6abf5f61903e69613c8fc6e11c0c423fca71"
+  "built_at_commit": "d33b7fd52bcfe21547cb7c44528dba20042b5a0c"
 }

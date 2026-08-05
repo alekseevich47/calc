@@ -2,19 +2,27 @@
 
 Пробные системные уведомления PWA при закрытом приложении. Можно откатить.
 
+## Важно: где лежит PocketBase
+
+Сервис `pocketbase-calc`:
+
+- `WorkingDirectory=/opt/pocketbase-calc`
+- hooks: **`/opt/pocketbase-calc/pb_hooks/`** (не `/var/www/calc/pb_hooks/`)
+- фронт / `scripts` / `node_modules/web-push`: `/var/www/calc`
+
 ## Что нужно на VPS
 
 1. Импортировать коллекции из `schema.json` (или создать вручную в админке):
    - `notifications` — `from`, `to`, `text`
    - `push_subscriptions` — `user`, `endpoint`, `p256dh`, `auth`
 
-2. Скопировать hooks и скрипт (CI заливает только `dist/`):
+2. Скопировать hook рядом с бинарником PB:
 
 ```bash
-# на сервере, из репо /var/www/calc
-cp pb_hooks/send_notification_push.pb.js /var/www/calc/pb_hooks/
-# scripts/send-web-push.mjs уже в репо; нужен node_modules/web-push
-cd /var/www/calc && pnpm install --prod=false
+scp pb_hooks/send_notification_push.pb.js calc-vps:/opt/pocketbase-calc/pb_hooks/
+# скрипт отправки — в репо фронта:
+# /var/www/calc/scripts/send-web-push.mjs + pnpm install (web-push)
+cd /var/www/calc && pnpm install
 ```
 
 3. Env в `pocketbase-calc.service` (ключи должны совпадать с `VITE_VAPID_PUBLIC_KEY` при сборке):
@@ -46,7 +54,7 @@ Nginx менять не нужно — `/calc/api/push-vapid-public-key` идё�
 ## Поведение
 
 - Профиль → «Уведомление» → текст + получатель из `users` (можно себе) → запись в `notifications`.
-- Hook `onRecordAfterCreateSuccess` → `node scripts/send-web-push.mjs` → Web Push.
+- Hook `onRecordAfterCreateSuccess` → `node /var/www/calc/scripts/send-web-push.mjs` → Web Push.
 - SW (`public/push-handler.js`, `importScripts` в vite PWA) показывает баннер ОС.
 - Подписка устройства пишется в `push_subscriptions` (при открытии sheet; без подписки «Отправить» disabled).
 
@@ -57,10 +65,11 @@ Nginx менять не нужно — `/calc/api/push-vapid-public-key` идё�
    ```bash
    sudo journalctl -u pocketbase-calc -n 100 --no-pager | grep send-notification-push
    ```
-   - нет строк вообще → hook не на сервере или PB не перезапущен (`cp pb_hooks/send_notification_push.pb.js` + `restart`).
+   - нет строк вообще → hook не в `/opt/pocketbase-calc/pb_hooks/` или PB не перезапущен.
+   - только `hook fired` без продолжения → старый hook падал на `collection().name` (обновлён).
    - `no subscriptions` → нет `push_subscriptions` для получателя.
    - `vapidPublic=NO` → нет `Environment=VAPID_*` в unit.
-   - `fail` → нет `node`/`web-push` (`pnpm install` в `/var/www/calc`) или ошибка FCM/APNs.
+   - `fail` → нет `node`/`web-push` в `/var/www/calc` или ошибка FCM/APNs.
 3. **Сборка фронта** должна содержать `VITE_VAPID_PUBLIC_KEY` (тот же public, что на сервере). После смены ключа — пересобрать + переустановить PWA / обновить SW.
 4. **iPhone:** только установленный PWA, iOS 16.4+; в Safari-вкладке push не работает.
 5. Закройте приложение полностью и подождите 2–3 с — баннер при закрытом PWA.

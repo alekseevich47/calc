@@ -247,7 +247,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
   - `location /calc/` → `alias /var/www/calc/dist/;` + `try_files` (статика SPA)
   - `location /calc/api/` → proxy на `pocketbase_calc/api/`
   - `location /calc/_/` → proxy на админку PocketBase calc
-- **PocketBase calc:** systemd `pocketbase-calc.service`, слушает `127.0.0.1:8095` (не наружу). CORS не нужен при том же origin (`VITE_POCKETBASE_URL=https://urban42.online/calc`). JS-hooks: `pb_hooks/parse_quick_input.pb.js` (ИИ-ввод; env `DEEPSEEK_API_KEY`, опц. `DEEPSEEK_MODEL`); `pb_hooks/send_notification_push.pb.js` (Web Push; env `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT`).
+- **PocketBase calc:** systemd `pocketbase-calc.service`, `WorkingDirectory=/opt/pocketbase-calc`, слушает `127.0.0.1:8095` (не наружу). CORS не нужен при том же origin (`VITE_POCKETBASE_URL=https://urban42.online/calc`). JS-hooks копировать в **`/opt/pocketbase-calc/pb_hooks/`** (не в `/var/www/calc/pb_hooks/`): `parse_quick_input.pb.js` (ИИ; `DEEPSEEK_*`); `send_notification_push.pb.js` (Web Push; `VAPID_*`; скрипт/`web-push` — из `/var/www/calc`).
 - **Код на сервере:** `/var/www/calc` (git clone `main`, есть `dist/`, Node 20 + pnpm). Продовый `.env` на сервере может отсутствовать — задавать `VITE_POCKETBASE_URL` при сборке.
 - **Обязательная сборка под подпуть** (иначе чёрный экран):
   - Vite `base: '/calc/'`

@@ -5,7 +5,8 @@
 ## Деплой на VPS
 
 1. Скопировать `pb_hooks/parse_quick_input.pb.js` в каталог hooks PocketBase calc  
-   (рядом с бинарником / WorkingDirectory сервиса — обычно `/var/www/calc/pb_hooks/`).  
+   (**`/opt/pocketbase-calc/pb_hooks/`** — рядом с бинарником / `WorkingDirectory` сервиса;  
+   не путать с `/var/www/calc/pb_hooks/`).  
    Без этого шага будет **404** на `/calc/api/parse-quick-input`.
 
    Маршрут в hook: `POST /api/parse-quick-input` (с префиксом `/api/` — иначе Nginx не проксирует).

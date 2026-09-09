@@ -13,3 +13,4 @@ backup_design
 *.log
 .turbo
 dev-dist
+.push-tmp

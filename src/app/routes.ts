@@ -31,5 +31,4 @@ export const router = createBrowserRouter(
       ],
     },
   ],
-  { basename: "/calc" },
 );

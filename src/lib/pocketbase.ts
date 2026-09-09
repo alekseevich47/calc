@@ -3,16 +3,13 @@ import PocketBase from "pocketbase";
 /**
  * Base URL для SDK (без хвоста `/api` — SDK добавит сам).
  * 1) `VITE_POCKETBASE_URL` из сборки
- * 2) same-origin fallback `/calc` — если env не прошили в бандл (частый кейс PWA/ручной деплой)
+ * 2) same-origin (корень домена) — если env не прошили в бандл
  */
 function resolvePocketBaseUrl(): string {
   const fromEnv = (import.meta.env.VITE_POCKETBASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
   if (fromEnv) return fromEnv;
-  if (typeof window !== "undefined") {
-    const path = window.location.pathname || "";
-    if (path === "/calc" || path.startsWith("/calc/")) {
-      return `${window.location.origin}/calc`;
-    }
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
   }
   return "";
 }

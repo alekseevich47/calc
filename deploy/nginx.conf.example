@@ -1,77 +1,78 @@
-# Calc — фрагменты для Nginx (подпуть /calc на общем server urban42.online)
+# Calc — Nginx для поддомена calc.loomixx.ru (корень домена, Vite base: '/')
 #
-# НЕ заменяет /etc/nginx/sites-available/urban целиком.
-# Вставлять только блоки ниже в существующий server { ... } на 443,
-# не трогая location других проектов (/, /api/, /tt/, /map/, /smile, …).
+# Отдельный server block — не трогать конфиги других проектов.
+# Диск: статика /var/www/calc/dist | PB /opt/pocketbase-calc → 127.0.0.1:8095
 #
-# Upstream (рядом с другими upstream в начале файла):
-#
-#   upstream pocketbase_calc {
-#       server 127.0.0.1:8095;
-#       keepalive 32;
-#   }
+#   sudo cp deploy/nginx.conf.example /etc/nginx/sites-available/calc.loomixx.ru
+#   sudo ln -sf /etc/nginx/sites-available/calc.loomixx.ru /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#   sudo certbot --nginx -d calc.loomixx.ru
 
-# Редирект без завершающего слэша
-location = /calc {
-    return 301 /calc/;
+upstream pocketbase_calc {
+    server 127.0.0.1:8095;
+    keepalive 32;
 }
 
-# SW / HTML / manifest — БЕЗ долгого кэша (отдельные location, не nested).
-# Иначе правило `expires 1y` на *.js кэширует sw.js на год → телефон
-# вечно открывает старый PWA (ПК после hard-refresh уже новый).
-location = /calc/sw.js {
-    alias /var/www/calc/dist/sw.js;
-    add_header Cache-Control "no-cache" always;
-}
-location = /calc/index.html {
-    alias /var/www/calc/dist/index.html;
-    add_header Cache-Control "no-cache" always;
-}
-location = /calc/manifest.webmanifest {
-    alias /var/www/calc/dist/manifest.webmanifest;
-    add_header Cache-Control "no-cache" always;
-    default_type application/manifest+json;
-}
-location ~* ^/calc/(workbox-[^/]+\.js)$ {
-    alias /var/www/calc/dist/$1;
-    add_header Cache-Control "no-cache" always;
+server {
+    listen 80;
+    server_name calc.loomixx.ru;
+    return 301 https://$host$request_uri;
 }
 
-# Статика SPA (сборка Vite с base: '/calc/')
-location /calc/ {
-    alias /var/www/calc/dist/;
+server {
+    listen 443 ssl http2;
+    server_name calc.loomixx.ru;
+
+    # ssl_certificate / ssl_certificate_key — certbot
+
+    root /var/www/calc/dist;
     index index.html;
-    try_files $uri $uri/ /calc/index.html;
 
-    location ~* \.html$ {
+    # SW / HTML / manifest / workbox — no-cache (иначе PWA год держит старый SW)
+    location = /sw.js {
+        add_header Cache-Control "no-cache" always;
+    }
+    location = /index.html {
+        add_header Cache-Control "no-cache" always;
+    }
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache" always;
+        default_type application/manifest+json;
+    }
+    location ~* ^/workbox-[^/]+\.js$ {
         add_header Cache-Control "no-cache" always;
     }
 
-    # Хэшированные ассеты — долгий кэш OK
-    location ~* \.(?:js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+    # Хэшированные ассеты Vite
+    location /assets/ {
         expires 1y;
         add_header Cache-Control "public, no-transform";
     }
-}
 
-# PocketBase API (same-origin → CORS не нужен)
-location /calc/api/ {
-    proxy_pass http://pocketbase_calc/api/;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    client_max_body_size 100M;
-}
+    # PocketBase API (same-origin → CORS не нужен)
+    location /api/ {
+        proxy_pass http://pocketbase_calc/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 100M;
+    }
 
-# PocketBase Admin UI
-location /calc/_/ {
-    proxy_pass http://pocketbase_calc/_/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+    # PocketBase Admin UI
+    location /_/ {
+        proxy_pass http://pocketbase_calc/_/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # SPA
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
 }

@@ -7,8 +7,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-/** Production (and local) mount path — must match Nginx `location /calc/` */
-const BASE = '/calc/'
+/** Production mount at domain root (calc.loomixx.ru) — must match Nginx root */
+const BASE = '/'
 
 function figmaAssetResolver() {
   return {
@@ -86,8 +86,8 @@ export default defineConfig({
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2}'],
         navigateFallback: `${BASE}index.html`,
-        navigateFallbackDenylist: [/^\/calc\/api\//, /^\/calc\/_\//],
-        // Web Push: push / notificationclick (public/push-handler.js → /calc/push-handler.js)
+        navigateFallbackDenylist: [/^\/api\//, /^\/_\//],
+        // Web Push: push / notificationclick (public/push-handler.js)
         importScripts: ['push-handler.js'],
       },
       devOptions: {

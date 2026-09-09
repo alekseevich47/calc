@@ -275,9 +275,9 @@
     "semantic_hash": "d9837f38cc05303254571985e3164050"
   },
   "src/app/routes.ts": {
-    "mtime": 1788950604.7907996,
-    "ast_hash": "cb7677c2882235e145b0f1397bb5f1b5",
-    "semantic_hash": ""
+    "mtime": 1784652797.0090797,
+    "ast_hash": "96a0e0a8c16d405219d744baa42bbf73",
+    "semantic_hash": "96a0e0a8c16d405219d744baa42bbf73"
   },
   "src/components/shared.tsx": {
     "mtime": 1784826347.714503,
@@ -290,9 +290,9 @@
     "semantic_hash": ""
   },
   "src/lib/pocketbase.ts": {
-    "mtime": 1788950604.8640447,
-    "ast_hash": "bec8bcfdbf7bf3314b92922c3f92c49f",
-    "semantic_hash": ""
+    "mtime": 1784696928.319027,
+    "ast_hash": "28a609ca8e4c5d7b6b912f2081cee368",
+    "semantic_hash": "28a609ca8e4c5d7b6b912f2081cee368"
   },
   "src/lib/session.ts": {
     "mtime": 1784659689.2706144,
@@ -355,14 +355,14 @@
     "semantic_hash": "b84a00cad3da1546ce9db508961f650b"
   },
   "vite.config.ts": {
-    "mtime": 1788950709.6757734,
-    "ast_hash": "fdb470cb5ca2a623f4481c466fd37fb0",
+    "mtime": 1785947835.7544792,
+    "ast_hash": "99ba865cf771a2a2cfc8a25b13ff9930",
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
-    "mtime": 1788950619.8486807,
-    "ast_hash": "bd4ad261b0508ef60f187082b3b27194",
-    "semantic_hash": ""
+    "mtime": 1784647859.2024279,
+    "ast_hash": "a6035bbe62c51f0d3675a77856424f0f",
+    "semantic_hash": "a6035bbe62c51f0d3675a77856424f0f"
   },
   "ATTRIBUTIONS.md": {
     "mtime": 1784570657.2560842,
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "deploy/fix-nginx-sw-cache.sh": {
-    "mtime": 1788950646.6413405,
-    "ast_hash": "ff80b9e58fab043e88535705fb93862e",
+    "mtime": 1784813619.9199908,
+    "ast_hash": "d56c2c95438efbdb1d8162a9db486b5a",
     "semantic_hash": ""
   },
   "src/lib/quickInputKeywords.ts": {
@@ -485,8 +485,8 @@
     "semantic_hash": ""
   },
   "deploy/AI_QUICK_INPUT.md": {
-    "mtime": 1788950700.36008,
-    "ast_hash": "0438176f3609cef01bacc8209fc77c67",
+    "mtime": 1785950782.0119128,
+    "ast_hash": "fea879b631a1bac446e5d0e33b73b1ba",
     "semantic_hash": ""
   },
   "src/components/MiniCalendar.tsx": {
@@ -495,18 +495,18 @@
     "semantic_hash": ""
   },
   "pb_hooks/send_notification_push.pb.js": {
-    "mtime": 1788950605.263991,
-    "ast_hash": "ba6312b2af54cd947dbce12cf960411c",
+    "mtime": 1785950742.202724,
+    "ast_hash": "d28a158144275f46ff710f16653c23b0",
     "semantic_hash": ""
   },
   "public/push-handler.js": {
-    "mtime": 1788950605.1853082,
-    "ast_hash": "a30f839687eda01f19770876e4af7e6f",
+    "mtime": 1785947246.6224668,
+    "ast_hash": "6670f64e9261b7bbaa1f8b6bb86f79cc",
     "semantic_hash": ""
   },
   "scripts/send-web-push.mjs": {
-    "mtime": 1788950605.263991,
-    "ast_hash": "587a8d15c1afa3650b84ea0251cae60c",
+    "mtime": 1785947258.5935552,
+    "ast_hash": "6234762f8baa4653faec14fcba220809",
     "semantic_hash": ""
   },
   "src/lib/pushNotifications.ts": {
@@ -515,8 +515,8 @@
     "semantic_hash": ""
   },
   "deploy/PUSH_NOTIFICATIONS.md": {
-    "mtime": 1788950700.36008,
-    "ast_hash": "b2c7d9e195788f314636fc3255c601f1",
+    "mtime": 1785950820.0912,
+    "ast_hash": "f0d09de3df2c5a3d53e54430f2dce4ec",
     "semantic_hash": ""
   }
 }

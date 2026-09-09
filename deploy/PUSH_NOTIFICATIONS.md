@@ -38,7 +38,7 @@ Environment=VAPID_SUBJECT=mailto:kkabenyuk@gmail.com
 
 ```bash
 VITE_VAPID_PUBLIC_KEY=BO9SpRxKX-YxSc-xbMyBvx5U_RL07CyR6TesIlY47ai-naKW4ZXw74-tpxBdieoEbEqLzBx6tyZo-mYtT8qnbko \
-VITE_POCKETBASE_URL=https://urban42.online/calc \
+VITE_POCKETBASE_URL=https://calc.loomixx.ru \
 pnpm build
 ```
 
@@ -49,7 +49,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart pocketbase-calc
 ```
 
-Nginx менять не нужно — `/calc/api/push-vapid-public-key` идёт через существующий `location /calc/api/`.
+Nginx менять не нужно — `/api/push-vapid-public-key` идёт через `location /api/` на `calc.loomixx.ru`.
 
 ## Поведение
 
@@ -69,7 +69,7 @@ Nginx менять не нужно — `/calc/api/push-vapid-public-key` идё�
    - только `hook fired` без продолжения → старый hook падал на `collection().name` (обновлён).
    - `no subscriptions` → нет `push_subscriptions` для получателя.
    - `vapidPublic=NO` → нет `Environment=VAPID_*` в unit.
-   - `fail` → нет `node`/`web-push` в `/var/www/calc` или ошибка FCM/APNs.
+   - `EACCES` на `/tmp/calc-push-*.json` → писать payload в `/var/www/calc/.push-tmp` (исправлено в hook).
 3. **Сборка фронта** должна содержать `VITE_VAPID_PUBLIC_KEY` (тот же public, что на сервере). После смены ключа — пересобрать + переустановить PWA / обновить SW.
 4. **iPhone:** только установленный PWA, iOS 16.4+; в Safari-вкладке push не работает.
 5. Закройте приложение полностью и подождите 2–3 с — баннер при закрытом PWA.

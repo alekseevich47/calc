@@ -5,7 +5,7 @@ self.addEventListener("push", (event) => {
   let data = {
     title: "Учёт разметки",
     body: "Новое уведомление",
-    url: "/calc/",
+    url: "/",
   };
   try {
     if (event.data) {
@@ -24,20 +24,20 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "Учёт разметки", {
       body: data.body || "",
-      icon: "/calc/icons/icon-192.png",
-      badge: "/calc/icons/icon-192.png",
-      data: { url: data.url || "/calc/" },
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url: data.url || "/" },
     }),
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/calc/";
+  const url = (event.notification.data && event.notification.data.url) || "/";
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
-        if (client.url.includes("/calc") && "focus" in client) {
+        if ("focus" in client) {
           return client.focus();
         }
       }

@@ -25,7 +25,7 @@ jobs:
 
       - name: Build
         env:
-          VITE_POCKETBASE_URL: https://urban42.online/calc
+          VITE_POCKETBASE_URL: https://calc.loomixx.ru
         run: pnpm run build
 
       # Secrets: SSH_HOST, SSH_USER, SSH_KEY

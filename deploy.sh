@@ -185,6 +185,13 @@ deploy_nginx() {
 
   need_sudo systemctl reload nginx
   log "nginx reloaded"
+
+  if [[ "$src" == "$src_ssl" ]]; then
+    if ! need_sudo grep -qE 'listen[[:space:]]+443' "$NGINX_AVAILABLE"; then
+      die "после деплоя нет listen 443 в $NGINX_AVAILABLE"
+    fi
+    log "HTTPS OK (listen 443 present)"
+  fi
 }
 
 # --- main ---

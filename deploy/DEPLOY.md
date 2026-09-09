@@ -23,13 +23,13 @@ cd /var/www/calc
 # или: bash deploy.sh
 ```
 
-Скрипт: `git pull` → `pnpm install/build` → копия `pb_hooks` → restart `pocketbase-calc` → nginx из `deploy/nginx.site.conf` (если есть LE-серт) / `nginx.conf.example` (если нет) → `nginx -t` + reload. При ошибке nginx — откат к `.bak.*`.
+Скрипт: `git pull` → `pnpm install/build` → копия `pb_hooks` → restart `pocketbase-calc`.  
+**Nginx по умолчанию не трогает** (чтобы не сбивать 443/certbot). Явно: `bash deploy.sh --nginx`.
 
 ```bash
-./deploy.sh --help
-./deploy.sh --hooks-only
-./deploy.sh --nginx-only
-./deploy.sh --skip-nginx
+bash deploy.sh --help
+bash deploy.sh --hooks-only
+bash deploy.sh --nginx-only   # только если нужно обновить sites-available/calc из nginx.site.conf
 ```
 
 ---
@@ -364,8 +364,8 @@ Hooks через Actions **не** деплоятся — копировать в
 
 ```bash
 cd /var/www/calc
-chmod +x deploy.sh   # один раз
-./deploy.sh
+bash deploy.sh
+# или: chmod +x deploy.sh && ./deploy.sh
 ```
 
 Вручную:

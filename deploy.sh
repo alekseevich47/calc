@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Универсальный деплой calc с GitHub на VPS.
-# Запуск на сервере из /var/www/calc:
-#   ./deploy.sh
-#   ./deploy.sh --help
+# Деплой calc с GitHub на VPS.
+#   bash deploy.sh
+#   bash deploy.sh --help
 #
-# По умолчанию: git pull → pnpm install/build → pb_hooks → nginx → restart PB → reload nginx
+# По умолчанию: git pull → pnpm install/build → pb_hooks → restart PocketBase
+# Nginx НЕ трогает (443/certbot не перезаписывает).
+# Явно: bash deploy.sh --nginx  → только deploy/nginx.site.conf (HTTPS)
 set -euo pipefail
 
 DOMAIN="${CALC_DOMAIN:-calc.loomixx.ru}"
@@ -18,7 +19,7 @@ BRANCH="${CALC_BRANCH:-main}"
 DO_PULL=1
 DO_BUILD=1
 DO_HOOKS=1
-DO_NGINX=1
+DO_NGINX=0
 DO_PB_RESTART=1
 
 log()  { printf '==> %s\n' "$*"; }
@@ -27,24 +28,24 @@ die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 usage() {
   cat <<EOF
-Usage: ./deploy.sh [options]
+Usage: bash deploy.sh [options]
 
-  (default)  git pull + build + hooks + nginx + restart PocketBase + reload nginx
+  (default)  git pull + build + hooks + restart PocketBase
+             nginx не меняет
 
 Options:
-  --skip-pull       не делать git pull
+  --skip-pull       не git pull
   --skip-build      не pnpm install/build
   --skip-hooks      не копировать pb_hooks
-  --skip-nginx      не обновлять nginx
   --skip-pb         не restart PocketBase
   --hooks-only      только hooks + restart PB
-  --nginx-only      только nginx (backup → site.conf → nginx -t → reload)
-  --build-only      только pull (опц.) + install/build
-  -h, --help        эта справка
+  --build-only      только pull (если не --skip-pull) + build
+  --nginx           обновить nginx из deploy/nginx.site.conf (только HTTPS, нужен LE-серт)
+  --nginx-only      только nginx (как --nginx, без pull/build/hooks)
+  -h, --help
 
-Env overrides:
-  CALC_DOMAIN  CALC_APP_DIR  CALC_PB_DIR  CALC_PB_SERVICE
-  CALC_NGINX_AVAILABLE  CALC_NGINX_ENABLED  CALC_BRANCH
+Env: CALC_DOMAIN CALC_APP_DIR CALC_PB_DIR CALC_PB_SERVICE
+     CALC_NGINX_AVAILABLE CALC_NGINX_ENABLED CALC_BRANCH
 EOF
 }
 
@@ -53,19 +54,19 @@ while [[ $# -gt 0 ]]; do
     --skip-pull)   DO_PULL=0 ;;
     --skip-build)  DO_BUILD=0 ;;
     --skip-hooks)  DO_HOOKS=0 ;;
-    --skip-nginx)  DO_NGINX=0 ;;
     --skip-pb)     DO_PB_RESTART=0 ;;
     --hooks-only)
       DO_PULL=0; DO_BUILD=0; DO_NGINX=0
       DO_HOOKS=1; DO_PB_RESTART=1
       ;;
-    --nginx-only)
-      DO_PULL=0; DO_BUILD=0; DO_HOOKS=0; DO_PB_RESTART=0
-      DO_NGINX=1
-      ;;
     --build-only)
       DO_HOOKS=0; DO_NGINX=0; DO_PB_RESTART=0
       DO_BUILD=1
+      ;;
+    --nginx)       DO_NGINX=1 ;;
+    --nginx-only)
+      DO_PULL=0; DO_BUILD=0; DO_HOOKS=0; DO_PB_RESTART=0
+      DO_NGINX=1
       ;;
     -h|--help) usage; exit 0 ;;
     *) die "unknown option: $1 (see --help)" ;;
@@ -73,7 +74,6 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-# Если скрипт лежит в клоне не в /var/www/calc — работаем относительно репо
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "$SCRIPT_DIR/package.json" && -d "$SCRIPT_DIR/deploy" ]]; then
   APP_DIR="$SCRIPT_DIR"
@@ -112,7 +112,6 @@ build_frontend() {
       warn ".env нет — сборка с env окружения / fallback origin"
     fi
   fi
-  # иначе vite-plugin-pwa: EACCES на dist/sw.js (после прошлых chown www-data)
   if [[ -d dist ]]; then
     log "очистка dist/ (права для сборки)"
     need_sudo rm -rf dist
@@ -144,26 +143,15 @@ restart_pb() {
   need_sudo systemctl --no-pager --full status "$PB_SERVICE" | head -20 || true
 }
 
+# Только по флагу --nginx / --nginx-only. Никогда не пишет HTTP-only example.
 deploy_nginx() {
-  local src_http="$APP_DIR/deploy/nginx.conf.example"
-  local src_ssl="$APP_DIR/deploy/nginx.site.conf"
-  local src
+  local src="$APP_DIR/deploy/nginx.site.conf"
   local bak
 
-  log "nginx site → $NGINX_AVAILABLE"
-
-  if [[ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]]; then
-    src="$src_ssl"
-    [[ -f "$src" ]] || die "missing $src"
-    if [[ ! -f /etc/letsencrypt/options-ssl-nginx.conf ]]; then
-      warn "нет /etc/letsencrypt/options-ssl-nginx.conf — certbot мог недоустановить SSL snippets"
-    fi
-    log "TLS cert found → using nginx.site.conf (HTTPS)"
-  else
-    src="$src_http"
-    [[ -f "$src" ]] || die "missing $src"
-    warn "нет LE-серта для $DOMAIN → HTTP-only (потом: sudo certbot --nginx -d $DOMAIN)"
-  fi
+  log "nginx (explicit) → $NGINX_AVAILABLE"
+  [[ -f "$src" ]] || die "missing $src"
+  [[ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]] \
+    || die "нет LE-серта /etc/letsencrypt/live/$DOMAIN — сначала certbot, не трогаю nginx"
 
   if [[ -f "$NGINX_AVAILABLE" ]]; then
     bak="${NGINX_AVAILABLE}.bak.$(date +%Y%m%d%H%M%S)"
@@ -178,24 +166,18 @@ deploy_nginx() {
     warn "nginx -t FAILED — откат"
     if [[ -n "${bak:-}" && -f "$bak" ]]; then
       need_sudo cp -a "$bak" "$NGINX_AVAILABLE"
-      need_sudo nginx -t
+      need_sudo nginx -t || true
     fi
     die "nginx config rejected"
   fi
 
+  need_sudo grep -qE 'listen[[:space:]]+443' "$NGINX_AVAILABLE" \
+    || die "в конфиге нет listen 443 — отказ"
   need_sudo systemctl reload nginx
-  log "nginx reloaded"
-
-  if [[ "$src" == "$src_ssl" ]]; then
-    if ! need_sudo grep -qE 'listen[[:space:]]+443' "$NGINX_AVAILABLE"; then
-      die "после деплоя нет listen 443 в $NGINX_AVAILABLE"
-    fi
-    log "HTTPS OK (listen 443 present)"
-  fi
+  log "nginx reloaded (443 OK)"
 }
 
-# --- main ---
-log "deploy calc @ $APP_DIR (domain=$DOMAIN)"
+log "deploy calc @ $APP_DIR (domain=$DOMAIN, nginx=$DO_NGINX)"
 
 [[ "$DO_PULL"  -eq 1 ]] && git_pull
 [[ "$DO_BUILD" -eq 1 ]] && build_frontend
@@ -204,6 +186,4 @@ log "deploy calc @ $APP_DIR (domain=$DOMAIN)"
 [[ "$DO_NGINX" -eq 1 ]] && deploy_nginx
 
 log "done"
-if [[ "$DO_BUILD" -eq 1 || "$DO_NGINX" -eq 1 ]]; then
-  log "check: curl -sI --resolve ${DOMAIN}:443:127.0.0.1 https://${DOMAIN}/ | head -5"
-fi
+log "check: curl -sI --resolve ${DOMAIN}:443:127.0.0.1 https://${DOMAIN}/ | head -5"

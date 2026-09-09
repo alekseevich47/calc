@@ -92,6 +92,10 @@ need_sudo() {
 
 git_pull() {
   log "git fetch/pull ($BRANCH)"
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    warn "локальные изменения — stash"
+    git stash push -u -m "deploy.sh auto-stash $(date +%Y%m%d%H%M%S)" || true
+  fi
   git fetch origin "$BRANCH"
   git checkout "$BRANCH"
   git pull --ff-only origin "$BRANCH"
@@ -108,11 +112,16 @@ build_frontend() {
       warn ".env нет — сборка с env окружения / fallback origin"
     fi
   fi
+  # иначе vite-plugin-pwa: EACCES на dist/sw.js (после прошлых chown www-data)
+  if [[ -d dist ]]; then
+    log "очистка dist/ (права для сборки)"
+    need_sudo rm -rf dist
+  fi
   pnpm install
   pnpm rebuild esbuild @tailwindcss/oxide 2>/dev/null || true
   pnpm build
   [[ -f dist/index.html ]] || die "dist/index.html не собран"
-  need_sudo chown -R www-data:www-data dist 2>/dev/null || true
+  need_sudo chown -R www-data:www-data dist
   log "build OK → $APP_DIR/dist"
 }
 

@@ -13,7 +13,24 @@
 
 Приложение на **корне** поддомена (`Vite base: '/'`). Same-origin: API — `/api/`, админка PB — `/_/`.
 
-Связанные файлы: `deploy/nginx.conf.example`, `deploy/AI_QUICK_INPUT.md`, `deploy/PUSH_NOTIFICATIONS.md`, `.env.example`.
+Связанные файлы: `deploy.sh` (обновление с GitHub), `deploy/nginx.conf.example`, `deploy/nginx.site.conf`, `deploy/AI_QUICK_INPUT.md`, `deploy/PUSH_NOTIFICATIONS.md`, `.env.example`.
+
+### Быстрое обновление на сервере
+
+```bash
+cd /var/www/calc
+./deploy.sh
+# или: bash deploy.sh
+```
+
+Скрипт: `git pull` → `pnpm install/build` → копия `pb_hooks` → restart `pocketbase-calc` → nginx из `deploy/nginx.site.conf` (если есть LE-серт) / `nginx.conf.example` (если нет) → `nginx -t` + reload. При ошибке nginx — откат к `.bak.*`.
+
+```bash
+./deploy.sh --help
+./deploy.sh --hooks-only
+./deploy.sh --nginx-only
+./deploy.sh --skip-nginx
+```
 
 ---
 
@@ -24,7 +41,7 @@
 3. [ ] PocketBase в `/opt/pocketbase-calc` (порт **8095**)  
 4. [ ] `git clone` → `/var/www/calc`  
 5. [ ] `.env` + `pnpm build`  
-6. [ ] Nginx `calc.loomixx.ru` + TLS  
+6. [ ] Nginx `sites-available/calc` + TLS  
 7. [ ] Схема PB (`schema.json`) + hooks  
 8. [ ] Проверка UI / API / SW  
 
@@ -233,6 +250,16 @@ pnpm build
 # → /var/www/calc/dist/
 ```
 
+Если pnpm 11 пишет `ERR_PNPM_IGNORED_BUILDS` / `Ignored build scripts: esbuild, @tailwindcss/oxide` — в репо уже разрешено в `pnpm-workspace.yaml` (`allowBuilds: true`). Подтяни свежий `main` и снова `pnpm install && pnpm build`. Временно без git:
+
+```bash
+# интерактивно:
+pnpm approve-builds
+# или сразу:
+pnpm rebuild esbuild @tailwindcss/oxide
+pnpm build
+```
+
 Права (чтобы nginx читал статику):
 
 ```bash
@@ -249,21 +276,15 @@ sudo chown -R www-data:www-data /var/www/calc/dist
 Референс в репо: `deploy/nginx.conf.example`.
 
 ```bash
-sudo cp /var/www/calc/deploy/nginx.conf.example /etc/nginx/sites-available/calc.loomixx.ru
-sudo ln -sf /etc/nginx/sites-available/calc.loomixx.ru /etc/nginx/sites-enabled/
+sudo cp /var/www/calc/deploy/nginx.conf.example /etc/nginx/sites-available/calc
+sudo ln -sf /etc/nginx/sites-available/calc /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-**Не** править конфиги других проектов. Только отдельный `server_name calc.loomixx.ru`.
+**Не** править конфиги других проектов. Файл сайта — `calc`; внутри `server_name calc.loomixx.ru`.
 
-Кратко, что внутри:
-
-- `root /var/www/calc/dist;`
-- SPA: `try_files $uri $uri/ /index.html;`
-- `/api/` → proxy `127.0.0.1:8095/api/`
-- `/_/` → админка PB
-- no-cache на `sw.js`, `index.html`, `workbox-*.js`, `manifest.webmanifest`
+В примере сначала только **`listen 80`** (без ssl). Иначе `nginx -t` падает: `no "ssl_certificate" is defined`. TLS добавляет certbot.
 
 ### 6.2 TLS
 
@@ -271,7 +292,7 @@ sudo systemctl reload nginx
 sudo certbot --nginx -d calc.loomixx.ru
 ```
 
-Certbot допишет `ssl_certificate` в server block.
+Certbot допишет `listen 443 ssl`, пути к сертификатам и редирект. На новых nginx вместо `listen … http2` будет `http2 on;` — это нормально.
 
 ### 6.3 Проверка кэша SW
 
@@ -339,6 +360,16 @@ Hooks через Actions **не** деплоятся — копировать в
 
 ## 9. Обновление (повторные выгрузки)
 
+Рекомендуется:
+
+```bash
+cd /var/www/calc
+chmod +x deploy.sh   # один раз
+./deploy.sh
+```
+
+Вручную:
+
 ```bash
 cd /var/www/calc
 git pull
@@ -350,7 +381,7 @@ sudo cp pb_hooks/*.pb.js /opt/pocketbase-calc/pb_hooks/
 sudo systemctl restart pocketbase-calc
 ```
 
-Nginx reload — только если менялся конфиг сайта.
+Nginx reload — только если менялся конфиг сайта (или через `./deploy.sh` / `./deploy.sh --nginx-only`).
 
 После смены SW на телефоне иногда: очистить данные сайта / переустановить PWA («На экран Домой»).
 
@@ -401,6 +432,6 @@ pnpm install && pnpm build
 sudo cp pb_hooks/*.pb.js /opt/pocketbase-calc/pb_hooks/
 sudo systemctl restart pocketbase-calc
 
-# обновление:
-cd /var/www/calc && git pull && pnpm install && pnpm build
+# дальше обновления:
+cd /var/www/calc && ./deploy.sh
 ```

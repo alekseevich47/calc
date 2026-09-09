@@ -241,7 +241,7 @@ Mobile / desktop shell — **без** phone mockup 390×844 и без серог
 
 - **Публичный URL:** `https://calc.loomixx.ru/` (корень поддомена; Vite `base: '/'`, без basename).
 - **Не путать** с другим проектом: его PB в `/opt/pocketbase` — **не трогать**. Calc PB: `/opt/pocketbase-calc`, `127.0.0.1:8095`.
-- **Nginx:** отдельный `server_name calc.loomixx.ru` (референс `deploy/nginx.conf.example`). Не править чужие site-конфиги.
+- **Nginx:** отдельный файл `/etc/nginx/sites-available/calc` (`server_name calc.loomixx.ru`, референс `deploy/nginx.conf.example`). Не править чужие site-конфиги.
   - `root /var/www/calc/dist;` + `try_files` SPA
   - `location /api/` → `pocketbase_calc/api/`
   - `location /_/` → админка PB
